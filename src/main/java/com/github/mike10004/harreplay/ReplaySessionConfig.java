@@ -2,8 +2,10 @@ package com.github.mike10004.harreplay;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.io.input.TailerListenerAdapter;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,5 +76,25 @@ public class ReplaySessionConfig {
             this.harFile = checkNotNull(harFile);
             return new ReplaySessionConfig(this);
         }
+
+        public Builder addOutputEchoes() {
+            return addStdoutListener(new PrintStreamTailerListener(System.out))
+                    .addStderrListener(new PrintStreamTailerListener(System.err));
+        }
+
+        private static class PrintStreamTailerListener extends TailerListenerAdapter {
+
+            private final PrintStream destination;
+
+            private PrintStreamTailerListener(PrintStream destination) {
+                this.destination = checkNotNull(destination);
+            }
+
+            @Override
+            public void handle(String line) {
+                destination.println(line);
+            }
+        }
     }
+
 }

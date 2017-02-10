@@ -5,6 +5,8 @@ import com.google.common.io.Resources;
 
 public class ModifiedSwitcheroo {
 
+    private ModifiedSwitcheroo() {}
+
     public static ByteSource getExtensionCrxByteSource() {
         return Resources.asByteSource(ModifiedSwitcheroo.class.getResource("/modified-switcheroo.crx"));
     }
