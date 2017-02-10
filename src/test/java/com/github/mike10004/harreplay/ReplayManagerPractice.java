@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class ReplayManagerPractice {
@@ -33,7 +34,7 @@ public class ReplayManagerPractice {
     private static class InteractiveChromeDriverClient implements ReplayClient<Void> {
 
         @Override
-        public Void useReplayServer(Path tempDir, HostAndPort proxy) throws Exception {
+        public Void useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception {
             File profileDir = tempDir.resolve("chrome-profile").toFile();
             profileDir.mkdirs();
             if (!profileDir.isDirectory()) {

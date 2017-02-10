@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class ReplayManagerTester {
@@ -26,24 +27,30 @@ public class ReplayManagerTester {
     }
 
     public interface ReplayClient<T> {
-        T useReplayServer(Path tempDir, HostAndPort proxy) throws Exception;
+        T useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception;
     }
 
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer port) throws Exception {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replay = new ReplayManager(replayManagerConfig);
-        ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir);
+        ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir)
+                .addOutputEchoes();
         if (port != null) {
             rscb.port(port);
         }
         ReplaySessionConfig sessionParams = rscb.build(harFile);
         HostAndPort proxy = HostAndPort.fromParts("localhost", sessionParams.port);
+        System.out.format("exercise: proxy = %s%n", proxy);
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        T result;
+        T result = null;
+        boolean executed = false;
         try {
             ListenableFuture<ProgramWithOutputFilesResult> programFuture = replay.startAsync(executorService, sessionParams);
             Futures.addCallback(programFuture, new ProgramInfoFutureCallback());
-            result = client.useReplayServer(tempDir, proxy);
+            if (!programFuture.isDone() && !programFuture.isCancelled()) {
+                result = client.useReplayServer(tempDir, proxy, programFuture);
+                executed = true;
+            }
             programFuture.cancel(true);
             if (!programFuture.isDone()) {
                 try {
@@ -52,6 +59,9 @@ public class ReplayManagerTester {
                 }
             }
             System.out.println("program future has finished");
+        } catch (Exception e) {
+            System.err.format("exercise() aborting abnormally due to %s%n", e.toString());
+            throw e;
         } finally {
             if (!executorService.isShutdown()) {
                 System.out.println("shutting down");
@@ -59,9 +69,17 @@ public class ReplayManagerTester {
                 System.out.println("finished shutdown");
             }
         }
+        if (!executed) {
+            throw new NeverExecutedException();
+        }
         return result;
     }
 
+    private static class NeverExecutedException extends Exception {
+        public NeverExecutedException() {
+            super("client never used replay server because process finished before it could");
+        }
+    }
 
     private static class ProgramInfoFutureCallback implements FutureCallback<ProgramWithOutputResult> {
         @Override
@@ -80,6 +98,7 @@ public class ReplayManagerTester {
         @Override
         public void onFailure(Throwable t) {
             if (!(t instanceof java.util.concurrent.CancellationException)) {
+                System.err.println("program exited unexpectedly");
                 t.printStackTrace(System.err);
             } else {
                 System.out.println("program was cancelled");
