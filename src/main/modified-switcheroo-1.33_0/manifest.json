@@ -1,0 +1,17 @@
+{
+   "background": {
+      "scripts": [ "request.js" ]
+   },
+   "browser_action": {
+      "default_icon": "switch-browser.png",
+      "default_popup": "switcheroo.html",
+      "default_title": "Add switcheroo rules."
+   },
+   "description": "Setup custom redirect rules for any http request i.e pages, scripts, images etc. Uses a simple string replace to do this.",
+   "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDcqdMhBzEFn4EBoCRK8+dbss9nLGf/LwPmC1aZ39Rd/AsqOijJ4neX+g1E920zq0ANx50hx0Ngqy20SqJbD8qYlQnI2GPBoLePZGgieijrP6O7oCzvEBlyLzsxhFNKK4RshwQcAeEhG6bFlJ0IUjZ6Z9dfeaAPmhPJV58j0thglQIDAQAB",
+   "manifest_version": 2,
+   "name": "Switcheroo Redirector",
+   "permissions": [ "webRequest", "webRequestBlocking", "\u003Call_urls>", "tabs" ],
+   "update_url": "http://clients2.google.com/service/update2/crx",
+   "version": "1.33"
+}
