@@ -1,10 +1,12 @@
 package com.github.mike10004.harreplay;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,14 +33,23 @@ public class ReplaySessionConfig {
         stderrListeners = ImmutableList.copyOf(builder.stderrListeners);
     }
 
+    public static Builder usingTempDir() throws IOException {
+        File systemTempDir = FileUtils.getTempDirectory();
+        return usingNewTempDirUnder(systemTempDir.toPath());
+    }
+
+    public static Builder usingNewTempDirUnder(Path tempDir) throws IOException {
+        Path child = java.nio.file.Files.createTempDirectory(tempDir, "ServerReplay");
+        return builder(child);
+    }
+
     public static Builder builder(Path scratchDir) {
         return new Builder(scratchDir);
     }
 
-    public static final int DEFAULT_PORT = 49877;
-
-    @SuppressWarnings("unused")
     public static final class Builder {
+
+        public static final int DEFAULT_PORT = 49877;
 
         private final Path scratchDir;
         private int port = DEFAULT_PORT;
