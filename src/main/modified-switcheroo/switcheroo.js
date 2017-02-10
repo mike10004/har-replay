@@ -1,4 +1,11 @@
-var rules = [];
+const DEFAULT_RULES = [
+    {
+        from : 'https://',
+        to : 'http://',
+        isActive: true
+    }
+];
+var rules = DEFAULT_RULES.concat([]);
 var rulesUl, newRuleDiv;
 
 function refreshRules() {
@@ -11,11 +18,11 @@ function refreshRules() {
 			var rule = rules[i];
 			var li = $('<li class="' + rule.isActive + '" data-rule-index="' + i + '"/>');
 			var fromSpan = '<span class="from" title="' + rule.from + '">' + textMinifier(rule.from) + '</span>';
-			var seperator = '<span class="seperator">&gt;</span>'
+			var seperator = '<span class="seperator">&gt;</span>';
 			var toSpan = '<span class="to" title="' + rule.to + '">' + textMinifier(rule.to) + '</span>';
 			var checked = rule.isActive ? 'checked="checked"' : '';
-			var active = '<input type="checkbox" class="active" name="active" ' + checked + '/>'
-			var editLink = '<a href="#" class="editRuleButton">Edit</a>'
+			var active = '<input type="checkbox" class="active" name="active" ' + checked + '/>';
+			var editLink = '<a href="#" class="editRuleButton">Edit</a>';
 			var removeLink = '<a href="#" class="removeRuleButton">Remove</a>';		
 			li.append(fromSpan + seperator + toSpan + active + editLink + removeLink);
 			rulesUl.append(li);
@@ -38,7 +45,7 @@ function textMinifier(text){
 }
 
 function addRule() {
-	var fromInput, toInput, typeDropDown;
+	var fromInput, toInput;
 
 	fromInput = newRuleDiv.children('#fromInput');
 	toInput = newRuleDiv.children('#toInput');
@@ -49,6 +56,7 @@ function addRule() {
 		isActive: true
 	};
 
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		rule : newRule
 	}, function(response) {
@@ -61,7 +69,8 @@ function addRule() {
 }
 
 function removeAllRules() {
-	
+
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		removeAllRules : true
 	}, function(response) {
@@ -71,6 +80,7 @@ function removeAllRules() {
 }
 
 function toggleRule(index){
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		toggleIndex : index
 	}, function(response) {
@@ -80,7 +90,8 @@ function toggleRule(index){
 }
 
 function editRule(index, rule) {
-	
+
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		editIndex : index,
 		updatedRule : rule
@@ -91,7 +102,8 @@ function editRule(index, rule) {
 }
 
 function removeRule(index) {
-	
+
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		removeIndex : index
 	}, function(response) {
@@ -125,21 +137,11 @@ function convertRuleToEditMode(ruleParent, editIndex, rule){
 	ruleParent.append(editRuleDiv);
 }
 
-function getRuleFromListItem(listItem){
-	var from = listItem.children('.from').text();
-	var to = listItem.children('.to').text();
-
-	return {
-		from:from,
-		to:to,
-	};
-}
-
-
 $(document).ready(function() {
 	rulesUl = $('#rules');
-	newRuleDiv = $('#new-rule')
-	
+	newRuleDiv = $('#new-rule');
+
+    //noinspection JSUnresolvedVariable,JSUnresolvedFunction
 	chrome.extension.sendMessage({
 		getRules : true
 	}, function(response) {
@@ -155,19 +157,20 @@ $(document).ready(function() {
 		removeAllRules();
 	});
 
-	$('#rules').delegate('.active', 'click', function() {
+	rulesUl.delegate('.active', 'click', function() {
 		toggleRule(parseInt($(this).parent().attr('data-rule-index')));
 	});
 	
-	$('#rules').delegate('.removeRuleButton', 'click', function() {
+	rulesUl.delegate('.removeRuleButton', 'click', function() {
 		removeRule(parseInt($(this).parent().attr('data-rule-index')));
 	});
 
-	$('#rules').delegate('.editRuleButton', 'click', function() {
+	rulesUl.delegate('.editRuleButton', 'click', function() {
 		var ruleParent = $(this).parent();
 		var editIndex = parseInt(ruleParent.attr('data-rule-index'));
 
-		chrome.extension.sendMessage({
+        //noinspection JSUnresolvedVariable,JSUnresolvedFunction
+        chrome.extension.sendMessage({
 			getIndex : editIndex
 		}, function(response) {
 			convertRuleToEditMode(ruleParent, editIndex, response.rule);
@@ -176,3 +179,4 @@ $(document).ready(function() {
 
 	$('#fromInput').focus();
 });
+
