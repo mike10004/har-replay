@@ -15,8 +15,7 @@ If you have a HAR file handy, you can replay it as shown here:
     public static void example(File harFile) throws IOException {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replayManager = new ReplayManager(replayManagerConfig);
-        ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
-                .build(harFile);
+        ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir().build(harFile);
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         try {
             Future<?> server = replayManager.startAsync(executorService, sessionConfig);
