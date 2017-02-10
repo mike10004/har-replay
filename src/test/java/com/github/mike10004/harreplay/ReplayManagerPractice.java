@@ -20,7 +20,7 @@ public class ReplayManagerPractice {
 
     public static void main(String[] args) throws Exception {
         File buildDir = new File(System.getProperty("user.dir"), "target");
-        Path tempDir = java.nio.file.Files.createTempDirectory(buildDir.toPath(), "NodeServerReplayTest");
+        Path tempDir = java.nio.file.Files.createTempDirectory(buildDir.toPath(), ReplayManagerPractice.class.getSimpleName());
         File harFile;
         if (args.length > 0) {
             harFile = new File(args[0]);

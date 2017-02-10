@@ -1,4 +1,12 @@
-var 
+const DEFAULT_RULES = [
+    {
+        from : 'https://',
+        to : 'http://',
+        isActive: true
+    }
+];
+
+var
 	rules,
 	lastRequestId;
 
@@ -6,7 +14,7 @@ if(localStorage['rules']){
 	rules = JSON.parse(localStorage['rules']);
 }
 else{
-	rules = [];
+	rules = DEFAULT_RULES.concat([]);
 }
 
 chrome.webRequest.onBeforeRequest.addListener(function(details) {
