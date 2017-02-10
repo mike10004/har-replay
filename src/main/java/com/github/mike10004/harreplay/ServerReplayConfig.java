@@ -1,9 +1,8 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ServerReplayConfig.StringHolder.StringHolderTypeAdapter;
+import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral.StringLiteralTypeAdapter;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
@@ -21,6 +20,7 @@ public class ServerReplayConfig {
         this(1, ImmutableList.of(), ImmutableList.of());
     }
 
+    @SuppressWarnings("unused")
     public static ServerReplayConfig empty() {
         return new ServerReplayConfig();
     }
@@ -51,31 +51,26 @@ public class ServerReplayConfig {
         }
     }
 
-    @JsonAdapter(StringHolderTypeAdapter.class)
-    public static class StringHolder implements MappingMatch, ReplacementMatch, ReplacementReplace {
+    @com.google.gson.annotations.JsonAdapter(StringLiteralTypeAdapter.class)
+    public static class StringLiteral implements MappingMatch, ReplacementMatch, ReplacementReplace {
 
         public final String value;
 
-        @SuppressWarnings("unused") // for deserialization
-        private StringHolder() {
-            value = null;
-        }
-
-        public StringHolder(String value) {
+        public StringLiteral(String value) {
             this.value = checkNotNull(value);
         }
 
-        public static class StringHolderTypeAdapter extends TypeAdapter<StringHolder> {
+        public static class StringLiteralTypeAdapter extends TypeAdapter<StringLiteral> {
 
             @Override
-            public void write(JsonWriter out, StringHolder value) throws IOException {
+            public void write(JsonWriter out, StringLiteral value) throws IOException {
                 out.value(value.value);
             }
 
             @Override
-            public StringHolder read(JsonReader in) throws IOException {
+            public StringLiteral read(JsonReader in) throws IOException {
                 String value = in.nextString();
-                return new StringHolder(value);
+                return new StringLiteral(value);
             }
         }
     }
@@ -125,30 +120,16 @@ public class ServerReplayConfig {
         }
 
         public static Replacement literal(String match, String replace) {
-            return new Replacement<>(new StringHolder(match), new StringHolder(replace));
+            return new Replacement<>(new StringLiteral(match), new StringLiteral(replace));
         }
 
-        public static Replacement regexToString(String regex, String replace) {
-            return new Replacement<>(new RegexHolder(regex), new StringHolder(replace));
-        }
-    }
-
-    public static abstract class HolderTypeAdapter<T> extends TypeAdapter<T> {
-
-        @Override
-        public void write(JsonWriter out, T holder) throws IOException {
-            out.value(getHeldValue(holder));
+        public static Replacement regexToString(String matchRegex, String replaceLiteral) {
+            return new Replacement<>(new RegexHolder(matchRegex), new StringLiteral(replaceLiteral));
         }
 
-        @Override
-        public T read(JsonReader in) throws IOException {
-            String value = in.nextString();
-            T holder = construct(value);
-            return holder;
+        public static Replacement varToVar(String matchVariable, String replaceVariable) {
+            return new Replacement<>(new VariableHolder(matchVariable), new VariableHolder(replaceVariable));
         }
-
-        protected abstract T construct(String heldValue);
-        protected abstract String getHeldValue(T holder);
     }
 
 }
