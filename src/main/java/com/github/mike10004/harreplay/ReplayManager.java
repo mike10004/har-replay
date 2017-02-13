@@ -57,17 +57,28 @@ public class ReplayManager {
         ListenableFuture<ProgramWithOutputFilesResult> future = program.executeAsync(executorService);
         addTailers(session.stdoutListeners, stdoutFile, future);
         addTailers(session.stderrListeners, stderrFile, future);
-        boolean listening = pollUntilListening(HostAndPort.fromParts("localhost", session.port), future);
-        if (!listening) {
-            throw new ServerFailedToStartException();
-        }
+        pollUntilListening(HostAndPort.fromParts("localhost", session.port), future);
         return future;
     }
 
-    private static class ServerFailedToStartException extends IOException {}
+    @SuppressWarnings("unused")
+    private static class ServerFailedToStartException extends IOException {
 
-    private static final long intervalMs = 20;
-    private static final int maxPolls = 10;
+        public ServerFailedToStartException() {
+        }
+
+        public ServerFailedToStartException(String message) {
+            super(message);
+        }
+
+        public ServerFailedToStartException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public ServerFailedToStartException(Throwable cause) {
+            super(cause);
+        }
+    }
 
     /**
      * Polls until the server is actually listening. This usually takes less than 100ms.
@@ -78,23 +89,29 @@ public class ReplayManager {
      * @param server the server
      * @return true if we confirm the server is listening before timeout
      */
-    private boolean pollUntilListening(HostAndPort server, Future<?> future) {
+    private void pollUntilListening(HostAndPort server, Future<?> future) throws ServerFailedToStartException {
         int numPolls = 0;
-        while (numPolls < maxPolls && !future.isCancelled() && !future.isDone()) {
+        while (numPolls < replayManagerConfig.serverReadinessMaxPolls) {
+            if (future.isCancelled()) {
+                throw new ServerFailedToStartException("server was terminated");
+            }
+            if (future.isDone()) {
+                throw new ServerFailedToStartException("server was stopped unexpectedly");
+            }
             try (Socket socket = new Socket(server.getHost(), server.getPort())) {
                 LoggerFactory.getLogger(getClass()).debug("confirmed server listening on {} by opening {}", server, socket);
-                return true;
+                return;
             } catch (IOException e) {
                 LoggerFactory.getLogger(getClass()).trace("could not make connection to {} due to {}", server, e.toString());
             }
             numPolls++;
             try {
-                Thread.sleep(intervalMs);
+                Thread.sleep(replayManagerConfig.serverReadinessPollIntervalMillis);
             } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
+                throw new ServerFailedToStartException(e);
             }
         }
-        return false;
+        throw new ServerFailedToStartException(String.format("failed to start after polling %d times at intervals of %d milliseconds", numPolls, replayManagerConfig.serverReadinessPollIntervalMillis));
     }
 
     private void addTailers(Iterable<TailerListener> tailerListeners, File file, ListenableFuture<?> future) {

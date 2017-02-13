@@ -23,6 +23,8 @@ public class ReplayManagerConfig {
     @Nullable
     private final File nodeExecutable;
     public final ServerReplayClientDirProvider serverReplayClientDirProvider;
+    public final long serverReadinessPollIntervalMillis = 20;
+    public final int serverReadinessMaxPolls = 50;
 
     private ReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
