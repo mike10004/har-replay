@@ -15,6 +15,9 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * Class that represents a configuration of a server replay session.
+ */
 public class ReplaySessionConfig {
 
     public final Path scratchDir;
@@ -54,7 +57,7 @@ public class ReplaySessionConfig {
         private final Path scratchDir;
         private int port = DEFAULT_PORT;
         private File harFile;
-        private ServerReplayConfig serverReplayConfig = ServerReplayConfig.basic();
+        private ServerReplayConfig serverReplayConfig = ServerReplayConfig.empty();
         private List<TailerListener> stdoutListeners = new ArrayList<>();
         private List<TailerListener> stderrListeners = new ArrayList<>();
 

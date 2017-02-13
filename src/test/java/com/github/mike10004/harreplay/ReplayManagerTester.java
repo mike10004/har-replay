@@ -2,14 +2,19 @@ package com.github.mike10004.harreplay;
 
 import com.github.mike10004.nativehelper.ProgramWithOutputFilesResult;
 import com.github.mike10004.nativehelper.ProgramWithOutputResult;
+import com.google.common.base.Strings;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,6 +22,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class ReplayManagerTester {
+
+    private static final String SYSPROP_SERVER_REPLAY_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
 
     private final Path tempDir;
     private final File harFile;
@@ -30,10 +37,15 @@ public class ReplayManagerTester {
         T useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception;
     }
 
+    protected ServerReplayConfig configureReplayModule() {
+        return ServerReplayConfig.empty();
+    }
+
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer port) throws Exception {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replay = new ReplayManager(replayManagerConfig);
         ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir)
+                .config(configureReplayModule())
                 .addOutputEchoes();
         if (port != null) {
             rscb.port(port);
@@ -104,6 +116,46 @@ public class ReplayManagerTester {
                 System.out.println("program was cancelled");
             }
         }
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(ReplayManagerTester.class);
+
+    public static int findPortToUse() throws IOException {
+        String portStr = System.getProperty(SYSPROP_SERVER_REPLAY_PORT);
+        if (Strings.isNullOrEmpty(portStr)) { // probably running with IDE test runner, not Maven
+            log.trace("unit test port not reserved by build process; will try to find open port");
+            try (ServerSocket socket = new ServerSocket(0)) {
+                int reservedPort = socket.getLocalPort();
+                log.debug("found open port {} by opening socket %s%n", reservedPort, socket);
+                return reservedPort;
+            }
+        } else {
+            return Integer.parseInt(portStr);
+        }
+    }
+
+    public static File getHttpsExampleFile() {
+        try {
+            return new File(ReplayManagerTester.class.getResource("/https.www.example.com.har").toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static File getHttpExampleFile() {
+        try {
+            return new File(ReplayManagerTester.class.getResource("/http.www.example.com.har").toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    public static String getHttpExamplePageTitle() {
+        return "ABCDEFG Domain";
+    }
+
+    public static String getHttpsExamplePageTitle() {
+        return "Example Abcdef";
     }
 
 }

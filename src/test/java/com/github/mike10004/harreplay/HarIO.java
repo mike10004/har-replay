@@ -24,7 +24,7 @@ public class HarIO {
 
     private HarIO() {}
 
-    public static Har fromFile(File harFile) throws IOException {
+    public static Har readFile(File harFile) throws IOException {
         Har har;
         try (Reader reader = new FileReader(harFile)) {
             har = harGson.fromJson(reader, Har.class);

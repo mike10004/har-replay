@@ -20,10 +20,32 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class ReplayManagerConfig {
 
+    /**
+     * Pathname of the Node executable. If null, the system path is queried for the executable.
+     */
     @Nullable
     private final File nodeExecutable;
+
+    /**
+     * Client module directory provider. The client module directory must contain a
+     * node_modules directory with the server-replay module code.
+     */
     public final ServerReplayClientDirProvider serverReplayClientDirProvider;
+
+    /**
+     * Length of the interval between polls for server readiness. The server-replay module
+     * starts an HTTP server that does not immediately start listening, so the replay manager
+     * polls until it can open a socket to the server. This parameter defines how long to
+     * wait between polls, in milliseconds. This is not currently configurable.
+     */
     public final long serverReadinessPollIntervalMillis = 20;
+
+    /**
+     * Maximum number of server readiness polls to perform. The server-replay module
+     * starts an HTTP server that does not immediately start listening, so the replay manager
+     * polls until it can open a socket to the server. This parameter defines how long to
+     * wait between polls, in milliseconds. This is not currently configurable.
+     */
     public final int serverReadinessMaxPolls = 50;
 
     private ReplayManagerConfig(Builder builder) {
@@ -31,11 +53,20 @@ public class ReplayManagerConfig {
         serverReplayClientDirProvider = builder.serverReplayClientDirProvider;
     }
 
+    /**
+     * Constructs and returns a new builder.
+     * @return
+     */
     public static Builder builder() {
         return new Builder();
     }
 
-    public Program.Builder makeProgramBuilder() {
+    /**
+     * Constructs and returns a program builder configured to use whatever node executable
+     * this configuration defines (or elects not to define).
+     * @return the program builder
+     */
+    Program.Builder makeProgramBuilder() {
         if (nodeExecutable == null) {
             return Program.running("node");
         } else {
@@ -47,6 +78,11 @@ public class ReplayManagerConfig {
         Path provide(Path scratchDir) throws IOException;
     }
 
+    /**
+     * Constructs a configuration with best-guess strategies for the fields. Currently,
+     * this just invokes {@link ReplayManagerConfig.Builder#build()} on a new builder instance.
+     * @return the configuration
+     */
     public static ReplayManagerConfig auto() {
         return ReplayManagerConfig.builder().build();
     }
@@ -88,6 +124,10 @@ public class ReplayManagerConfig {
         }
     }
 
+    /**
+     * Builder of replay manager configuration objects.
+     * @see ReplayManagerConfig
+     */
     public static final class Builder {
         private File nodeExecutable = null;
         private ServerReplayClientDirProvider serverReplayClientDirProvider = EmbeddedClientDirProvider.getInstance();

@@ -25,10 +25,17 @@ import java.util.concurrent.Future;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/**
+ * Class that represents a manager of a server replay process.
+ */
 public class ReplayManager {
 
     private final ReplayManagerConfig replayManagerConfig;
 
+    /**
+     * Constructs a new instance.
+     * @param replayManagerConfig configuration
+     */
     public ReplayManager(ReplayManagerConfig replayManagerConfig) {
         this.replayManagerConfig = checkNotNull(replayManagerConfig);
     }
@@ -39,25 +46,32 @@ public class ReplayManager {
         }
     }
 
-    public ListenableFuture<ProgramWithOutputFilesResult> startAsync(ExecutorService executorService, ReplaySessionConfig session) throws IOException {
-        Path serverReplayDir = replayManagerConfig.serverReplayClientDirProvider.provide(session.scratchDir);
-        File configJsonFile = File.createTempFile("server-replay-config", ".json", session.scratchDir.toFile());
-        writeConfig(session.serverReplayConfig, Files.asCharSink(configJsonFile, UTF_8));
+    /**
+     * Starts a server replay process on a separate thread. Writes out several configuration files first.
+     * @param executorService the executor service to use
+     * @param sessionConfig the session configuration
+     * @return a future representing the server replay process
+     * @throws IOException if an I/O error occurs
+     */
+    public ListenableFuture<ProgramWithOutputFilesResult> startAsync(ExecutorService executorService, ReplaySessionConfig sessionConfig) throws IOException {
+        Path serverReplayDir = replayManagerConfig.serverReplayClientDirProvider.provide(sessionConfig.scratchDir);
+        File configJsonFile = File.createTempFile("server-replay-config", ".json", sessionConfig.scratchDir.toFile());
+        writeConfig(sessionConfig.serverReplayConfig, Files.asCharSink(configJsonFile, UTF_8));
         File cliJsFile = serverReplayDir.resolve("node_modules/server-replay/cli.js").toFile();
-        File stdoutFile = File.createTempFile("server-replay-stdout", ".txt", session.scratchDir.toFile());
-        File stderrFile = File.createTempFile("server-replay-stderr", ".txt", session.scratchDir.toFile());
+        File stdoutFile = File.createTempFile("server-replay-stdout", ".txt", sessionConfig.scratchDir.toFile());
+        File stderrFile = File.createTempFile("server-replay-stderr", ".txt", sessionConfig.scratchDir.toFile());
         ProgramWithOutputFiles program = replayManagerConfig.makeProgramBuilder()
-                .from(session.scratchDir.toFile())
+                .from(sessionConfig.scratchDir.toFile())
                 .arg(cliJsFile.getAbsolutePath())
                 .args("--config", configJsonFile.getAbsolutePath())
-                .args("--port", String.valueOf(session.port))
+                .args("--port", String.valueOf(sessionConfig.port))
                 .arg("--debug")
-                .arg(session.harFile.getAbsolutePath())
+                .arg(sessionConfig.harFile.getAbsolutePath())
                 .outputToFiles(stdoutFile, stderrFile);
         ListenableFuture<ProgramWithOutputFilesResult> future = program.executeAsync(executorService);
-        addTailers(session.stdoutListeners, stdoutFile, future);
-        addTailers(session.stderrListeners, stderrFile, future);
-        pollUntilListening(HostAndPort.fromParts("localhost", session.port), future);
+        addTailers(sessionConfig.stdoutListeners, stdoutFile, future);
+        addTailers(sessionConfig.stderrListeners, stderrFile, future);
+        pollUntilListening(HostAndPort.fromParts("localhost", sessionConfig.port), future);
         return future;
     }
 
@@ -86,12 +100,20 @@ public class ReplayManager {
      * call to Node's HTTP.Server.listen is asynchronous. Therefore, our future is returned before
      * the server actually starts.
      *
-     * <p>A better solution would be for the server-replay module to </p>
+     * <p>Node doesn't have (to my knowledge) a facility for synchronous waiting like Java's Object.wait() and
+     * notify()</p>
+     *
+     * <p>A better solution would be for the server-replay module to provide listen() a callback
+     * function that would print a unique client-provided string on standard output. By doing that,
+     * the client could tail the stdout file to wait for the string to be printed.</p>
      * @param server the server
      * @param future the future; it will be checked for cancellation/doneness
      */
     private void pollUntilListening(HostAndPort server, Future<?> future) throws ServerFailedToStartException {
         int numPolls = 0;
+        if (replayManagerConfig.serverReadinessMaxPolls == 0) {
+            return;
+        }
         while (numPolls < replayManagerConfig.serverReadinessMaxPolls) {
             if (future.isCancelled()) {
                 throw new ServerFailedToStartException("server was terminated");

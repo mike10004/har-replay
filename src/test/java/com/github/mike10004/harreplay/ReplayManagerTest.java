@@ -1,10 +1,12 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
-import com.google.common.base.Strings;
+import com.github.mike10004.harreplay.ServerReplayConfig.Mapping;
+import com.github.mike10004.harreplay.ServerReplayConfig.Replacement;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import net.lightbody.bmp.core.har.Har;
 import net.lightbody.bmp.core.har.HarEntry;
@@ -18,69 +20,26 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class ReplayManagerTest {
 
-    private static final Logger log = LoggerFactory.getLogger(ReplayManagerTest.class);
-
-    private static final String SYSPROP_SERVER_REPLAY_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
-
     @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder() {
-        @Override
-        protected void before() throws Throwable {
-            super.before();
-        }
-
-        @Override
-        protected void after() {
-            File root = getRoot();
-            System.out.format("TemporaryFolder.after() about to execute: %s (exists? %s)%n", root.getName(), root.exists());
-            super.after();
-        }
-    };
-
-    private static int reservedPort = 0;
-
-    @After
-    public void tearDown() {
-        File root = temporaryFolder.getRoot();
-        System.out.format("tearDown: temp root is %s (exists? %s)%n", root.getName(), root.exists());
-        System.out.println();
-    }
-
-    @BeforeClass
-    public static void findReservedPort() throws IOException {
-        String portStr = System.getProperty(SYSPROP_SERVER_REPLAY_PORT);
-        if (Strings.isNullOrEmpty(portStr)) { // probably running with IDE test runner, not Maven
-            log.trace("unit test port not reserved by build process; will try to find open port");
-            try (ServerSocket socket = new ServerSocket(0)) {
-                reservedPort = socket.getLocalPort();
-                log.debug("found open port {} by opening socket %s%n", reservedPort, socket);
-            }
-        } else {
-            reservedPort = Integer.parseInt(portStr);
-        }
-    }
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void startAsync_http() throws Exception {
@@ -96,29 +55,66 @@ public class ReplayManagerTest {
         testStartAsync(harFile, URI.create("https://www.example.com/"));
     }
 
+    @Test
+    public void literalMappingToCustomFile() throws Exception {
+        File customContentFile = temporaryFolder.newFile();
+        String customContent = "my custom string";
+        Files.write(customContent, customContentFile, UTF_8);
+        URI uri = URI.create("http://www.example.com/");
+        ServerReplayConfig config = ServerReplayConfig.builder()
+                .map(Mapping.literalToFile(uri.toString(), customContentFile))
+                .build();
+        File harFile = new File(getClass().getResource("/http.www.example.com.har").toURI());
+        testStartAsync(harFile, uri, config, customContent::equals);
+    }
+
+    @Test
+    public void literalReplacement() throws Exception {
+        String replacementText = "I Eat Your Brain";
+        File harFile = ReplayManagerTester.getHttpsExampleFile();
+        URI uri = URI.create("https://www.example.com/");
+        ServerReplayConfig config = ServerReplayConfig.builder()
+                .replace(Replacement.literal(ReplayManagerTester.getHttpsExamplePageTitle(), replacementText))
+                .build();
+        testStartAsync(harFile, uri, config, responseContent -> responseContent.contains(replacementText));
+    }
+
+    private static Predicate<String> matchHarResponse(Har har, URI uri) {
+        HarEntry basicEntry = har.getLog().getEntries().stream().filter(entry -> uri.getPath().equals(URI.create(entry.getRequest().getUrl()).getPath())).findFirst().get();
+        String expectedText = basicEntry.getResponse().getContent().getText();
+        return expectedText::equals;
+    }
+
     private void testStartAsync(File harFile, URI uri) throws Exception {
+        Har har = HarIO.readFile(harFile);
+        Predicate<String> checker = matchHarResponse(har, uri);
+        testStartAsync(harFile, uri, ServerReplayConfig.empty(), checker);
+    }
+
+    private void testStartAsync(File harFile, URI uri, ServerReplayConfig config, Predicate<? super String> responseContentChecker) throws Exception {
         Path tempDir = temporaryFolder.getRoot().toPath();
-        Multimap<URI, ResponseSummary> responses = new ReplayManagerTester(tempDir, harFile)
-                .exercise(newApacheClient(uri), reservedPort);
+        Multimap<URI, ResponseSummary> responses = new ReplayManagerTester(tempDir, harFile) {
+            @Override
+            protected ServerReplayConfig configureReplayModule() {
+                return config;
+            }
+        }.exercise(newApacheClient(uri), ReplayManagerTester.findPortToUse());
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         assertEquals("status", HttpStatus.SC_OK, response.statusLine.getStatusCode());
-        Har har = HarIO.fromFile(harFile);
-        HarEntry basicEntry = har.getLog().getEntries().stream().filter(entry -> "/".equals(URI.create(entry.getRequest().getUrl()).getPath())).findFirst().get();
-        String expectedText = basicEntry.getResponse().getContent().getText();
         System.out.println(StringUtils.abbreviate(response.entity, 128));
-        assertEquals("response content", expectedText, response.entity);
+        assertEquals("response content", true, responseContentChecker.test(response.entity));
     }
 
     @Test
     public void startAsync_http_unmatchedReturns404() throws Exception {
         System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
-        File harFile = new File(getClass().getResource("/http.www.example.com.har").toURI());
+        File harFile = ReplayManagerTester.getHttpExampleFile();
         ResponseSummary response = new ReplayManagerTester(tempDir, harFile)
-                .exercise(newApacheClient(URI.create("http://www.google.com/")), reservedPort)
+                .exercise(newApacheClient(URI.create("http://www.google.com/")), ReplayManagerTester.findPortToUse())
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);
