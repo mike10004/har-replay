@@ -82,12 +82,13 @@ public class ReplayManager {
 
     /**
      * Polls until the server is actually listening. This usually takes less than 100ms.
-     * I think the root of the issue may be a flaw in native-helper's Program class, where
-     * the execute() method doesn't immediately execute the Ant task.
-     * Therefore, Program.executeAsync can sometimes return a future before the external process
-     * actually starts.
+     * The reason the server may not be listening after the process has been executed is that the
+     * call to Node's HTTP.Server.listen is asynchronous. Therefore, our future is returned before
+     * the server actually starts.
+     *
+     * <p>A better solution would be for the server-replay module to </p>
      * @param server the server
-     * @return true if we confirm the server is listening before timeout
+     * @param future the future; it will be checked for cancellation/doneness
      */
     private void pollUntilListening(HostAndPort server, Future<?> future) throws ServerFailedToStartException {
         int numPolls = 0;
