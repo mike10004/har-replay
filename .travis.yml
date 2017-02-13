@@ -1,9 +1,10 @@
 dist: trusty
-sudo: false
 language: java
 addons:
   apt:
     packages:
     - chromium-browser
-install: true
+install:
+  - mvn help:effective-settings
+  - mvn dependency:resolve
 script: mvn verify -B

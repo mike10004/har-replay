@@ -283,9 +283,10 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>google-chrome</executable>
+                            <executable>xvfb-run</executable>
                             <workingDirectory>${project.build.outputDirectory}</workingDirectory>
                             <arguments>
+                                <argument>google-chrome</argument>
                                 <argument>--pack-extension=${project.build.directory}/modified-switcheroo</argument>
                             </arguments>
                         </configuration>
