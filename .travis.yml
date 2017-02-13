@@ -1,0 +1,9 @@
+dist: trusty
+sudo: false
+language: java
+addons:
+  apt:
+    packages:
+    - chromium-browser
+install: true
+script: mvn verify -B
