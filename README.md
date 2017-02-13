@@ -1,3 +1,6 @@
+[![Travis build status](https://img.shields.io/travis/mike10004/har-replay.svg)](https://travis-ci.org/mike10004/har-replay)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/har-replay.svg)](https://repo1.maven.org/maven2/com/github/mike10004/har-replay/)
+
 har-replay
 ==========
 
@@ -9,6 +12,14 @@ pre-recorded responses from a HAR.
 
 Quick Start
 -----------
+
+Maven dependency:
+
+    <dependency>
+        <groupId>com.github.mike10004</groupId>
+        <artifactId>har-replay</artifactId>
+        <version>0.1</version>
+    </dependency>
 
 If you have a HAR file handy, you can replay it as shown here:
 

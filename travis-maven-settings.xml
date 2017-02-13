@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Travis adds some extra repos by default, but they are unnecessary for our purposes. -->
+<!-- This settings.xml file disables them, so that Maven will look only in central for dependencies. -->
 <settings xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
     <localRepository xmlns="http://maven.apache.org/SETTINGS/1.1.0">/home/travis/.m2/repository</localRepository>
     <profiles xmlns="http://maven.apache.org/SETTINGS/1.1.0">
