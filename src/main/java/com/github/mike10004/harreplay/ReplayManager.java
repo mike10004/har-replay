@@ -59,10 +59,10 @@ public class ReplayManager {
             throw new FileNotFoundException(sessionConfig.harFile.getAbsolutePath());
         }
         checkHarFile(sessionConfig.harFile);
-        Path serverReplayDir = replayManagerConfig.serverReplayClientDirProvider.provide(sessionConfig.scratchDir);
+        Path serverReplayDir = replayManagerConfig.serverReplayDirProvider.provide(sessionConfig.scratchDir);
         File configJsonFile = File.createTempFile("server-replay-config", ".json", sessionConfig.scratchDir.toFile());
         writeConfig(sessionConfig.serverReplayConfig, Files.asCharSink(configJsonFile, UTF_8));
-        File cliJsFile = serverReplayDir.resolve("node_modules/server-replay/cli.js").toFile();
+        File cliJsFile = serverReplayDir.resolve("cli.js").toFile();
         File stdoutFile = File.createTempFile("server-replay-stdout", ".txt", sessionConfig.scratchDir.toFile());
         File stderrFile = File.createTempFile("server-replay-stderr", ".txt", sessionConfig.scratchDir.toFile());
         ProgramWithOutputFiles program = replayManagerConfig.makeProgramBuilder()

@@ -49,7 +49,7 @@ public class ModifiedSwitcherooTest {
 
     @Test
     public void testExtensionWithSelenium() throws Exception {
-        int port = ReplayManagerTester.findPortToUse();
+        int port = ReplayManagerTester.findHttpPortToUse();
         ChromeDriverManager.getInstance().setup("2.27");
         File harFile = ReplayManagerTester.getHttpsExampleFile();
         ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), harFile);

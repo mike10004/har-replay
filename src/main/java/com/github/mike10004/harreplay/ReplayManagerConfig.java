@@ -9,14 +9,17 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ReplayManagerConfig {
 
@@ -30,7 +33,7 @@ public class ReplayManagerConfig {
      * Client module directory provider. The client module directory must contain a
      * node_modules directory with the server-replay module code.
      */
-    public final ServerReplayClientDirProvider serverReplayClientDirProvider;
+    public final ResourceDirectoryProvider serverReplayDirProvider;
 
     /**
      * Length of the interval between polls for server readiness. The server-replay module
@@ -50,7 +53,7 @@ public class ReplayManagerConfig {
 
     private ReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
-        serverReplayClientDirProvider = builder.serverReplayClientDirProvider;
+        serverReplayDirProvider = builder.serverReplayDirProvider;
     }
 
     /**
@@ -74,7 +77,7 @@ public class ReplayManagerConfig {
         }
     }
 
-    public interface ServerReplayClientDirProvider {
+    public interface ResourceDirectoryProvider {
         Path provide(Path scratchDir) throws IOException;
     }
 
@@ -87,22 +90,30 @@ public class ReplayManagerConfig {
         return ReplayManagerConfig.builder().build();
     }
 
-    static class EmbeddedClientDirProvider implements ServerReplayClientDirProvider {
+    static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
-        private static final String ZIP_ROOT = "server-replay-client";
-
-        public static ServerReplayClientDirProvider getInstance() {
+        static final String ZIP_ROOT = "server-replay"; // must be equal to outputDirectory in assembly descriptor
+        private static final String ZIP_RESOURCE_PATH = "/server-replay.zip";
+        public static ResourceDirectoryProvider getInstance() {
             return instance;
         }
 
         private static final EmbeddedClientDirProvider instance = new EmbeddedClientDirProvider();
 
+        protected URL getZipResource() throws FileNotFoundException {
+            URL url = getClass().getResource(ZIP_RESOURCE_PATH);
+            if (url == null) {
+                throw new FileNotFoundException("classpath:" + ZIP_RESOURCE_PATH);
+            }
+            return url;
+        }
+
         @Override
         public Path provide(Path scratchDir) throws IOException {
-            File zipFile = File.createTempFile("server-replay-client", ".zip", scratchDir.toFile());
-            ByteSource zipSrc = Resources.asByteSource(getClass().getResource("/server-replay-client.zip"));
+            File zipFile = File.createTempFile("server-replay", ".zip", scratchDir.toFile());
+            ByteSource zipSrc = Resources.asByteSource(getZipResource());
             zipSrc.copyTo(Files.asByteSink(zipFile));
-            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "client-parent");
+            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "server-replay-parent");
             try (ZipFile z = new ZipFile(zipFile)) {
                 for (Iterator<? extends ZipEntry> it = Iterators.forEnumeration(z.entries()); it.hasNext();) {
                     ZipEntry entry = it.next();
@@ -129,13 +140,14 @@ public class ReplayManagerConfig {
      * @see ReplayManagerConfig
      */
     public static final class Builder {
+        @Nullable
         private File nodeExecutable = null;
-        private ServerReplayClientDirProvider serverReplayClientDirProvider = EmbeddedClientDirProvider.getInstance();
+        private ResourceDirectoryProvider serverReplayDirProvider = EmbeddedClientDirProvider.getInstance();
 
         private Builder() {
         }
 
-        public Builder nodeExecutable(File executableFile) {
+        public Builder nodeExecutable(@Nullable File executableFile) {
             nodeExecutable = executableFile;
             if (executableFile != null) {
                 checkArgument(executableFile.canExecute(), "not executable: %s", executableFile);
@@ -143,8 +155,8 @@ public class ReplayManagerConfig {
             return this;
         }
 
-        public Builder serverReplayClientDirProvider(ServerReplayClientDirProvider val) {
-            serverReplayClientDirProvider = val;
+        public Builder serverReplayDirProvider(ResourceDirectoryProvider val) {
+            serverReplayDirProvider = checkNotNull(val);
             return this;
         }
 

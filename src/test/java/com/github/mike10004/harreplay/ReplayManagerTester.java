@@ -5,16 +5,17 @@ import com.github.mike10004.nativehelper.ProgramWithOutputResult;
 import com.google.common.base.Strings;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ReplayManagerTester {
 
-    private static final String SYSPROP_SERVER_REPLAY_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
+    private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.http.port"; // see pom.xml build-helper-plugin
 
     private final Path tempDir;
     private final File harFile;
@@ -41,14 +42,15 @@ public class ReplayManagerTester {
         return ServerReplayConfig.empty();
     }
 
-    public <T> T exercise(ReplayClient<T> client, @Nullable Integer port) throws Exception {
+    public <T> T exercise(ReplayClient<T> client, @Nullable Integer httpPort) throws Exception {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replay = new ReplayManager(replayManagerConfig);
         ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir)
                 .config(configureReplayModule())
+                .onTermination(new ProgramInfoFutureCallback())
                 .addOutputEchoes();
-        if (port != null) {
-            rscb.port(port);
+        if (httpPort != null) {
+            rscb.port(httpPort);
         }
         ReplaySessionConfig sessionParams = rscb.build(harFile);
         HostAndPort proxy = HostAndPort.fromParts("localhost", sessionParams.port);
@@ -58,7 +60,6 @@ public class ReplayManagerTester {
         boolean executed = false;
         try {
             ListenableFuture<ProgramWithOutputFilesResult> programFuture = replay.startAsync(executorService, sessionParams);
-            Futures.addCallback(programFuture, new ProgramInfoFutureCallback());
             if (!programFuture.isDone() && !programFuture.isCancelled()) {
                 result = client.useReplayServer(tempDir, proxy, programFuture);
                 executed = true;
@@ -120,8 +121,38 @@ public class ReplayManagerTester {
 
     private static final Logger log = LoggerFactory.getLogger(ReplayManagerTester.class);
 
-    public static int findPortToUse() throws IOException {
-        String portStr = System.getProperty(SYSPROP_SERVER_REPLAY_PORT);
+    public static int findHttpPortToUse() throws IOException {
+        return findPortToUse(SYSPROP_SERVER_REPLAY_HTTP_PORT);
+    }
+
+    public static class Https {
+
+        private Https() {}
+
+        private static File getResourceAsFile(String resourcePath) throws IOException {
+            URL url = Https.class.getResource(resourcePath);
+            if (url == null) {
+                throw new FileNotFoundException("classpath:" + resourcePath);
+            }
+            try {
+                return new File(url.toURI());
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
+        }
+
+        public static File getTestKeyFile() throws IOException {
+            return getResourceAsFile("/snakeoil/har-replay-key.pem");
+        }
+
+        public static File getTestCertificateFile() throws IOException {
+            return getResourceAsFile("/snakeoil/har-replay-cert.pem");
+        }
+
+    }
+
+    private static int findPortToUse(String systemPropertyName) throws IOException {
+        String portStr = System.getProperty(systemPropertyName);
         if (Strings.isNullOrEmpty(portStr)) { // probably running with IDE test runner, not Maven
             log.trace("unit test port not reserved by build process; will try to find open port");
             try (ServerSocket socket = new ServerSocket(0)) {

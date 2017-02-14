@@ -54,7 +54,7 @@ You can use the DevTools in Chrome. See this unofficial tech support posting:
 
 It doesn't, really, but there is an imperfect workaround. The server will match
 HTTP requests to HTTPS entries in the HAR (for better or worse), so you only have
-to make sure that on the client side you make HTTP requests instead of HTTP 
+to make sure that on the client side you make HTTP requests instead of HTTPS 
 requests. The proxy does not support TLS connections, so HTTPS requests will not
 go through and will probably not even return an HTTP response, because they 
 won't even make it to the replay request handler. So you have to intercept HTTPS 

@@ -53,7 +53,13 @@ public class ReplayManagerTest {
     public void startAsync_https() throws Exception {
         System.out.println("\n\nstartAsync_https\n");
         File harFile = new File(getClass().getResource("/https.www.example.com.har").toURI());
-        testStartAsync(harFile, URI.create("https://www.example.com/"));
+        ServerReplayConfig config = ServerReplayConfig.builder()
+                .https(ReplayManagerTester.Https.getTestKeyFile(),
+                        ReplayManagerTester.Https.getTestCertificateFile())
+                .build();
+        URI uri = URI.create("https://www.example.com/");
+        ApacheRecordingClient client = newApacheClient(uri, true);
+        testStartAsync(harFile, uri, client, config, content -> content.contains(ReplayManagerTester.getHttpsExamplePageTitle()));
     }
 
     @Test
@@ -66,7 +72,8 @@ public class ReplayManagerTest {
                 .map(Mapping.literalToFile(uri.toString(), customContentFile))
                 .build();
         File harFile = new File(getClass().getResource("/http.www.example.com.har").toURI());
-        testStartAsync(harFile, uri, config, customContent::equals);
+        ApacheRecordingClient client = newApacheClient(uri, false);
+        testStartAsync(harFile, uri, client, config, customContent::equals);
     }
 
     @Test
@@ -77,7 +84,8 @@ public class ReplayManagerTest {
         ServerReplayConfig config = ServerReplayConfig.builder()
                 .replace(Replacement.literal(ReplayManagerTester.getHttpsExamplePageTitle(), replacementText))
                 .build();
-        testStartAsync(harFile, uri, config, responseContent -> responseContent.contains(replacementText));
+        ApacheRecordingClient client = newApacheClient(uri, true);
+        testStartAsync(harFile, uri, client, config, responseContent -> responseContent.contains(replacementText));
     }
 
     private static Predicate<String> matchHarResponse(Har har, URI uri) {
@@ -89,17 +97,17 @@ public class ReplayManagerTest {
     private void testStartAsync(File harFile, URI uri) throws Exception {
         Har har = new HarReader().readFromFile(harFile);
         Predicate<String> checker = matchHarResponse(har, uri);
-        testStartAsync(harFile, uri, ServerReplayConfig.empty(), checker);
+        testStartAsync(harFile, uri, newApacheClient(uri, false), ServerReplayConfig.empty(), checker);
     }
 
-    private void testStartAsync(File harFile, URI uri, ServerReplayConfig config, Predicate<? super String> responseContentChecker) throws Exception {
+    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ServerReplayConfig config, Predicate<? super String> responseContentChecker) throws Exception {
         Path tempDir = temporaryFolder.getRoot().toPath();
         Multimap<URI, ResponseSummary> responses = new ReplayManagerTester(tempDir, harFile) {
             @Override
             protected ServerReplayConfig configureReplayModule() {
                 return config;
             }
-        }.exercise(newApacheClient(uri), ReplayManagerTester.findPortToUse());
+        }.exercise(client, ReplayManagerTester.findHttpPortToUse());
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
@@ -115,7 +123,7 @@ public class ReplayManagerTest {
         Path tempDir = temporaryFolder.getRoot().toPath();
         File harFile = ReplayManagerTester.getHttpExampleFile();
         ResponseSummary response = new ReplayManagerTester(tempDir, harFile)
-                .exercise(newApacheClient(URI.create("http://www.google.com/")), ReplayManagerTester.findPortToUse())
+                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findHttpPortToUse())
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);
@@ -123,14 +131,17 @@ public class ReplayManagerTest {
     }
 
     private static class ApacheRecordingClient implements ReplayClient<Multimap<URI, ResponseSummary>> {
-        private final ImmutableList<URI> urisToGet;
 
-        public ApacheRecordingClient(Iterable<URI> urisToGet) {
+        private final ImmutableList<URI> urisToGet;
+        private final boolean transformHttpsToHttp;
+
+        ApacheRecordingClient(Iterable<URI> urisToGet, boolean transformHttpsToHttp) {
             this.urisToGet = ImmutableList.copyOf(urisToGet);
+            this.transformHttpsToHttp = transformHttpsToHttp;
         }
 
         private URI transformUri(URI uri) { // equivalent of switcheroo extension
-            if ("https".equals(uri.getScheme())) {
+            if (transformHttpsToHttp && "https".equals(uri.getScheme())) {
                 try {
                     return new URIBuilder(uri).setScheme("http").build();
                 } catch (URISyntaxException e) {
@@ -164,8 +175,8 @@ public class ReplayManagerTest {
         }
     }
 
-    private ReplayClient<Multimap<URI, ResponseSummary>> newApacheClient(URI uri) {
-        return new ApacheRecordingClient(ImmutableList.of(uri));
+    private ApacheRecordingClient newApacheClient(URI uri, boolean transformHttpsToHttp) {
+        return new ApacheRecordingClient(ImmutableList.of(uri), transformHttpsToHttp);
     }
 
     private static class ResponseSummary {
