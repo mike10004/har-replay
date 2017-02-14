@@ -8,8 +8,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
-import net.lightbody.bmp.core.har.Har;
-import net.lightbody.bmp.core.har.HarEntry;
+import de.sstoehr.harreader.HarReader;
+import de.sstoehr.harreader.model.Har;
+import de.sstoehr.harreader.model.HarEntry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
@@ -86,7 +87,7 @@ public class ReplayManagerTest {
     }
 
     private void testStartAsync(File harFile, URI uri) throws Exception {
-        Har har = HarIO.readFile(harFile);
+        Har har = new HarReader().readFromFile(harFile);
         Predicate<String> checker = matchHarResponse(har, uri);
         testStartAsync(harFile, uri, ServerReplayConfig.empty(), checker);
     }

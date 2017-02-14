@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.Socket;
@@ -54,6 +55,10 @@ public class ReplayManager {
      * @throws IOException if an I/O error occurs
      */
     public ListenableFuture<ProgramWithOutputFilesResult> startAsync(ExecutorService executorService, ReplaySessionConfig sessionConfig) throws IOException {
+        if (!sessionConfig.harFile.isFile()) {
+            throw new FileNotFoundException(sessionConfig.harFile.getAbsolutePath());
+        }
+        checkHarFile(sessionConfig.harFile);
         Path serverReplayDir = replayManagerConfig.serverReplayClientDirProvider.provide(sessionConfig.scratchDir);
         File configJsonFile = File.createTempFile("server-replay-config", ".json", sessionConfig.scratchDir.toFile());
         writeConfig(sessionConfig.serverReplayConfig, Files.asCharSink(configJsonFile, UTF_8));
@@ -69,10 +74,19 @@ public class ReplayManager {
                 .arg(sessionConfig.harFile.getAbsolutePath())
                 .outputToFiles(stdoutFile, stderrFile);
         ListenableFuture<ProgramWithOutputFilesResult> future = program.executeAsync(executorService);
+        for (FutureCallback<? super ProgramWithOutputFilesResult> terminationCallback : sessionConfig.serverTerminationCallbacks) {
+            Futures.addCallback(future, terminationCallback);
+        }
         addTailers(sessionConfig.stdoutListeners, stdoutFile, future);
         addTailers(sessionConfig.stderrListeners, stderrFile, future);
         pollUntilListening(HostAndPort.fromParts("localhost", sessionConfig.port), future);
         return future;
+    }
+
+    private void checkHarFile(File harFile) throws IOException {
+        if (harFile.length() == 0) {
+            throw new IOException("har file malformed; length = 0");
+        }
     }
 
     @SuppressWarnings("unused")

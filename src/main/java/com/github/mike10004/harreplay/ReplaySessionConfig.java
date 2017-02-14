@@ -1,6 +1,9 @@
 package com.github.mike10004.harreplay;
 
+import com.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback.SyntheticProgramExitException;
+import com.github.mike10004.nativehelper.ProgramWithOutputFilesResult;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
@@ -26,6 +29,7 @@ public class ReplaySessionConfig {
     public final ServerReplayConfig serverReplayConfig;
     public final ImmutableList<TailerListener> stdoutListeners;
     public final ImmutableList<TailerListener> stderrListeners;
+    public final ImmutableList<FutureCallback<? super ProgramWithOutputFilesResult>> serverTerminationCallbacks;
 
     private ReplaySessionConfig(Builder builder) {
         scratchDir = builder.scratchDir;
@@ -34,6 +38,21 @@ public class ReplaySessionConfig {
         serverReplayConfig = builder.serverReplayConfig;
         stdoutListeners = ImmutableList.copyOf(builder.stdoutListeners);
         stderrListeners = ImmutableList.copyOf(builder.stderrListeners);
+        serverTerminationCallbacks = ImmutableList.copyOf(builder.serverTerminationCallbacks);
+    }
+
+    public interface ServerTerminationCallback {
+        void terminated(Throwable error);
+
+        class SyntheticProgramExitException extends Exception {
+
+            public final int exitCode;
+
+            public SyntheticProgramExitException(int exitCode) {
+                super("exit code " + exitCode);
+                this.exitCode = exitCode;
+            }
+        }
     }
 
     public static Builder usingTempDir() throws IOException {
@@ -58,8 +77,9 @@ public class ReplaySessionConfig {
         private int port = DEFAULT_PORT;
         private File harFile;
         private ServerReplayConfig serverReplayConfig = ServerReplayConfig.empty();
-        private List<TailerListener> stdoutListeners = new ArrayList<>();
-        private List<TailerListener> stderrListeners = new ArrayList<>();
+        private final List<TailerListener> stdoutListeners = new ArrayList<>();
+        private final List<TailerListener> stderrListeners = new ArrayList<>();
+        private final List<FutureCallback<? super ProgramWithOutputFilesResult>> serverTerminationCallbacks = new ArrayList<>();
 
         private Builder(Path scratchDir) {
             this.scratchDir = checkNotNull(scratchDir);
@@ -94,6 +114,27 @@ public class ReplaySessionConfig {
         public Builder addOutputEchoes() {
             return addStdoutListener(new PrintStreamTailerListener(System.out))
                     .addStderrListener(new PrintStreamTailerListener(System.err));
+        }
+
+        public Builder onTermination(FutureCallback<? super ProgramWithOutputFilesResult> callback) {
+            serverTerminationCallbacks.add(callback);
+            return this;
+        }
+
+        public Builder onTermination(ServerTerminationCallback terminationCallback) {
+            return onTermination(new FutureCallback<ProgramWithOutputFilesResult>() {
+                @Override
+                public void onSuccess(ProgramWithOutputFilesResult result) {
+                    terminationCallback.terminated(new SyntheticProgramExitException(result.getExitCode()));
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    if (!(t instanceof java.util.concurrent.CancellationException)) {
+                        terminationCallback.terminated(t);
+                    }
+                }
+            });
         }
 
         private static class PrintStreamTailerListener extends TailerListenerAdapter {
