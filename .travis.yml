@@ -4,7 +4,5 @@ addons:
   apt:
     packages:
     - chromium-browser
-install:
-  - mvn --settings travis-maven-settings.xml help:effective-settings
-  - mvn --settings travis-maven-settings.xml dependency:resolve
+install: true
 script: mvn --settings travis-maven-settings.xml verify -B
