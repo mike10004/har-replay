@@ -4,13 +4,13 @@ import com.github.mike10004.nativehelper.ProgramWithOutputFiles;
 import com.github.mike10004.nativehelper.ProgramWithOutputFilesResult;
 import com.google.common.io.CharSink;
 import com.google.common.io.Files;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.Gson;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.io.input.TailerListenerAdapter;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
@@ -18,10 +18,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
-import java.net.Socket;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -59,10 +58,10 @@ public class ReplayManager {
             throw new FileNotFoundException(sessionConfig.harFile.getAbsolutePath());
         }
         checkHarFile(sessionConfig.harFile);
-        Path serverReplayDir = replayManagerConfig.serverReplayClientDirProvider.provide(sessionConfig.scratchDir);
+        Path serverReplayDir = replayManagerConfig.harReplayProxyDirProvider.provide(sessionConfig.scratchDir);
         File configJsonFile = File.createTempFile("server-replay-config", ".json", sessionConfig.scratchDir.toFile());
         writeConfig(sessionConfig.serverReplayConfig, Files.asCharSink(configJsonFile, UTF_8));
-        File cliJsFile = serverReplayDir.resolve("node_modules/server-replay/cli.js").toFile();
+        File cliJsFile = serverReplayDir.resolve("cli.js").toFile();
         File stdoutFile = File.createTempFile("server-replay-stdout", ".txt", sessionConfig.scratchDir.toFile());
         File stderrFile = File.createTempFile("server-replay-stderr", ".txt", sessionConfig.scratchDir.toFile());
         ProgramWithOutputFiles program = replayManagerConfig.makeProgramBuilder()
@@ -77,10 +76,45 @@ public class ReplayManager {
         for (FutureCallback<? super ProgramWithOutputFilesResult> terminationCallback : sessionConfig.serverTerminationCallbacks) {
             Futures.addCallback(future, terminationCallback);
         }
+        final Object listenLock = new Object();
+        final AtomicBoolean heardListeningNotification = new AtomicBoolean(false);
+        final Tailer listeningWatch = Tailer.create(stdoutFile, new TailerListenerAdapter(){
+            @Override
+            public void handle(String line) {
+                boolean changed = heardListeningNotification.compareAndSet(false, isServerListeningNotificationLine(line));
+                if (changed) {
+                    synchronized (listenLock) {
+                        listenLock.notifyAll();
+                    }
+                }
+            }
+        }, replayManagerConfig.serverReadinessPollIntervalMillis, false); // false => tail from beginning of file
         addTailers(sessionConfig.stdoutListeners, stdoutFile, future);
         addTailers(sessionConfig.stderrListeners, stderrFile, future);
-        pollUntilListening(HostAndPort.fromParts("localhost", sessionConfig.port), future);
+        synchronized (listenLock) {
+            long waitedMillis = 0;
+            long waitingStart = System.currentTimeMillis();
+            while (!heardListeningNotification.get()) {
+                long remainingWait = replayManagerConfig.serverReadinessTimeoutMillis - waitedMillis;
+                if (remainingWait > 0) {
+                    try {
+                        listenLock.wait(remainingWait);
+                    } catch (InterruptedException e) {
+                        LoggerFactory.getLogger(getClass()).info("interrupted while waiting", e);
+                    }
+                }
+                waitedMillis = System.currentTimeMillis() - waitingStart;
+            }
+        }
+        listeningWatch.stop();
+        if (!heardListeningNotification.get()) {
+            throw new ServerFailedToStartException("timed out while waiting for server to start");
+        }
         return future;
+    }
+
+    static boolean isServerListeningNotificationLine(String line) {
+        return line.matches("^har-replay-proxy: Listening on localhost:\\d+$");
     }
 
     private void checkHarFile(File harFile) throws IOException {
@@ -106,49 +140,6 @@ public class ReplayManager {
         public ServerFailedToStartException(Throwable cause) {
             super(cause);
         }
-    }
-
-    /**
-     * Polls until the server is actually listening. This usually takes less than 100ms.
-     * The reason the server may not be listening after the process has been executed is that the
-     * call to Node's HTTP.Server.listen is asynchronous. Therefore, our future is returned before
-     * the server actually starts.
-     *
-     * <p>Node doesn't have (to my knowledge) a facility for synchronous waiting like Java's Object.wait() and
-     * notify()</p>
-     *
-     * <p>A better solution would be for the server-replay module to provide listen() a callback
-     * function that would print a unique client-provided string on standard output. By doing that,
-     * the client could tail the stdout file to wait for the string to be printed.</p>
-     * @param server the server
-     * @param future the future; it will be checked for cancellation/doneness
-     */
-    private void pollUntilListening(HostAndPort server, Future<?> future) throws ServerFailedToStartException {
-        int numPolls = 0;
-        if (replayManagerConfig.serverReadinessMaxPolls == 0) {
-            return;
-        }
-        while (numPolls < replayManagerConfig.serverReadinessMaxPolls) {
-            if (future.isCancelled()) {
-                throw new ServerFailedToStartException("server was terminated");
-            }
-            if (future.isDone()) {
-                throw new ServerFailedToStartException("server was stopped unexpectedly");
-            }
-            try (Socket socket = new Socket(server.getHost(), server.getPort())) {
-                LoggerFactory.getLogger(getClass()).debug("confirmed server listening on {} by opening {}", server, socket);
-                return;
-            } catch (IOException e) {
-                LoggerFactory.getLogger(getClass()).trace("could not make connection to {} due to {}", server, e.toString());
-            }
-            numPolls++;
-            try {
-                Thread.sleep(replayManagerConfig.serverReadinessPollIntervalMillis);
-            } catch (InterruptedException e) {
-                throw new ServerFailedToStartException(e);
-            }
-        }
-        throw new ServerFailedToStartException(String.format("failed to start after polling %d times at intervals of %d milliseconds", numPolls, replayManagerConfig.serverReadinessPollIntervalMillis));
     }
 
     private void addTailers(Iterable<TailerListener> tailerListeners, File file, ListenableFuture<?> future) {

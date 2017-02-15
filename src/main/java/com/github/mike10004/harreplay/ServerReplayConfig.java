@@ -15,11 +15,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Class that represents the configuration that a server replay process uses. This object's structure
- * matches the structure of the object that the Node server-replay module uses. See that project's
+ * matches the structure of the object that the Node har-replay-proxy module uses. See that project's
  * documentation for information on the various parameters.
  *
  * <p>This class is not currently deserializable, but it serializes to the JSON format required
- * by the server-replay Node module just fine.
+ * by the har-replay-proxy Node module just fine.
  * </p>
  */
 public class ServerReplayConfig {
@@ -39,8 +39,23 @@ public class ServerReplayConfig {
      */
     public final ImmutableList<Replacement> replacements;
 
+    public final ImmutableList<ResponseHeaderTransform> responseHeaderTransforms;
+
     private ServerReplayConfig() {
-        this(1, ImmutableList.of(), ImmutableList.of());
+        this(1, ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
+    }
+
+    /**
+     * Constructs an instance of the class.
+     * @param version       the version
+     * @param mappings the mappings
+     * @param replacements the replacements
+     */
+    public ServerReplayConfig(int version, Iterable<Mapping> mappings, Iterable<Replacement> replacements, Iterable<ResponseHeaderTransform> responseHeaderTransforms) {
+        this.version = version;
+        this.mappings = ImmutableList.copyOf(mappings);
+        this.replacements = ImmutableList.copyOf(replacements);
+        this.responseHeaderTransforms = ImmutableList.copyOf(responseHeaderTransforms);
     }
 
     /**
@@ -50,18 +65,6 @@ public class ServerReplayConfig {
     @SuppressWarnings("unused")
     public static ServerReplayConfig empty() {
         return new ServerReplayConfig();
-    }
-
-    /**
-     * Constructs an instance of the class.
-     * @param version       the version
-     * @param mappings the mappings
-     * @param replacements the replacements
-     */
-    public ServerReplayConfig(int version, Iterable<Mapping> mappings, Iterable<Replacement> replacements) {
-        this.version = version;
-        this.mappings = ImmutableList.copyOf(mappings);
-        this.replacements = ImmutableList.copyOf(replacements);
     }
 
     public static Builder builder() {
@@ -87,6 +90,14 @@ public class ServerReplayConfig {
      * Interface for classes that represent the {@code replace} field of a {@link Replacement}.
      */
     public interface ReplacementReplace {}
+
+    public interface ResponseHeaderTransformNameMatch {}
+
+    public interface ResponseHeaderTransformNameImage {}
+
+    public interface ResponseHeaderTransformValueMatch {}
+
+    public interface ResponseHeaderTransformValueImage {}
 
     /**
      * Mapping from URL to filesystem pathname. Match field is a string or Javascript regex, and path is a string.
@@ -145,12 +156,19 @@ public class ServerReplayConfig {
      * Class that represents a string value for a field of a {@link Mapping} or {@link Replacement} instance.
      */
     @com.google.gson.annotations.JsonAdapter(StringLiteralTypeAdapter.class)
-    public static class StringLiteral implements MappingMatch, MappingPath, ReplacementMatch, ReplacementReplace {
+    public static class StringLiteral implements MappingMatch, MappingPath,
+            ReplacementMatch, ReplacementReplace,
+            ResponseHeaderTransformNameImage, ResponseHeaderTransformNameMatch,
+            ResponseHeaderTransformValueMatch, ResponseHeaderTransformValueImage {
 
         public final String value;
 
-        public StringLiteral(String value) {
+        private StringLiteral(String value) {
             this.value = checkNotNull(value);
+        }
+
+        public static StringLiteral of(String value) {
+            return new StringLiteral(value);
         }
 
         public static class StringLiteralTypeAdapter extends TypeAdapter<StringLiteral> {
@@ -172,7 +190,7 @@ public class ServerReplayConfig {
      * Class that represents a variable object. These are used in {@link Replacement}s.
      * See https://github.com/Stuk/server-replay.
      */
-    public static class VariableHolder implements ReplacementMatch, ReplacementReplace {
+    public static final class VariableHolder implements ReplacementMatch, ReplacementReplace {
 
         public final String var;
 
@@ -181,8 +199,12 @@ public class ServerReplayConfig {
             var = null;
         }
 
-        public VariableHolder(String var) {
+        private VariableHolder(String var) {
             this.var = checkNotNull(var);
+        }
+
+        public static VariableHolder of(String var) {
+            return new VariableHolder(var);
         }
     }
 
@@ -190,7 +212,8 @@ public class ServerReplayConfig {
      * Class that represents a regex object. Instances of this class are used to define {@link Mapping}
      * or {@link Replacement} matchers.
      */
-    public static class RegexHolder implements MappingMatch, ReplacementMatch {
+    public static final class RegexHolder implements MappingMatch, ReplacementMatch,
+            ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
 
         /**
          * Regex in Javascript syntax.
@@ -202,8 +225,12 @@ public class ServerReplayConfig {
             regex = null;
         }
 
-        public RegexHolder(String regex) {
+        private RegexHolder(String regex) {
             this.regex = checkNotNull(regex);
+        }
+
+        public static RegexHolder of(String regex) {
+            return new RegexHolder(regex);
         }
     }
 
@@ -262,12 +289,67 @@ public class ServerReplayConfig {
         }
     }
 
+    @SuppressWarnings("unused")
+    public static final class ResponseHeaderTransform {
+        public final ResponseHeaderTransformNameMatch nameMatch;
+        public final ResponseHeaderTransformNameImage nameImage;
+        public final ResponseHeaderTransformValueMatch valueMatch;
+        public final ResponseHeaderTransformValueImage valueImage;
+
+        private ResponseHeaderTransform(ResponseHeaderTransformNameMatch nameMatch, ResponseHeaderTransformValueMatch valueMatch, ResponseHeaderTransformNameImage nameImage, ResponseHeaderTransformValueImage valueImage) {
+            this.nameMatch = nameMatch;
+            this.nameImage = nameImage;
+            this.valueMatch = valueMatch;
+            this.valueImage = valueImage;
+        }
+
+        public static ResponseHeaderTransform name(ResponseHeaderTransformNameMatch nameMatch,
+                                                   ResponseHeaderTransformNameImage nameImage) {
+            return new ResponseHeaderTransform(checkNotNull(nameMatch), null, checkNotNull(nameImage), null);
+        }
+
+        public static ResponseHeaderTransform value(ResponseHeaderTransformValueMatch valueMatch,
+                                                    ResponseHeaderTransformValueImage valueImage) {
+            return new ResponseHeaderTransform(null, checkNotNull(valueMatch), null, checkNotNull(valueImage));
+        }
+
+        public static ResponseHeaderTransform valueByName(ResponseHeaderTransformNameMatch nameMatch,
+                                                          ResponseHeaderTransformValueImage valueImage) {
+            return new ResponseHeaderTransform(checkNotNull(nameMatch), null, null, checkNotNull(valueImage));
+        }
+
+        public static ResponseHeaderTransform nameByValue(ResponseHeaderTransformValueMatch valueMatch,
+                                                          ResponseHeaderTransformNameImage nameImage) {
+            return new ResponseHeaderTransform(null, checkNotNull(valueMatch), checkNotNull(nameImage), null);
+        }
+
+        public static ResponseHeaderTransform valueByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
+                                                                  ResponseHeaderTransformValueMatch valueMatch,
+                                                                  ResponseHeaderTransformValueImage valueImage) {
+            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), null, checkNotNull(valueImage));
+        }
+
+        public static ResponseHeaderTransform nameByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
+                                                                  ResponseHeaderTransformValueMatch valueMatch,
+                                                                  ResponseHeaderTransformNameImage nameImage) {
+            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), checkNotNull(nameImage), null);
+        }
+
+        public static ResponseHeaderTransform everything(ResponseHeaderTransformNameMatch nameMatch,
+                                                           ResponseHeaderTransformValueMatch valueMatch,
+                                                           ResponseHeaderTransformNameImage nameImage,
+                                                           ResponseHeaderTransformValueImage valueImage) {
+            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), checkNotNull(nameImage), checkNotNull(valueImage));
+        }
+
+    }
+
     public static final class Builder {
 
         private int version = 1;
-        private List<Mapping> mappings = new ArrayList<>();
+        private final List<Mapping> mappings = new ArrayList<>();
         private final List<Replacement> replacements = new ArrayList<>();
-
+        private final List<ResponseHeaderTransform> responseHeaderTransforms = new ArrayList<>();
         private Builder() {
         }
 
@@ -281,8 +363,13 @@ public class ServerReplayConfig {
             return this;
         }
 
+        public Builder transformResponse(ResponseHeaderTransform responseHeaderTransform) {
+            responseHeaderTransforms.add(checkNotNull(responseHeaderTransform));
+            return this;
+        }
+
         public ServerReplayConfig build() {
-            return new ServerReplayConfig(version, mappings, replacements);
+            return new ServerReplayConfig(version, mappings, replacements, responseHeaderTransforms);
         }
     }
 }

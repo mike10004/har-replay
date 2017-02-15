@@ -6,10 +6,10 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.3</version>
+    <version>0.4</version>
 
     <name>har-replay</name>
-    <description>Library that helps you use Selenium WebDriver in Java</description>
+    <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <url>https://github.com/mike10004/har-replay</url>
     <inceptionYear>2016</inceptionYear>
     <licenses>
@@ -37,7 +37,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <test.log.level>info</test.log.level>
         <npm.log.level>error</npm.log.level>
-        <server-replay-staging.install.directory>${project.build.directory}/server-replay-staging-install</server-replay-staging.install.directory>
+        <har-replay-proxy-staging.install.directory>${project.build.directory}/har-replay-proxy-staging-install</har-replay-proxy-staging.install.directory>
     </properties>
     <profiles>
         <profile>
@@ -76,7 +76,7 @@
                             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
                             <wdm.targetPath>${project.build.directory}/webdriver</wdm.targetPath>
                             <org.slf4j.simpleLogger.defaultLogLevel>${test.log.level}</org.slf4j.simpleLogger.defaultLogLevel>
-                            <server-replay.port>${server-replay.port}</server-replay.port>
+                            <har-replay-proxy.port>${har-replay-proxy.port}</har-replay-proxy.port>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>
@@ -103,6 +103,10 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>1.5.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -173,7 +177,7 @@
                         </goals>
                         <configuration>
                             <portNames>
-                                <portName>server-replay.port</portName>
+                                <portName>har-replay-proxy.port</portName>
                             </portNames>
                         </configuration>
                     </execution>
@@ -200,22 +204,6 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>stage-server-replay-client</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/server-replay-client</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${project.basedir}/src/main/server-replay-client</directory>
-                                    <filtering>false</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>embed-switcheroo</id>
                         <phase>process-classes</phase>
                         <goals>
@@ -236,27 +224,7 @@
                 </executions>
             </plugin>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <executions>
-                    <execution>
-                        <id>embed-server-replay-client</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <finalName>server-replay-client</finalName>
-                            <descriptor>src/assembly/server-replay-client-zip.xml</descriptor>
-                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
                 <executions>
                     <execution>
                         <id>delete-switcheroo-pem</id>
@@ -267,6 +235,18 @@
                         <configuration>
                             <target>
                                 <delete file="${project.build.directory}/modified-switcheroo.pem" verbose="true" failonerror="false"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>delete-har-replay-proxy-staging-dir</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete dir="${project.build.directory}/har-replay-proxy" verbose="false" failonerror="false"/>
                             </target>
                         </configuration>
                     </execution>
@@ -291,6 +271,36 @@
                             </arguments>
                         </configuration>
                     </execution>
+                    <execution>
+                        <!--We could consider using a git submodule for this, but then we'd have to remind people
+                            to clone recursively. Instead, this limits the universality of the build because it
+                            will fail if the host does not have git installed and callable from the working
+                            directory (target), which is okay for now.
+
+                            Alternatively, now that that code is stable (as signified by the fact that we're cloning
+                            a tag), we could just include it as a zip file or as source files directly.
+                             -->
+                        <id>stage-har-replay-proxy-module</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <workingDirectory>${project.build.directory}</workingDirectory>
+                            <executable>git</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>advice.detachedHead=false</argument>
+                                <argument>clone</argument>
+                                <argument>https://github.com/mike10004/har-replay-proxy</argument>
+                                <argument>--branch</argument>
+                                <argument>0.0.1</argument>
+                                <argument>--single-branch</argument>
+                                <argument>${project.build.directory}/har-replay-proxy</argument>
+                                <argument>--quiet</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -298,22 +308,43 @@
                 <artifactId>frontend-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <phase>generate-resources</phase>
                         <id>do-install-node-and-npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.build.directory}/server-replay-client</workingDirectory>
+                            <workingDirectory>${project.build.directory}/har-replay-proxy</workingDirectory>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>server-replay-staging-npm-install</id>
+                        <id>har-replay-proxy-staging-npm-install</id>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.build.directory}/server-replay-client</workingDirectory>
-                            <arguments>install --loglevel=${npm.log.level}</arguments>
+                            <workingDirectory>${project.build.directory}/har-replay-proxy</workingDirectory>
+                            <arguments>install --loglevel=${npm.log.level} --production</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>embed-har-replay-proxy</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>har-replay-proxy</finalName>
+                            <descriptor>src/assembly/har-replay-proxy-zip.xml</descriptor>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>

@@ -9,14 +9,17 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ReplayManagerConfig {
 
@@ -30,27 +33,26 @@ public class ReplayManagerConfig {
      * Client module directory provider. The client module directory must contain a
      * node_modules directory with the server-replay module code.
      */
-    public final ServerReplayClientDirProvider serverReplayClientDirProvider;
+    public final ResourceDirectoryProvider harReplayProxyDirProvider;
 
     /**
-     * Length of the interval between polls for server readiness. The server-replay module
-     * starts an HTTP server that does not immediately start listening, so the replay manager
-     * polls until it can open a socket to the server. This parameter defines how long to
-     * wait between polls, in milliseconds. This is not currently configurable.
+     * Length of the interval between polls for server readiness. The har-replay-proxy module
+     * prints a message on stdout when the proxy server has started listening, and we poll
+     * for that message by tailing the file containing standard output from the process.
+     * This parameter defines how long to wait between polls, in milliseconds.
+     * This is not currently configurable.
      */
     public final long serverReadinessPollIntervalMillis = 20;
 
     /**
-     * Maximum number of server readiness polls to perform. The server-replay module
-     * starts an HTTP server that does not immediately start listening, so the replay manager
-     * polls until it can open a socket to the server. This parameter defines how long to
-     * wait between polls, in milliseconds. This is not currently configurable.
+     * Length of time to wait for the server to become ready, in milliseconds.
+     * This is not currently configurable, but should be.
      */
-    public final int serverReadinessMaxPolls = 50;
+    public final int serverReadinessTimeoutMillis = 3000;
 
     private ReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
-        serverReplayClientDirProvider = builder.serverReplayClientDirProvider;
+        harReplayProxyDirProvider = builder.harReplayProxyDirProvider;
     }
 
     /**
@@ -74,7 +76,7 @@ public class ReplayManagerConfig {
         }
     }
 
-    public interface ServerReplayClientDirProvider {
+    public interface ResourceDirectoryProvider {
         Path provide(Path scratchDir) throws IOException;
     }
 
@@ -87,22 +89,30 @@ public class ReplayManagerConfig {
         return ReplayManagerConfig.builder().build();
     }
 
-    static class EmbeddedClientDirProvider implements ServerReplayClientDirProvider {
+    static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
-        private static final String ZIP_ROOT = "server-replay-client";
-
-        public static ServerReplayClientDirProvider getInstance() {
+        static final String ZIP_ROOT = "har-replay-proxy"; // must be equal to outputDirectory in assembly descriptor
+        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy.zip";
+        public static ResourceDirectoryProvider getInstance() {
             return instance;
         }
 
         private static final EmbeddedClientDirProvider instance = new EmbeddedClientDirProvider();
 
+        protected URL getZipResource() throws FileNotFoundException {
+            URL url = getClass().getResource(ZIP_RESOURCE_PATH);
+            if (url == null) {
+                throw new FileNotFoundException("classpath:" + ZIP_RESOURCE_PATH);
+            }
+            return url;
+        }
+
         @Override
         public Path provide(Path scratchDir) throws IOException {
-            File zipFile = File.createTempFile("server-replay-client", ".zip", scratchDir.toFile());
-            ByteSource zipSrc = Resources.asByteSource(getClass().getResource("/server-replay-client.zip"));
+            File zipFile = File.createTempFile("har-replay-proxy", ".zip", scratchDir.toFile());
+            ByteSource zipSrc = Resources.asByteSource(getZipResource());
             zipSrc.copyTo(Files.asByteSink(zipFile));
-            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "client-parent");
+            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "har-replay-proxy-parent");
             try (ZipFile z = new ZipFile(zipFile)) {
                 for (Iterator<? extends ZipEntry> it = Iterators.forEnumeration(z.entries()); it.hasNext();) {
                     ZipEntry entry = it.next();
@@ -129,13 +139,14 @@ public class ReplayManagerConfig {
      * @see ReplayManagerConfig
      */
     public static final class Builder {
+        @Nullable
         private File nodeExecutable = null;
-        private ServerReplayClientDirProvider serverReplayClientDirProvider = EmbeddedClientDirProvider.getInstance();
+        private ResourceDirectoryProvider harReplayProxyDirProvider = EmbeddedClientDirProvider.getInstance();
 
         private Builder() {
         }
 
-        public Builder nodeExecutable(File executableFile) {
+        public Builder nodeExecutable(@Nullable File executableFile) {
             nodeExecutable = executableFile;
             if (executableFile != null) {
                 checkArgument(executableFile.canExecute(), "not executable: %s", executableFile);
@@ -143,8 +154,8 @@ public class ReplayManagerConfig {
             return this;
         }
 
-        public Builder serverReplayClientDirProvider(ServerReplayClientDirProvider val) {
-            serverReplayClientDirProvider = val;
+        public Builder harReplayProxyDirProvider(ResourceDirectoryProvider val) {
+            harReplayProxyDirProvider = checkNotNull(val);
             return this;
         }
 
