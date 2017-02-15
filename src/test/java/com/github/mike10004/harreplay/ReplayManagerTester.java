@@ -11,11 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ReplayManagerTester {
 
-    private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.http.port"; // see pom.xml build-helper-plugin
+    private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
 
     private final Path tempDir;
     private final File harFile;
@@ -125,32 +122,6 @@ public class ReplayManagerTester {
         return findPortToUse(SYSPROP_SERVER_REPLAY_HTTP_PORT);
     }
 
-    public static class Https {
-
-        private Https() {}
-
-        private static File getResourceAsFile(String resourcePath) throws IOException {
-            URL url = Https.class.getResource(resourcePath);
-            if (url == null) {
-                throw new FileNotFoundException("classpath:" + resourcePath);
-            }
-            try {
-                return new File(url.toURI());
-            } catch (URISyntaxException e) {
-                throw new IOException(e);
-            }
-        }
-
-        public static File getTestKeyFile() throws IOException {
-            return getResourceAsFile("/snakeoil/har-replay-key.pem");
-        }
-
-        public static File getTestCertificateFile() throws IOException {
-            return getResourceAsFile("/snakeoil/har-replay-cert.pem");
-        }
-
-    }
-
     private static int findPortToUse(String systemPropertyName) throws IOException {
         String portStr = System.getProperty(systemPropertyName);
         if (Strings.isNullOrEmpty(portStr)) { // probably running with IDE test runner, not Maven
@@ -163,30 +134,6 @@ public class ReplayManagerTester {
         } else {
             return Integer.parseInt(portStr);
         }
-    }
-
-    public static File getHttpsExampleFile() {
-        try {
-            return new File(ReplayManagerTester.class.getResource("/https.www.example.com.har").toURI());
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public static File getHttpExampleFile() {
-        try {
-            return new File(ReplayManagerTester.class.getResource("/http.www.example.com.har").toURI());
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public static String getHttpExamplePageTitle() {
-        return "ABCDEFG Domain";
-    }
-
-    public static String getHttpsExamplePageTitle() {
-        return "Example Abcdef";
     }
 
 }

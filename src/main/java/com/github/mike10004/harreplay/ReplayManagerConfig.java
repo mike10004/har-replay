@@ -33,27 +33,26 @@ public class ReplayManagerConfig {
      * Client module directory provider. The client module directory must contain a
      * node_modules directory with the server-replay module code.
      */
-    public final ResourceDirectoryProvider serverReplayDirProvider;
+    public final ResourceDirectoryProvider harReplayProxyDirProvider;
 
     /**
-     * Length of the interval between polls for server readiness. The server-replay module
-     * starts an HTTP server that does not immediately start listening, so the replay manager
-     * polls until it can open a socket to the server. This parameter defines how long to
-     * wait between polls, in milliseconds. This is not currently configurable.
+     * Length of the interval between polls for server readiness. The har-replay-proxy module
+     * prints a message on stdout when the proxy server has started listening, and we poll
+     * for that message by tailing the file containing standard output from the process.
+     * This parameter defines how long to wait between polls, in milliseconds.
+     * This is not currently configurable.
      */
     public final long serverReadinessPollIntervalMillis = 20;
 
     /**
-     * Maximum number of server readiness polls to perform. The server-replay module
-     * starts an HTTP server that does not immediately start listening, so the replay manager
-     * polls until it can open a socket to the server. This parameter defines how long to
-     * wait between polls, in milliseconds. This is not currently configurable.
+     * Length of time to wait for the server to become ready, in milliseconds.
+     * This is not currently configurable, but should be.
      */
-    public final int serverReadinessMaxPolls = 50;
+    public final int serverReadinessTimeoutMillis = 3000;
 
     private ReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
-        serverReplayDirProvider = builder.serverReplayDirProvider;
+        harReplayProxyDirProvider = builder.harReplayProxyDirProvider;
     }
 
     /**
@@ -92,8 +91,8 @@ public class ReplayManagerConfig {
 
     static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
-        static final String ZIP_ROOT = "server-replay"; // must be equal to outputDirectory in assembly descriptor
-        private static final String ZIP_RESOURCE_PATH = "/server-replay.zip";
+        static final String ZIP_ROOT = "har-replay-proxy"; // must be equal to outputDirectory in assembly descriptor
+        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy.zip";
         public static ResourceDirectoryProvider getInstance() {
             return instance;
         }
@@ -110,10 +109,10 @@ public class ReplayManagerConfig {
 
         @Override
         public Path provide(Path scratchDir) throws IOException {
-            File zipFile = File.createTempFile("server-replay", ".zip", scratchDir.toFile());
+            File zipFile = File.createTempFile("har-replay-proxy", ".zip", scratchDir.toFile());
             ByteSource zipSrc = Resources.asByteSource(getZipResource());
             zipSrc.copyTo(Files.asByteSink(zipFile));
-            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "server-replay-parent");
+            Path parentDir = java.nio.file.Files.createTempDirectory(scratchDir, "har-replay-proxy-parent");
             try (ZipFile z = new ZipFile(zipFile)) {
                 for (Iterator<? extends ZipEntry> it = Iterators.forEnumeration(z.entries()); it.hasNext();) {
                     ZipEntry entry = it.next();
@@ -142,7 +141,7 @@ public class ReplayManagerConfig {
     public static final class Builder {
         @Nullable
         private File nodeExecutable = null;
-        private ResourceDirectoryProvider serverReplayDirProvider = EmbeddedClientDirProvider.getInstance();
+        private ResourceDirectoryProvider harReplayProxyDirProvider = EmbeddedClientDirProvider.getInstance();
 
         private Builder() {
         }
@@ -155,8 +154,8 @@ public class ReplayManagerConfig {
             return this;
         }
 
-        public Builder serverReplayDirProvider(ResourceDirectoryProvider val) {
-            serverReplayDirProvider = checkNotNull(val);
+        public Builder harReplayProxyDirProvider(ResourceDirectoryProvider val) {
+            harReplayProxyDirProvider = checkNotNull(val);
             return this;
         }
 

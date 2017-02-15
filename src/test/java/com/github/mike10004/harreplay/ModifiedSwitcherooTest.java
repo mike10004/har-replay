@@ -1,5 +1,6 @@
 package com.github.mike10004.harreplay;
 
+import com.github.mike10004.harreplay.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.xvfbselenium.WebDriverSupport;
 import com.github.mike10004.xvfbtesting.XvfbRule;
@@ -48,18 +49,25 @@ public class ModifiedSwitcherooTest {
     }
 
     @Test
-    public void testExtensionWithSelenium() throws Exception {
-        int port = ReplayManagerTester.findHttpPortToUse();
+    public void testExtensionWithSelenium_https() throws Exception {
+        testExtensionWithSelenium(Fixtures.https());
+    }
+
+    @Test
+    public void testExtensionWithSelenium_httpsRedirect() throws Exception {
+        testExtensionWithSelenium(Fixtures.httpsRedirect());
+    }
+
+    private void testExtensionWithSelenium(Fixture fixture) throws Exception {
         ChromeDriverManager.getInstance().setup("2.27");
-        File harFile = ReplayManagerTester.getHttpsExampleFile();
-        ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), harFile);
+        ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), fixture.harFile());
         File crxFile = temporaryFolder.newFile("modified-switcheroo.crx");
         ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(crxFile));
-        Multimap<URI, String> results = tester.exercise(new ChromeDriverReplayClient(crxFile, URI.create("https://www.example.com/")), port);
+        Multimap<URI, String> results = tester.exercise(new ChromeDriverReplayClient(crxFile, fixture.startUrl()), ReplayManagerTester.findHttpPortToUse());
         assertEquals("results map size", 1, results.size());
         String pageSource = results.values().iterator().next();
         System.out.println(StringUtils.abbreviate(pageSource, 256));
-        assertTrue(pageSource.contains(ReplayManagerTester.getHttpsExamplePageTitle()));
+        assertTrue(pageSource.contains(fixture.title()));
     }
 
     private class ChromeDriverReplayClient implements ReplayClient<Multimap<URI, String>> {

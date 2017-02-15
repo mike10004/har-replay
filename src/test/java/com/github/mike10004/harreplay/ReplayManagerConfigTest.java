@@ -30,16 +30,16 @@ public class ReplayManagerConfigTest {
 
     @Test
     public void auto() throws Exception {
-        Path serverReplayDir = ReplayManagerConfig.auto().serverReplayDirProvider.provide(temporaryFolder.getRoot().toPath());
+        Path serverReplayDir = ReplayManagerConfig.auto().harReplayProxyDirProvider.provide(temporaryFolder.getRoot().toPath());
         Collection<File> files = FileUtils.listFiles(serverReplayDir.toFile(), null, true);
         for (File f : files) {
-            System.out.println(f);
+            if (verbose) System.out.println(f);
         }
         String[] requiredRelativePaths = {"cli.js", "index.js", "parse-config.js", "node_modules/yargs/index.js"};
         for (String requiredPath : requiredRelativePaths) {
             File file = serverReplayDir.resolve(requiredPath).toFile();
             if (!file.isFile() || file.length() <= 0) {
-                if (verbose) System.out.format("not found or empty: %s%n", file);
+                System.out.format("not found or empty: %s%n", file);
             }
             assertTrue("not a file: " + file, file.isFile());
             assertTrue("empty: " + file, file.length() > 0);

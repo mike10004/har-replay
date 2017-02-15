@@ -1,8 +1,12 @@
 package com.github.mike10004.harreplay;
 
+import com.github.mike10004.harreplay.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.harreplay.ServerReplayConfig.Mapping;
+import com.github.mike10004.harreplay.ServerReplayConfig.RegexHolder;
 import com.github.mike10004.harreplay.ServerReplayConfig.Replacement;
+import com.github.mike10004.harreplay.ServerReplayConfig.ResponseHeaderTransform;
+import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -19,6 +23,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.junit.Rule;
@@ -45,21 +50,20 @@ public class ReplayManagerTest {
     @Test
     public void startAsync_http() throws Exception {
         System.out.println("\n\nstartAsync_http\n");
-        File harFile = new File(getClass().getResource("/http.www.example.com.har").toURI());
-        testStartAsync(harFile, URI.create("http://www.example.com/"));
+        File harFile = Fixtures.http().harFile();
+        testStartAsync(harFile, Fixtures.http().startUrl());
     }
 
     @Test
     public void startAsync_https() throws Exception {
         System.out.println("\n\nstartAsync_https\n");
-        File harFile = new File(getClass().getResource("/https.www.example.com.har").toURI());
+        Fixture fixture = Fixtures.https();
+        File harFile = fixture.harFile();
         ServerReplayConfig config = ServerReplayConfig.builder()
-                .https(ReplayManagerTester.Https.getTestKeyFile(),
-                        ReplayManagerTester.Https.getTestCertificateFile())
                 .build();
-        URI uri = URI.create("https://www.example.com/");
+        URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, content -> content.contains(ReplayManagerTester.getHttpsExamplePageTitle()));
+        testStartAsync(harFile, uri, client, config, content -> content.contains(fixture.title()));
     }
 
     @Test
@@ -67,11 +71,12 @@ public class ReplayManagerTest {
         File customContentFile = temporaryFolder.newFile();
         String customContent = "my custom string";
         Files.write(customContent, customContentFile, UTF_8);
-        URI uri = URI.create("http://www.example.com/");
+        Fixture fixture = Fixtures.http();
+        URI uri = fixture.startUrl();
         ServerReplayConfig config = ServerReplayConfig.builder()
                 .map(Mapping.literalToFile(uri.toString(), customContentFile))
                 .build();
-        File harFile = new File(getClass().getResource("/http.www.example.com.har").toURI());
+        File harFile = fixture.harFile();
         ApacheRecordingClient client = newApacheClient(uri, false);
         testStartAsync(harFile, uri, client, config, customContent::equals);
     }
@@ -79,10 +84,11 @@ public class ReplayManagerTest {
     @Test
     public void literalReplacement() throws Exception {
         String replacementText = "I Eat Your Brain";
-        File harFile = ReplayManagerTester.getHttpsExampleFile();
-        URI uri = URI.create("https://www.example.com/");
+        Fixture fixture = Fixtures.https();
+        File harFile = fixture.harFile();
+        URI uri = fixture.startUrl();
         ServerReplayConfig config = ServerReplayConfig.builder()
-                .replace(Replacement.literal(ReplayManagerTester.getHttpsExamplePageTitle(), replacementText))
+                .replace(Replacement.literal(fixture.title(), replacementText))
                 .build();
         ApacheRecordingClient client = newApacheClient(uri, true);
         testStartAsync(harFile, uri, client, config, responseContent -> responseContent.contains(replacementText));
@@ -121,13 +127,31 @@ public class ReplayManagerTest {
     public void startAsync_http_unmatchedReturns404() throws Exception {
         System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
-        File harFile = ReplayManagerTester.getHttpExampleFile();
+        File harFile = Fixtures.http().harFile();
         ResponseSummary response = new ReplayManagerTester(tempDir, harFile)
                 .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findHttpPortToUse())
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);
         assertEquals("status", HttpStatus.SC_NOT_FOUND, response.statusLine.getStatusCode());
+    }
+
+    private static ResponseHeaderTransform createLocationHttpsToHttpTransform() {
+        return ResponseHeaderTransform.valueByNameAndValue(StringLiteral.of(org.apache.http.HttpHeaders.LOCATION),
+                RegexHolder.of("^https://(.+)"), StringLiteral.of("http://$1"));
+    }
+
+    @Test
+    public void startAsync_https_transformLocationResponseHeader() throws Exception {
+        System.out.println("\n\nstartAsync_https_transformLocationResponseHeader\n");
+        Fixture fixture = Fixtures.httpsRedirect();
+        File harFile = fixture.harFile();
+        ServerReplayConfig config = ServerReplayConfig.builder()
+                .transformResponse(createLocationHttpsToHttpTransform())
+                .build();
+        URI uri = fixture.startUrl();
+        ApacheRecordingClient client = newApacheClient(uri, true);
+        testStartAsync(harFile, uri, client, config, content -> content.contains(fixture.title()));
     }
 
     private static class ApacheRecordingClient implements ReplayClient<Multimap<URI, ResponseSummary>> {
@@ -157,6 +181,7 @@ public class ReplayManagerTest {
             Multimap<URI, ResponseSummary> result = ArrayListMultimap.create();
             try (CloseableHttpClient client = HttpClients.custom()
                     .setProxy(new HttpHost(proxy.getHost(), proxy.getPort()))
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
                     .build()) {
                 for (URI uri : urisToGet) {
                     System.out.format("fetching %s%n", uri);
