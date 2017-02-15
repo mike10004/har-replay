@@ -9,7 +9,7 @@
     <version>0.4-SNAPSHOT</version>
 
     <name>har-replay</name>
-    <description>Library that helps you use Selenium WebDriver in Java</description>
+    <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <url>https://github.com/mike10004/har-replay</url>
     <inceptionYear>2016</inceptionYear>
     <licenses>
@@ -269,6 +269,14 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <!--We could consider using a git submodule for this, but then we'd have to remind people
+                            to clone recursively. Instead, this limits the universality of the build because it
+                            will fail if the host does not have git installed and callable from the working
+                            directory (target), which is okay for now.
+
+                            Alternatively, now that that code is stable (as signified by the fact that we're cloning
+                            a tag), we could just include it as a zip file or as source files directly.
+                             -->
                         <id>stage-har-replay-proxy-module</id>
                         <phase>generate-resources</phase>
                         <goals>
@@ -278,12 +286,15 @@
                             <workingDirectory>${project.build.directory}</workingDirectory>
                             <executable>git</executable>
                             <arguments>
+                                <argument>-c</argument>
+                                <argument>advice.detachedHead=false</argument>
                                 <argument>clone</argument>
-                                <!--<argument>https://github.com/mike10004/har-replay-proxy</argument>-->
-                                <argument>/home/mike/ws/public2/har-replay-proxy</argument>
+                                <argument>https://github.com/mike10004/har-replay-proxy</argument>
                                 <argument>--branch</argument>
-                                <argument>support-response-header-transforms</argument>
+                                <argument>0.0.1</argument>
                                 <argument>--single-branch</argument>
+                                <argument>${project.build.directory}/har-replay-proxy</argument>
+                                <argument>--quiet</argument>
                             </arguments>
                         </configuration>
                     </execution>
