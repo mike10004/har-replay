@@ -43,11 +43,13 @@ public class ModifiedSwitcherooTest {
 
     @Test
     public void testExtensionWithSelenium_https() throws Exception {
+        System.out.println("testExtensionWithSelenium_https");
         testExtensionWithSelenium(Fixtures.https());
     }
 
     @Test
     public void testExtensionWithSelenium_httpsRedirect() throws Exception {
+        System.out.println("testExtensionWithSelenium_httpsRedirect");
         testExtensionWithSelenium(Fixtures.httpsRedirect());
     }
 
@@ -59,7 +61,7 @@ public class ModifiedSwitcherooTest {
         assertEquals("results map size", 1, results.size());
         String pageSource = results.values().iterator().next();
         System.out.println(StringUtils.abbreviate(pageSource, 256));
-        assertTrue(pageSource.contains(fixture.title()));
+        assertTrue("expected page source to contain title '" + fixture.title() + "'", pageSource.contains(fixture.title()));
     }
 
     private class ChromeDriverReplayClient implements ReplayClient<Multimap<URI, String>> {
