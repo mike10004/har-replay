@@ -5,10 +5,9 @@ har-replay
 ==========
 
 Java library for serving recorded HTTP responses from a HAR file. The library
-uses the [Stuk/server-replay](https://github.com/Stuk/server-replay) Node
-module. See that project for details, but to summarize, it's a program that
-acts as an HTTP proxy, and when it receives a request, it responds with a 
-pre-recorded responses from a HAR.
+uses a Node module called [har-replay-proxy] that acts as an HTTP proxy. The
+proxy intercepts each request and responds with a pre-recorded response from 
+a HAR.
 
 Quick Start
 -----------
@@ -70,5 +69,6 @@ configure a `ChromeOptions` instance with that CRX file and pass it to the
 the extension, which intercepts requests to HTTPS URLs and modifies the URL to
 use HTTP instead. See the unit tests for an example of this.
 
+[har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
