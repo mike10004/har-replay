@@ -2,6 +2,7 @@ package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
+import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.xvfbselenium.WebDriverSupport;
 import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ArrayListMultimap;
@@ -13,6 +14,7 @@ import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,20 +34,11 @@ public class ModifiedSwitcherooTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
-    public final XvfbRule xvfb = XvfbRule.builder().disabledOnWindows().build();
+    public final XvfbRule xvfb = XvfbRule.builder().disabled(!Platforms.getPlatform().isLinux()).build();
 
-    public static class ModifiedSwitcheroo_NoXvfbTest {
-
-        @Rule
-        public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-        @Test
-        public void getExtensionCrxByteSource() throws Exception {
-            ByteSource bs = ModifiedSwitcheroo.getExtensionCrxByteSource();
-            File outfile = temporaryFolder.newFile();
-            bs.copyTo(Files.asByteSink(outfile));
-            assertTrue("outfile nonempty", outfile.length() > 0);
-        }
+    @BeforeClass
+    public static void initChromeDriver() {
+        ChromeDriverManager.getInstance().setup("2.27");
     }
 
     @Test
@@ -59,7 +52,6 @@ public class ModifiedSwitcherooTest {
     }
 
     private void testExtensionWithSelenium(Fixture fixture) throws Exception {
-        ChromeDriverManager.getInstance().setup("2.27");
         ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), fixture.harFile());
         File crxFile = temporaryFolder.newFile("modified-switcheroo.crx");
         ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(crxFile));
@@ -99,4 +91,19 @@ public class ModifiedSwitcherooTest {
             }
         }
     }
+
+    public static class ModifiedSwitcheroo_NoXvfbTest {
+
+        @Rule
+        public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+        @Test
+        public void getExtensionCrxByteSource() throws Exception {
+            ByteSource bs = ModifiedSwitcheroo.getExtensionCrxByteSource();
+            File outfile = temporaryFolder.newFile();
+            bs.copyTo(Files.asByteSink(outfile));
+            assertTrue("outfile nonempty", outfile.length() > 0);
+        }
+    }
+
 }

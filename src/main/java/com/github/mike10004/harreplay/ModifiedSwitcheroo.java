@@ -3,6 +3,8 @@ package com.github.mike10004.harreplay;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Resources;
 
+import java.net.URL;
+
 /**
  * Static utility methods related to the Modified Switcheroo Chrome extension embedded in this library.
  */
@@ -16,6 +18,11 @@ public class ModifiedSwitcheroo {
      * @return the byte source
      */
     public static ByteSource getExtensionCrxByteSource() {
-        return Resources.asByteSource(ModifiedSwitcheroo.class.getResource("/modified-switcheroo.crx"));
+        String resourcePath = "/modified-switcheroo.crx";
+        URL resource = ModifiedSwitcheroo.class.getResource(resourcePath);
+        if (resource == null) {
+            throw new IllegalStateException("not found: classpath:" + resourcePath);
+        }
+        return Resources.asByteSource(resource);
     }
 }

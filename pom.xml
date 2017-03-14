@@ -6,7 +6,7 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.4</version>
+    <version>0.5-SNAPSHOT</version>
 
     <name>har-replay</name>
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
@@ -38,6 +38,8 @@
         <test.log.level>info</test.log.level>
         <npm.log.level>error</npm.log.level>
         <har-replay-proxy-staging.install.directory>${project.build.directory}/har-replay-proxy-staging-install</har-replay-proxy-staging.install.directory>
+        <chrome.xvfb.disabled>false</chrome.xvfb.disabled>
+        <chrome.executable>google-chrome</chrome.executable>
     </properties>
     <profiles>
         <profile>
@@ -45,6 +47,52 @@
             <properties>
                 <test.log.level>debug</test.log.level>
             </properties>
+        </profile>
+        <profile>
+            <id>macos</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <chrome.executable>/Applications/Google Chrome.app/Contents/MacOS/Google Chrome</chrome.executable>
+            </properties>
+        </profile>
+        <profile>
+            <id>no-xvfb</id>
+            <activation>
+                <os>
+                    <family>!linux</family>
+                </os>
+            </activation>
+            <properties>
+                <chrome.xvfb.disabled>true</chrome.xvfb.disabled>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>noxvfb-pack-extension-modified-switcheroo</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${chrome.executable}</executable>
+                                    <workingDirectory>${project.build.outputDirectory}</workingDirectory>
+                                    <arguments>
+                                        <argument>--pack-extension=${project.build.directory}/modified-switcheroo</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
     <distributionManagement>
@@ -263,10 +311,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
+                            <skip>${chrome.xvfb.disabled}</skip>
                             <executable>xvfb-run</executable>
                             <workingDirectory>${project.build.outputDirectory}</workingDirectory>
                             <arguments>
-                                <argument>google-chrome</argument>
+                                <argument>${chrome.executable}</argument>
                                 <argument>--pack-extension=${project.build.directory}/modified-switcheroo</argument>
                             </arguments>
                         </configuration>
