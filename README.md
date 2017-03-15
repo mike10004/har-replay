@@ -69,6 +69,10 @@ configure a `ChromeOptions` instance with that CRX file and pass it to the
 the extension, which intercepts requests to HTTPS URLs and modifies the URL to
 use HTTP instead. See the unit tests for an example of this.
 
+Note that the extension will not rewrite URLs that are visited as a result of
+redirects. To swap HTTPS for HTTP in those URLs, you have to add a response
+header transform to the `ReplaySessionConfig` object.
+
 [har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
