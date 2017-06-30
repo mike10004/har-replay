@@ -38,7 +38,7 @@ public class ModifiedSwitcherooTest {
 
     @BeforeClass
     public static void initChromeDriver() {
-        ChromeDriverManager.getInstance().setup("2.27");
+        ChromeDriverManager.getInstance().setup(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION);
     }
 
     @Test
@@ -55,44 +55,36 @@ public class ModifiedSwitcherooTest {
 
     private void testExtensionWithSelenium(Fixture fixture) throws Exception {
         ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), fixture.harFile());
-        File crxFile = temporaryFolder.newFile("modified-switcheroo.crx");
-        ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(crxFile));
-        Multimap<URI, String> results = tester.exercise(new ChromeDriverReplayClient(crxFile, fixture.startUrl()), ReplayManagerTester.findHttpPortToUse());
+        Multimap<URI, String> results = tester.exercise(new XvfbChromeDriverReplayClient(fixture.startUrl()), ReplayManagerTester.findHttpPortToUse());
         assertEquals("results map size", 1, results.size());
         String pageSource = results.values().iterator().next();
         System.out.println(StringUtils.abbreviate(pageSource, 256));
         assertTrue("expected page source to contain title '" + fixture.title() + "'", pageSource.contains(fixture.title()));
     }
 
-    private class ChromeDriverReplayClient implements ReplayClient<Multimap<URI, String>> {
+    private class XvfbChromeDriverReplayClient implements ReplayClient<Multimap<URI, String>> {
 
-        private final File switcherooExtensionFile;
         private final ImmutableList<URI> urisToGet;
 
-        private ChromeDriverReplayClient(File switcherooExtensionFile, URI firstUriToGet, URI...otherUrisToGet) {
-            this.switcherooExtensionFile = switcherooExtensionFile;
+        public XvfbChromeDriverReplayClient(URI firstUriToGet, URI... otherUrisToGet) {
+            super();
             this.urisToGet = ImmutableList.copyOf(Lists.asList(firstUriToGet, otherUrisToGet));
         }
 
         @Override
         public Multimap<URI, String> useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception {
-            ChromeOptions options = new ChromeOptions();
-            options.addExtensions(switcherooExtensionFile);
-            options.addArguments("--proxy-server=" + proxy);
+            ChromeOptions options = ChromeOptionsProducer.getDefault(tempDir).produceOptions(proxy);
             ChromeDriver driver = WebDriverSupport.chromeInEnvironment(xvfb.getController().newEnvironment()).create(options);
-            try {
-                Multimap<URI, String> pageSources = ArrayListMultimap.create();
-                for (URI uri : urisToGet) {
-                    driver.get(uri.toString());
-                    String pageSource = driver.getPageSource();
-                    pageSources.put(uri, pageSource);
-                }
-                return pageSources;
-            } finally {
-                driver.quit();
+            Multimap<URI, String> pageSources = ArrayListMultimap.create();
+            for (URI uri : urisToGet) {
+                driver.get(uri.toString());
+                String pageSource = driver.getPageSource();
+                pageSources.put(uri, pageSource);
             }
+            return pageSources;
         }
     }
+
 
     public static class ModifiedSwitcheroo_NoXvfbTest {
 

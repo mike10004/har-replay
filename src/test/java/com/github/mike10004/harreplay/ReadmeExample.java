@@ -18,7 +18,7 @@ import java.util.concurrent.Future;
 @SuppressWarnings({"unused", "SameParameterValue"})
 public class ReadmeExample {
 
-    public static void example(File harFile) throws IOException {
+    public void execute(File harFile) throws IOException {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replayManager = new ReplayManager(replayManagerConfig);
         ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
@@ -33,7 +33,7 @@ public class ReadmeExample {
         }
     }
 
-    private static void doSomethingWithProxy(String host, int port) throws IOException {
+    protected void doSomethingWithProxy(String host, int port) throws IOException {
         System.out.format("do something with proxy on %s:%d%n", host, port);
         try (CloseableHttpClient client = HttpClients.custom().setProxy(new HttpHost(host, port)).build()) {
             try (CloseableHttpResponse response = client.execute(new HttpGet("http://www.example.com/"))) {
@@ -43,6 +43,6 @@ public class ReadmeExample {
     }
 
     public static void main(String[] args) throws Exception {
-        example(new File(ReadmeExample.class.getResource("/https.www.example.com.har").toURI()));
+        new ReadmeExample().execute(new File(ReadmeExample.class.getResource("/https.www.example.com.har").toURI()));
     }
 }
