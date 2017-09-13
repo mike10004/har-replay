@@ -6,7 +6,7 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.6</version>
+    <version>0.7</version>
 
     <name>har-replay</name>
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
@@ -33,8 +33,8 @@
         <url>https://github.com/mike10004/har-replay</url>
     </scm>
     <properties>
-        <xvfb-manager.version>0.7</xvfb-manager.version>
-        <selenium.version>3.4.0</selenium.version>
+        <xvfb-manager.version>0.9</xvfb-manager.version>
+        <selenium.version>3.5.3</selenium.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <test.log.level>info</test.log.level>
@@ -145,8 +145,8 @@
                     <artifactId>frontend-maven-plugin</artifactId>
                     <version>1.0</version>
                     <configuration>
-                        <nodeVersion>v5.12.0</nodeVersion>
-                        <npmVersion>3.8.6</npmVersion>
+                        <nodeVersion>v6.11.3</nodeVersion>
+                        <npmVersion>3.10.10</npmVersion>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -437,7 +437,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>21.0</version>
+                <version>22.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -460,7 +460,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.5</version>
+            <version>3.6</version>
         </dependency>
         <dependency>
             <groupId>de.sstoehr</groupId>
@@ -470,7 +470,7 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>native-helper</artifactId>
-            <version>6.0.0</version>
+            <version>7.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
