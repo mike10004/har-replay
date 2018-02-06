@@ -4,4 +4,4 @@ install:
   - mvn -B --settings travis-maven-settings.xml dependency:resolve
   - mvn -B --settings travis-maven-settings.xml dependency:resolve-plugins
 script:
-  - mvn --settings travis-maven-settings.xml verify -B
+  - mvn -B --settings travis-maven-settings.xml verify -Dhar-replay.chromedriver.chrome.arguments=--no-sandbox
