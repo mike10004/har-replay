@@ -15,10 +15,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class ReplayManagerTester {
@@ -55,21 +59,39 @@ public class ReplayManagerTester {
         ReplaySessionConfig sessionParams = rscb.build(harFile);
         HostAndPort proxy = HostAndPort.fromParts("localhost", sessionParams.port);
         System.out.format("exercise: proxy = %s%n", proxy);
-        T result;
-        try (ScopedProcessTracker processTracker = new ScopedProcessTracker()){
+        @SuppressWarnings("OptionalAssignedToNull")
+        Optional<T> result = null;
+        Exception exception = null;
+        try (ScopedProcessTracker processTracker = new VerboseProcessTracker()){
             ProcessMonitor<File, File> processMonitor = replay.startAsync(processTracker, sessionParams);
-            result = client.useReplayServer(tempDir, proxy, processMonitor);
+            result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, processMonitor));
             processMonitor.destructor().sendTermSignal().timeout(1000, TimeUnit.MILLISECONDS).kill().awaitKill();
             assertFalse("process still alive", processMonitor.process().isAlive());
             System.out.println("program future has finished");
         } catch (Exception e) {
-            System.err.format("exercise() aborting abnormally due to %s%n", e.toString());
-            throw e;
+            System.err.format("exercise() aborting abnormally due to exception%n");
+            e.printStackTrace(System.err);
+            exception = e;
         } finally {
+            System.out.println("awaiting execution of process callback");
             infoCallback.await(5, TimeUnit.SECONDS);
         }
         assertTrue("callback executed", infoCallback.wasExecuted());
-        return result;
+        assertNull("exception was thrown, probably from useReplayServer", exception);
+        checkState(result != null, "result never set");
+        return result.orElse(null);
+    }
+
+    private static class VerboseProcessTracker extends ScopedProcessTracker {
+        public VerboseProcessTracker() {
+            super();
+        }
+
+        @Override
+        public List<Process> destroyAll() {
+            System.out.println("ReplayManagerTester: destroying all tracked processes");
+            return super.destroyAll();
+        }
     }
 
     private static class ProgramInfoFutureCallback implements FutureCallback<ProcessResult<File, File>> {
