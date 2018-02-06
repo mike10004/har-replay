@@ -39,7 +39,7 @@ public class ModifiedSwitcherooTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
-    public final XvfbRule xvfb = XvfbRule.builder().disabled().build();
+    public final XvfbRule xvfb = XvfbRule.builder().build();
 
     @Rule
     public final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
