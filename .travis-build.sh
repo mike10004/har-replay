@@ -21,5 +21,5 @@ export PATH="/usr/local/phantomjs/bin:/usr/local/phantomjs:/usr/local/neo4j-3.2.
 echo "exported PATH=$PATH"
 echo "mvn: resolving dependencies"
 mvn -B --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins > /tmp/mvn-dependency-resolve.log
-mvn -B --settings travis-maven-settings.xml -Ptravis verify
-echo "build complete"
+echo "mvn: verify"
+mvn -B --settings travis-maven-settings.xml -Ptravis verify 1>/tmp/mvn-verify.log 2>/tmp/mvn-verify-stderr.log
