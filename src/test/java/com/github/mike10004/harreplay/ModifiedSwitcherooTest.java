@@ -9,10 +9,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.net.HostAndPort;
-import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -25,7 +25,6 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -44,18 +43,20 @@ public class ModifiedSwitcherooTest {
 
     private static Set<ChromeDriver> chromeDriverInstances;
 
+    @ClassRule
+    public static Fixtures.ChromeDriverSetupRule chromeDriverSetupRule = new Fixtures.ChromeDriverSetupRule();
+
     @BeforeClass
     public static void initChromeDriver() {
-        ChromeDriverManager.getInstance().version(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION).setup();
         chromeDriverInstances = new HashSet<>();
     }
 
     @AfterClass
     public static void quitChromeDrivers() {
         chromeDriverInstances.forEach(driver -> {
-            System.out.println("quitting " + driver);
+            System.out.println("@AfterClass quitting " + driver);
             driver.quit();
-            System.out.println("did quit " + driver);
+            System.out.println("@AfterClass did quit " + driver);
         });
     }
 

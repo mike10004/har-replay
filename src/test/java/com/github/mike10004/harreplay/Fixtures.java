@@ -5,6 +5,9 @@
  */
 package com.github.mike10004.harreplay;
 
+import io.github.bonigarcia.wdm.ChromeDriverManager;
+import org.junit.rules.ExternalResource;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -12,7 +15,20 @@ import java.net.URL;
 
 public class Fixtures {
 
-    public static final String RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
+    public static final String SYSPROP_CHROMEDRIVER_VERSION = "har-replay.chromedriver.version";
+
+    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
+
+    public static String getRecommendedChromeDriverVersion() {
+        return System.getProperty(SYSPROP_CHROMEDRIVER_VERSION, _RECOMMENDED_CHROME_DRIVER_VERSION);
+    }
+
+    public static class ChromeDriverSetupRule extends ExternalResource {
+        @Override
+        protected void before() {
+            ChromeDriverManager.getInstance().version(getRecommendedChromeDriverVersion()).setup();
+        }
+    }
 
     private Fixtures() {}
 
