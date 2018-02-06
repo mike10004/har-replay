@@ -40,7 +40,7 @@ public class ReplayManagerPractice {
             if (!profileDir.isDirectory()) {
                 throw new IOException("could not create directory for Chrome profile");
             }
-            ChromeDriverManager.getInstance().setup("2.27");
+            ChromeDriverManager.getInstance().version("2.27").setup();
             ChromeOptions chromeOptions = new ChromeOptions();
             File switcherooCrxFile = File.createTempFile("modified-switcheroo", ".crx", tempDir.toFile());
             ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(switcherooCrxFile));

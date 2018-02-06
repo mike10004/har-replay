@@ -70,7 +70,7 @@ public class ReplayManagerTest {
     public void literalMappingToCustomFile() throws Exception {
         File customContentFile = temporaryFolder.newFile();
         String customContent = "my custom string";
-        Files.write(customContent, customContentFile, UTF_8);
+        Files.asCharSink(customContentFile, UTF_8).write(customContent);
         Fixture fixture = Fixtures.http();
         URI uri = fixture.startUrl();
         ServerReplayConfig config = ServerReplayConfig.builder()

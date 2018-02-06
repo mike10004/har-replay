@@ -3,7 +3,6 @@ package com.github.mike10004.harreplay;
 import com.github.mike10004.harreplay.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.nativehelper.Platforms;
-import com.github.mike10004.xvfbselenium.WebDriverSupport;
 import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -19,6 +18,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.File;
@@ -38,7 +38,7 @@ public class ModifiedSwitcherooTest {
 
     @BeforeClass
     public static void initChromeDriver() {
-        ChromeDriverManager.getInstance().setup(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION);
+        ChromeDriverManager.getInstance().version(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION).setup();
     }
 
     @Test
@@ -74,7 +74,11 @@ public class ModifiedSwitcherooTest {
         @Override
         public Multimap<URI, String> useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception {
             ChromeOptions options = ChromeOptionsProducer.getDefault(tempDir).produceOptions(proxy);
-            ChromeDriver driver = WebDriverSupport.chromeInEnvironment(xvfb.getController().newEnvironment()).create(options);
+            ChromeDriverService service = new ChromeDriverService.Builder()
+                    .usingAnyFreePort()
+                    .withEnvironment(xvfb.getController().newEnvironment())
+                    .build();
+            ChromeDriver driver = new ChromeDriver(service, options);
             Multimap<URI, String> pageSources = ArrayListMultimap.create();
             for (URI uri : urisToGet) {
                 driver.get(uri.toString());

@@ -33,8 +33,9 @@
         <url>https://github.com/mike10004/har-replay</url>
     </scm>
     <properties>
-        <xvfb-manager.version>0.9</xvfb-manager.version>
-        <selenium.version>3.5.3</selenium.version>
+        <xvfb-manager.version>0.15</xvfb-manager.version>
+        <selenium.version>3.7.1</selenium.version>
+        <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <test.log.level>info</test.log.level>
@@ -112,7 +113,7 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.3</version>
+                    <version>3.6.0</version>
                     <configuration>
                         <source>1.8</source>
                         <target>1.8</target>
@@ -120,7 +121,7 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.19.1</version>
+                    <version>2.20.1</version>
                     <configuration>
                         <systemPropertyVariables>
                             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
@@ -422,22 +423,22 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
-                <version>1.7.21</version>
+                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
-                <version>1.7.21</version>
+                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.21</version>
+                <version>${slf4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>22.0</version>
+                <version>23.6-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -470,7 +471,12 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>native-helper</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>native-helper-legacy</artifactId>
+            <version>8.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -491,13 +497,13 @@
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
-            <version>1.5.0</version>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.5</version>
+            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -534,16 +540,9 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <!-- Once Chromium 59 is in Ubuntu 16.04 repos, let's replace usage of xvfb with Chrome headless. -->
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>xvfb-testing</artifactId>
-            <version>${xvfb-manager.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.mike10004</groupId>
-            <artifactId>xvfb-selenium</artifactId>
             <version>${xvfb-manager.version}</version>
             <scope>test</scope>
         </dependency>
