@@ -1,8 +1,6 @@
 dist: trusty
 language: java
-addons:
-  apt:
-    packages:
-    - chromium-browser
-install: ls -l /opt/google/chrome/chrome-sandbox
-script: mvn --settings travis-maven-settings.xml verify -B
+install:
+  - mvn -B --settings travis-maven-settings.xml dependency:resolve
+script:
+  - mvn --settings travis-maven-settings.xml verify -B
