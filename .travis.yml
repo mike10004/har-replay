@@ -1,7 +1,6 @@
 dist: trusty
 language: java
 install:
-  - mvn -B --settings travis-maven-settings.xml dependency:resolve
-  - mvn -B --settings travis-maven-settings.xml dependency:resolve-plugins
+  - mvn -B --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins
 script:
-  - mvn -B --settings travis-maven-settings.xml verify -Dhar-replay.chromedriver.chrome.arguments=--no-sandbox
+  - mvn -B --settings travis-maven-settings.xml -Ptravis verify
