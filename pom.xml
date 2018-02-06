@@ -75,21 +75,17 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>com.github.mike10004</groupId>
+                        <artifactId>crxtool-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>noxvfb-pack-extension-modified-switcheroo</id>
+                                <id>crxtool-pack-extension-modified-switcheroo</id>
                                 <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>exec</goal>
+                                    <goal>pack-extension</goal>
                                 </goals>
                                 <configuration>
-                                    <executable>${chrome.executable}</executable>
-                                    <workingDirectory>${project.build.outputDirectory}</workingDirectory>
-                                    <arguments>
-                                        <argument>--pack-extension=${project.build.directory}/modified-switcheroo</argument>
-                                    </arguments>
+                                    <sourceDirectory>${project.build.directory}/modified-switcheroo</sourceDirectory>
                                 </configuration>
                             </execution>
                         </executions>
