@@ -10,3 +10,5 @@ buildNumber.properties
 .idea/
 *.iml
 
+/node/
+/travis-debug.log
