@@ -15,16 +15,17 @@ public class ModifiedSwitcheroo {
 
     private ModifiedSwitcheroo() {}
 
+    static final String RESOURCE_PATH = "/modified-switcheroo.crx";
+
     /**
      * Gets the URL of the resource that is the Chrome extension file for the modified
      * switcheroo extension file.
      * @return the URL of the modified switcheroo crx file
      */
     public static URL getExtensionCrxResource() {
-        String resourcePath = "/modified-switcheroo.crx";
-        URL resource = ModifiedSwitcheroo.class.getResource(resourcePath);
+        URL resource = ModifiedSwitcheroo.class.getResource(RESOURCE_PATH);
         if (resource == null) {
-            throw new IllegalStateException("not found: classpath:" + resourcePath);
+            throw new IllegalStateException("not found: classpath:" + RESOURCE_PATH);
         }
         return resource;
     }

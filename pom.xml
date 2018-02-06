@@ -62,37 +62,6 @@
                 <chrome.executable>/Applications/Google Chrome.app/Contents/MacOS/Google Chrome</chrome.executable>
             </properties>
         </profile>
-        <profile>
-            <id>no-xvfb</id>
-            <activation>
-                <os>
-                    <family>!linux</family>
-                </os>
-            </activation>
-            <properties>
-                <chrome.xvfb.disabled>true</chrome.xvfb.disabled>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.github.mike10004</groupId>
-                        <artifactId>crxtool-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>crxtool-pack-extension-modified-switcheroo</id>
-                                <phase>generate-resources</phase>
-                                <goals>
-                                    <goal>pack-extension</goal>
-                                </goals>
-                                <configuration>
-                                    <sourceDirectory>${project.build.directory}/modified-switcheroo</sourceDirectory>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
     <distributionManagement>
         <snapshotRepository>
@@ -271,6 +240,24 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>crxtool-maven-plugin</artifactId>
+                <version>0.6</version>
+                <executions>
+                    <execution>
+                        <id>crxtool-pack-extension-modified-switcheroo</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>pack-extension</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>${project.build.directory}/modified-switcheroo</sourceDirectory>
+                            <outputFile>${project.build.directory}/modified-switcheroo.crx</outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
@@ -303,22 +290,6 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>pack-extension-modified-switcheroo</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${chrome.xvfb.disabled}</skip>
-                            <executable>xvfb-run</executable>
-                            <workingDirectory>${project.build.outputDirectory}</workingDirectory>
-                            <arguments>
-                                <argument>${chrome.executable}</argument>
-                                <argument>--pack-extension=${project.build.directory}/modified-switcheroo</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
                     <execution>
                         <!--We could consider using a git submodule for this, but then we'd have to remind people
                             to clone recursively. Instead, this limits the universality of the build because it

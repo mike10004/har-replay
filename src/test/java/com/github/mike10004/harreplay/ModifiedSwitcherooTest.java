@@ -7,8 +7,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.io.ByteSource;
-import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +20,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -112,21 +109,6 @@ public class ModifiedSwitcherooTest {
                 driver.quit();
                 chromeDriverInstances.remove(driver);
             }
-        }
-    }
-
-
-    public static class ModifiedSwitcheroo_NoXvfbTest {
-
-        @Rule
-        public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-        @Test
-        public void getExtensionCrxByteSource() throws Exception {
-            ByteSource bs = ModifiedSwitcheroo.getExtensionCrxByteSource();
-            File outfile = temporaryFolder.newFile();
-            bs.copyTo(Files.asByteSink(outfile));
-            assertTrue("outfile nonempty", outfile.length() > 0);
         }
     }
 
