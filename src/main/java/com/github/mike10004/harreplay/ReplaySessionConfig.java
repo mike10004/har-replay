@@ -1,12 +1,14 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback.SyntheticProgramExitException;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteSource;
+import com.google.common.io.Files;
 import com.google.common.util.concurrent.FutureCallback;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,17 +44,9 @@ public class ReplaySessionConfig {
     }
 
     public interface ServerTerminationCallback {
-        void terminated(Throwable error);
 
-        class SyntheticProgramExitException extends Exception {
+        void terminated(int exitCode, ByteSource stdout, ByteSource stderr);
 
-            public final int exitCode;
-
-            public SyntheticProgramExitException(int exitCode) {
-                super("exit code " + exitCode);
-                this.exitCode = exitCode;
-            }
-        }
     }
 
     public static Builder usingTempDir() throws IOException {
@@ -116,23 +110,25 @@ public class ReplaySessionConfig {
                     .addStderrListener(new PrintStreamTailerListener(System.err));
         }
 
-        public Builder onTermination(FutureCallback<? super ProcessResult<File, File>> callback) {
+        private Builder onTermination(FutureCallback<? super ProcessResult<File, File>> callback) {
             serverTerminationCallbacks.add(callback);
             return this;
         }
 
         public Builder onTermination(ServerTerminationCallback terminationCallback) {
             return onTermination(new FutureCallback<ProcessResult<File, File>>() {
+                @SuppressWarnings("NullableProblems")
                 @Override
                 public void onSuccess(ProcessResult<File, File> result) {
-                    terminationCallback.terminated(new SyntheticProgramExitException(result.exitCode()));
+                    ByteSource stdout = Files.asByteSource(result.content().stdout());
+                    ByteSource stderr = Files.asByteSource(result.content().stderr());
+                    terminationCallback.terminated(result.exitCode(), stdout, stderr);
                 }
 
+                @SuppressWarnings("NullableProblems")
                 @Override
                 public void onFailure(Throwable t) {
-                    if (!(t instanceof java.util.concurrent.CancellationException)) {
-                        terminationCallback.terminated(t);
-                    }
+                    LoggerFactory.getLogger(ReplaySessionConfig.class).warn("callback not executed because future terminated abnormally", t);
                 }
             });
         }

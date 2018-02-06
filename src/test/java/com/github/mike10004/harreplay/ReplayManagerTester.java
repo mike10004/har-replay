@@ -2,9 +2,12 @@ package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.ReplayManager.ProcessMonitorReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
+import com.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.FutureCallback;
@@ -92,7 +95,7 @@ public class ReplayManagerTester {
         return result.orElse(null);
     }
 
-    private static class ProgramInfoFutureCallback implements FutureCallback<ProcessResult<File, File>> {
+    private static class ProgramInfoFutureCallback implements ServerTerminationCallback {
 
         private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -104,41 +107,26 @@ public class ReplayManagerTester {
             return latch.getCount() == 0;
         }
 
+        private static final int SIGKILL = 9, SIGINT = 15;
+        private static final ImmutableSet<Integer> normalExitCodes = ImmutableSet.of(128 + SIGINT, 128 + SIGKILL);
+
         @Override
-        public final void onSuccess(ProcessResult<File, File> result) {
+        public void terminated(int exitCode, ByteSource stdout, ByteSource stderr) {
             try {
-                System.out.println("program finished: " + result);
-                if (result.exitCode() != 143) { // represents correct signal sent to kill process
+                System.out.println("program finished: " + exitCode);
+                if (!normalExitCodes.contains(exitCode)) {
                     try {
-                        Files.asByteSource(result.content().stdout()).copyTo(System.out);
-                        Files.asByteSource(result.content().stderr()).copyTo(System.err);
+                        stdout.copyTo(System.out);
+                        stderr.copyTo(System.err);
                     } catch (IOException e) {
                         e.printStackTrace(System.err);
                     }
                 }
             } finally {
-                always();
+                latch.countDown();
             }
         }
 
-        private void always() {
-            latch.countDown();
-        }
-
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public final void onFailure(Throwable t) {
-            try {
-                if (!(t instanceof java.util.concurrent.CancellationException)) {
-                    System.err.println("program exited unexpectedly");
-                    t.printStackTrace(System.err);
-                } else {
-                    System.out.println("program was cancelled");
-                }
-            } finally {
-                always();
-            }
-        }
     }
 
     private static final Logger log = LoggerFactory.getLogger(ReplayManagerTester.class);
