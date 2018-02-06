@@ -51,7 +51,7 @@ public class BrowseHarWithChromeExample extends ReadmeExample {
     protected void doSomethingWithProxy(String host, int port) throws IOException {
         HostAndPort proxy = HostAndPort.fromParts(host, port);
         System.out.format("har replay proxy listening at %s%n", proxy);
-        ChromeDriverManager.getInstance().version(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION).setup();
+        ChromeDriverManager.getInstance().version(Fixtures.getRecommendedChromeDriverVersion()).setup();
         ChromeOptions options = ChromeOptionsProducer.getDefault().produceOptions(proxy);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         ChromeDriver driver = new ChromeDriver(options);
