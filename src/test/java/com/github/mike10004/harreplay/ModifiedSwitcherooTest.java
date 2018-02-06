@@ -2,7 +2,6 @@ package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
-import com.github.mike10004.nativehelper.Platforms;
 import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -13,10 +12,12 @@ import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -24,9 +25,13 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ModifiedSwitcherooTest {
 
@@ -34,11 +39,26 @@ public class ModifiedSwitcherooTest {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
-    public final XvfbRule xvfb = XvfbRule.builder().disabled(!Platforms.getPlatform().isLinux()).build();
+    public final XvfbRule xvfb = XvfbRule.builder().disabled().build();
+
+    @Rule
+    public final Timeout timeout = new Timeout(5, TimeUnit.SECONDS);
+
+    private static Set<ChromeDriver> chromeDriverInstances;
 
     @BeforeClass
     public static void initChromeDriver() {
         ChromeDriverManager.getInstance().version(Fixtures.RECOMMENDED_CHROME_DRIVER_VERSION).setup();
+        chromeDriverInstances = new HashSet<>();
+    }
+
+    @AfterClass
+    public static void quitChromeDrivers() {
+        chromeDriverInstances.forEach(driver -> {
+            System.out.println("quitting " + driver);
+            driver.quit();
+            System.out.println("did quit " + driver);
+        });
     }
 
     @Test
@@ -79,13 +99,19 @@ public class ModifiedSwitcherooTest {
                     .withEnvironment(xvfb.getController().newEnvironment())
                     .build();
             ChromeDriver driver = new ChromeDriver(service, options);
-            Multimap<URI, String> pageSources = ArrayListMultimap.create();
-            for (URI uri : urisToGet) {
-                driver.get(uri.toString());
-                String pageSource = driver.getPageSource();
-                pageSources.put(uri, pageSource);
+            chromeDriverInstances.add(driver);
+            try {
+                Multimap<URI, String> pageSources = ArrayListMultimap.create();
+                for (URI uri : urisToGet) {
+                    driver.get(uri.toString());
+                    String pageSource = driver.getPageSource();
+                    pageSources.put(uri, pageSource);
+                }
+                return pageSources;
+            } finally {
+                driver.quit();
+                chromeDriverInstances.remove(driver);
             }
-            return pageSources;
         }
     }
 

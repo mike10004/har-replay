@@ -12,7 +12,7 @@ import java.net.URL;
 
 public class Fixtures {
 
-    public static final String RECOMMENDED_CHROME_DRIVER_VERSION = "2.29";
+    public static final String RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
 
     private Fixtures() {}
 
