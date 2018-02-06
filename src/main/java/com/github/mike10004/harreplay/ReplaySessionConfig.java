@@ -1,7 +1,7 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback.SyntheticProgramExitException;
-import com.github.mike10004.nativehelper.ProgramWithOutputFilesResult;
+import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import org.apache.commons.io.FileUtils;
@@ -29,7 +29,7 @@ public class ReplaySessionConfig {
     public final ServerReplayConfig serverReplayConfig;
     public final ImmutableList<TailerListener> stdoutListeners;
     public final ImmutableList<TailerListener> stderrListeners;
-    public final ImmutableList<FutureCallback<? super ProgramWithOutputFilesResult>> serverTerminationCallbacks;
+    public final ImmutableList<FutureCallback<? super ProcessResult<File, File>>> serverTerminationCallbacks;
 
     private ReplaySessionConfig(Builder builder) {
         scratchDir = builder.scratchDir;
@@ -79,7 +79,7 @@ public class ReplaySessionConfig {
         private ServerReplayConfig serverReplayConfig = ServerReplayConfig.empty();
         private final List<TailerListener> stdoutListeners = new ArrayList<>();
         private final List<TailerListener> stderrListeners = new ArrayList<>();
-        private final List<FutureCallback<? super ProgramWithOutputFilesResult>> serverTerminationCallbacks = new ArrayList<>();
+        private final List<FutureCallback<? super ProcessResult<File, File>>> serverTerminationCallbacks = new ArrayList<>();
 
         private Builder(Path scratchDir) {
             this.scratchDir = checkNotNull(scratchDir);
@@ -116,16 +116,16 @@ public class ReplaySessionConfig {
                     .addStderrListener(new PrintStreamTailerListener(System.err));
         }
 
-        public Builder onTermination(FutureCallback<? super ProgramWithOutputFilesResult> callback) {
+        public Builder onTermination(FutureCallback<? super ProcessResult<File, File>> callback) {
             serverTerminationCallbacks.add(callback);
             return this;
         }
 
         public Builder onTermination(ServerTerminationCallback terminationCallback) {
-            return onTermination(new FutureCallback<ProgramWithOutputFilesResult>() {
+            return onTermination(new FutureCallback<ProcessResult<File, File>>() {
                 @Override
-                public void onSuccess(ProgramWithOutputFilesResult result) {
-                    terminationCallback.terminated(new SyntheticProgramExitException(result.getExitCode()));
+                public void onSuccess(ProcessResult<File, File> result) {
+                    terminationCallback.terminated(new SyntheticProgramExitException(result.exitCode()));
                 }
 
                 @Override

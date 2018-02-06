@@ -7,6 +7,7 @@ import com.github.mike10004.harreplay.ServerReplayConfig.RegexHolder;
 import com.github.mike10004.harreplay.ServerReplayConfig.Replacement;
 import com.github.mike10004.harreplay.ServerReplayConfig.ResponseHeaderTransform;
 import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral;
+import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -177,7 +178,7 @@ public class ReplayManagerTest {
         }
 
         @Override
-        public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception {
+        public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> pmonitor) throws Exception {
             Multimap<URI, ResponseSummary> result = ArrayListMultimap.create();
             try (CloseableHttpClient client = HttpClients.custom()
                     .setProxy(new HttpHost(proxy.getHost(), proxy.getPort()))
@@ -186,7 +187,7 @@ public class ReplayManagerTest {
                 for (URI uri : urisToGet) {
                     System.out.format("fetching %s%n", uri);
                     HttpGet get = new HttpGet(transformUri(uri));
-                    if (programFuture.isDone() || programFuture.isCancelled()) {
+                    if (!pmonitor.process().isAlive()) {
                         throw new IllegalStateException("server no longer listening");
                     }
                     try (CloseableHttpResponse response = client.execute(get)) {

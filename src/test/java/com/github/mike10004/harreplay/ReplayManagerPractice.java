@@ -1,6 +1,7 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
+import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
@@ -34,7 +35,7 @@ public class ReplayManagerPractice {
     private static class InteractiveChromeDriverClient implements ReplayClient<Void> {
 
         @Override
-        public Void useReplayServer(Path tempDir, HostAndPort proxy, Future<?> programFuture) throws Exception {
+        public Void useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> processMonitor) throws Exception {
             File profileDir = tempDir.resolve("chrome-profile").toFile();
             profileDir.mkdirs();
             if (!profileDir.isDirectory()) {

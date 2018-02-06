@@ -1,6 +1,6 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.nativehelper.Program;
+import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.collect.Iterators;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
@@ -68,11 +68,11 @@ public class ReplayManagerConfig {
      * this configuration defines (or elects not to define).
      * @return the program builder
      */
-    Program.Builder makeProgramBuilder() {
+    Subprocess.Builder makeProgramBuilder() {
         if (nodeExecutable == null) {
-            return Program.running("node");
+            return Subprocess.running("node");
         } else {
-            return Program.running(nodeExecutable);
+            return Subprocess.running(nodeExecutable);
         }
     }
 

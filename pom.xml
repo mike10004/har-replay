@@ -317,11 +317,6 @@
             <version>8.0.2</version>
         </dependency>
         <dependency>
-            <groupId>com.github.mike10004</groupId>
-            <artifactId>native-helper-legacy</artifactId>
-            <version>8.0.2</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
