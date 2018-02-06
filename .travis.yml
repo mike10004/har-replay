@@ -4,5 +4,5 @@ addons:
   apt:
     packages:
     - chromium-browser
-install: true
+install: ls -l /opt/google/chrome/chrome-sandbox
 script: mvn --settings travis-maven-settings.xml verify -B
