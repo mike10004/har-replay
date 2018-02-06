@@ -6,9 +6,8 @@ set -e
 
 SRC_DIR=$(readlink -f $(dirname $0))
 echo "using source directory $SRC_DIR"
-ls ${SRC_DIR}
+ls -ld ${SRC_DIR}
 cd ${SRC_DIR}
-echo "PATH=$PATH"
 MVN='/usr/local/maven-3.5.2/bin/mvn'
 echo "mvn: resolving dependencies"
 ${MVN} -B --settings travis-maven-settings.xml dependency:resolve dependency:resolve-plugins >/dev/null
