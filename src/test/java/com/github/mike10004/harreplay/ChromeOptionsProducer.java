@@ -1,5 +1,7 @@
 package com.github.mike10004.harreplay;
 
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.google.common.net.HostAndPort;
@@ -11,8 +13,11 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.List;
 
 interface ChromeOptionsProducer {
+
+    String SYSPROP_CHROME_ARGUMENTS = "har-replay.chromedriver.chrome.arguments";
 
     ChromeOptions produceOptions(HostAndPort proxy) throws IOException;
 
@@ -42,7 +47,14 @@ interface ChromeOptionsProducer {
             ChromeOptions options = new ChromeOptions();
             options.addExtensions(switcherooExtensionFile);
             options.addArguments("--proxy-server=" + proxy);
+            List<String> moreArgs = getAdditionalChromeArgs();
+            options.addArguments(moreArgs);
             return options;
         };
+    }
+
+    static List<String> getAdditionalChromeArgs() {
+        String tokens = System.getProperty(SYSPROP_CHROME_ARGUMENTS, "");
+        return Splitter.on(CharMatcher.whitespace()).omitEmptyStrings().splitToList(tokens);
     }
 }
