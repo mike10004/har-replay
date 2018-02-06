@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 public class ReplayManagerTester {
 
     private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
+    static final String SYSPROP_NODE_EXECUTABLE = "har-replay.node.executable";
 
     private final Path tempDir;
     private final File harFile;
@@ -45,8 +46,17 @@ public class ReplayManagerTester {
         return ServerReplayConfig.empty();
     }
 
+    protected ReplayManagerConfig.Builder createReplayManagerConfigBuilder() {
+        ReplayManagerConfig.Builder builder = ReplayManagerConfig.builder();
+        String nodeExecutablePath = System.getProperty(SYSPROP_NODE_EXECUTABLE, "");
+        if (!nodeExecutablePath.isEmpty()) {
+            builder.nodeExecutable(new File(nodeExecutablePath));
+        }
+        return builder;
+    }
+
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer httpPort) throws Exception {
-        ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
+        ReplayManagerConfig replayManagerConfig = createReplayManagerConfigBuilder().build();
         ReplayManager replay = new ReplayManager(replayManagerConfig);
         ProgramInfoFutureCallback infoCallback = new ProgramInfoFutureCallback();
         ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir)
@@ -115,6 +125,7 @@ public class ReplayManagerTester {
             latch.countDown();
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public final void onFailure(Throwable t) {
             try {

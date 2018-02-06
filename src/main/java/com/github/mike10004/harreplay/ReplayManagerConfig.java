@@ -23,6 +23,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ReplayManagerConfig {
 
+    private static final ReplayManagerConfig AUTO_CONFIG_INSTANCE = ReplayManagerConfig.builder().build();
+
     /**
      * Pathname of the Node executable. If null, the system path is queried for the executable.
      */
@@ -81,12 +83,13 @@ public class ReplayManagerConfig {
     }
 
     /**
-     * Constructs a configuration with best-guess strategies for the fields. Currently,
-     * this just invokes {@link ReplayManagerConfig.Builder#build()} on a new builder instance.
+     * Constructs a configuration with best-guess strategies for the fields. This is the default
+     * configuration, so this returns the same config you would get by invoking
+     * {@link ReplayManagerConfig.Builder#build()} on a new builder instance.
      * @return the configuration
      */
     public static ReplayManagerConfig auto() {
-        return ReplayManagerConfig.builder().build();
+        return AUTO_CONFIG_INSTANCE;
     }
 
     static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {

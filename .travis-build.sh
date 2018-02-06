@@ -17,7 +17,7 @@ touch ${TESTFILE}
 echo "touched ${TESTFILE}"
 cd ${CLONE_DIR}
 echo "inside $CLONE_DIR"
-MVN='/usr/local/maven-3.5.2/bin/mvn'
+export PATH="/usr/local/phantomjs/bin:/usr/local/phantomjs:/usr/local/neo4j-3.2.7/bin:/usr/local/maven-3.5.2/bin:/usr/local/cmake-3.9.2/bin:/usr/local/clang-5.0.0/bin:$PATH"
 echo "mvn: resolving dependencies"
-${MVN} -B --settings travis-maven-settings.xml dependency:resolve dependency:resolve-plugins > /tmp/install.log
-${MVN} -B --settings travis-maven-settings.xml verify -Dhar-replay.chromedriver.chrome.arguments=--no-sandbox
+mvn -B --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins > /tmp/install.log
+mvn -B --settings travis-maven-settings.xml -Ptravis verify

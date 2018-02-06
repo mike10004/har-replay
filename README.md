@@ -17,24 +17,20 @@ Maven dependency:
     <dependency>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay</artifactId>
-        <version>0.7</version>
+        <version>0.8</version>
     </dependency>
 
 See Maven badge above for the actual latest version.
 
 If you have a HAR file handy, you can replay it as shown here:
 
-    public static void example(File harFile) throws IOException {
+    public void execute(File harFile) throws IOException {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replayManager = new ReplayManager(replayManagerConfig);
-        ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir().build(harFile);
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        try {
-            Future<?> server = replayManager.startAsync(executorService, sessionConfig);
+        ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
+                .build(harFile);
+        try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
             doSomethingWithProxy("localhost", sessionConfig.port);
-            server.cancel(true);
-        } finally {
-            executorService.shutdownNow();
         }
     }
 

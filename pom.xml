@@ -62,6 +62,41 @@
                 <chrome.executable>/Applications/Google Chrome.app/Contents/MacOS/Google Chrome</chrome.executable>
             </properties>
         </profile>
+        <profile>
+            <id>travis</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <har-replay.chromedriver.chrome.arguments>--no-sandbox</har-replay.chromedriver.chrome.arguments>
+                                    <har-replay.node.executable>${project.basedir}/node/node</har-replay.node.executable>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId><!-- https://repo1.maven.org/maven2/com/github/eirslett/frontend-maven-plugin/ -->
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>generate-test-resources</phase>
+                                <id>do-install-node-and-npm</id>
+                                <goals>
+                                    <goal>install-node-and-npm</goal>
+                                </goals>
+                                <configuration>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
     <distributionManagement>
         <snapshotRepository>
@@ -110,6 +145,15 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>1.5.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId><!-- https://repo1.maven.org/maven2/com/github/eirslett/frontend-maven-plugin/ -->
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <version>1.0</version>
+                    <configuration>
+                        <nodeVersion>v8.9.4</nodeVersion>
+                        <npmVersion>5.6.0</npmVersion>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
