@@ -1,7 +1,6 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
+import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -17,15 +16,13 @@ import java.io.IOException;
 @SuppressWarnings({"unused", "SameParameterValue"})
 public class ReadmeExample {
 
-    public void execute(File harFile) throws IOException, InterruptedException {
+    public void execute(File harFile) throws IOException {
         ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
         ReplayManager replayManager = new ReplayManager(replayManagerConfig);
         ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
                 .build(harFile);
-        try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
-            ProcessMonitor<?, ?> serverMonitor = replayManager.startAsync(processTracker, sessionConfig);
+        try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
             doSomethingWithProxy("localhost", sessionConfig.port);
-            serverMonitor.destructor().sendTermSignal().await().kill().awaitKill();
         }
     }
 

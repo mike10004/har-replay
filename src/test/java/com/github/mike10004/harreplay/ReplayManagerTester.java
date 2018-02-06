@@ -1,8 +1,9 @@
 package com.github.mike10004.harreplay;
 
+import com.github.mike10004.harreplay.ReplayManager.ProcessMonitorReplaySessionControl;
+import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
@@ -15,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +38,7 @@ public class ReplayManagerTester {
     }
 
     public interface ReplayClient<T> {
-        T useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> programFuture) throws Exception;
+        T useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception;
     }
 
     protected ServerReplayConfig configureReplayModule() {
@@ -62,10 +62,10 @@ public class ReplayManagerTester {
         @SuppressWarnings("OptionalAssignedToNull")
         Optional<T> result = null;
         Exception exception = null;
-        try (ScopedProcessTracker processTracker = new VerboseProcessTracker()){
-            ProcessMonitor<File, File> processMonitor = replay.startAsync(processTracker, sessionParams);
-            result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, processMonitor));
-            processMonitor.destructor().sendTermSignal().timeout(1000, TimeUnit.MILLISECONDS).kill().awaitKill();
+        try (ReplaySessionControl sessionControl = replay.start(sessionParams)) {
+            result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, sessionControl));
+            sessionControl.stop();
+            ProcessMonitor<File, File> processMonitor = ((ProcessMonitorReplaySessionControl)sessionControl).getProcessMonitor();
             assertFalse("process still alive", processMonitor.process().isAlive());
             System.out.println("program future has finished");
         } catch (Exception e) {
@@ -80,18 +80,6 @@ public class ReplayManagerTester {
         assertNull("exception was thrown, probably from useReplayServer", exception);
         checkState(result != null, "result never set");
         return result.orElse(null);
-    }
-
-    private static class VerboseProcessTracker extends ScopedProcessTracker {
-        public VerboseProcessTracker() {
-            super();
-        }
-
-        @Override
-        public List<Process> destroyAll() {
-            System.out.println("ReplayManagerTester: destroying all tracked processes");
-            return super.destroyAll();
-        }
     }
 
     private static class ProgramInfoFutureCallback implements FutureCallback<ProcessResult<File, File>> {

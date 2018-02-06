@@ -1,6 +1,7 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.Fixtures.Fixture;
+import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.xvfbtesting.XvfbRule;
@@ -91,7 +92,7 @@ public class ModifiedSwitcherooTest {
         }
 
         @Override
-        public Multimap<URI, String> useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> pmonitor) throws Exception {
+        public Multimap<URI, String> useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
             ChromeOptions options = ChromeOptionsProducer.getDefault(tempDir).produceOptions(proxy);
             ChromeDriverService service = new ChromeDriverService.Builder()
                     .usingAnyFreePort()

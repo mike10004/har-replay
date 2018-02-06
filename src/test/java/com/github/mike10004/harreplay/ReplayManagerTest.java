@@ -1,13 +1,13 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.harreplay.Fixtures.Fixture;
+import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.harreplay.ServerReplayConfig.Mapping;
 import com.github.mike10004.harreplay.ServerReplayConfig.RegexHolder;
 import com.github.mike10004.harreplay.ServerReplayConfig.Replacement;
 import com.github.mike10004.harreplay.ServerReplayConfig.ResponseHeaderTransform;
 import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral;
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -36,7 +36,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -178,7 +177,7 @@ public class ReplayManagerTest {
         }
 
         @Override
-        public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> pmonitor) throws Exception {
+        public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
             Multimap<URI, ResponseSummary> result = ArrayListMultimap.create();
             try (CloseableHttpClient client = HttpClients.custom()
                     .setProxy(new HttpHost(proxy.getHost(), proxy.getPort()))
@@ -187,9 +186,6 @@ public class ReplayManagerTest {
                 for (URI uri : urisToGet) {
                     System.out.format("fetching %s%n", uri);
                     HttpGet get = new HttpGet(transformUri(uri));
-                    if (!pmonitor.process().isAlive()) {
-                        throw new IllegalStateException("server no longer listening");
-                    }
                     try (CloseableHttpResponse response = client.execute(get)) {
                         StatusLine statusLine = response.getStatusLine();
                         String entity = EntityUtils.toString(response.getEntity());

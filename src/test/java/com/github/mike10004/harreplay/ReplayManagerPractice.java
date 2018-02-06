@@ -1,7 +1,7 @@
 package com.github.mike10004.harreplay;
 
+import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class ReplayManagerPractice {
@@ -35,13 +34,13 @@ public class ReplayManagerPractice {
     private static class InteractiveChromeDriverClient implements ReplayClient<Void> {
 
         @Override
-        public Void useReplayServer(Path tempDir, HostAndPort proxy, ProcessMonitor<?, ?> processMonitor) throws Exception {
+        public Void useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
             File profileDir = tempDir.resolve("chrome-profile").toFile();
             profileDir.mkdirs();
             if (!profileDir.isDirectory()) {
                 throw new IOException("could not create directory for Chrome profile");
             }
-            ChromeDriverManager.getInstance().version("2.27").setup();
+            ChromeDriverManager.getInstance().version(Fixtures.getRecommendedChromeDriverVersion()).setup();
             ChromeOptions chromeOptions = new ChromeOptions();
             File switcherooCrxFile = File.createTempFile("modified-switcheroo", ".crx", tempDir.toFile());
             ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(switcherooCrxFile));

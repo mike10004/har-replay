@@ -2,7 +2,9 @@ package com.github.mike10004.harreplay;
 
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
+import com.github.mike10004.nativehelper.subprocess.ProcessStillAliveException;
 import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
+import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.io.CharSink;
 import com.google.common.io.Files;
@@ -23,10 +25,12 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents a manager of a server replay process.
@@ -49,14 +53,71 @@ public class ReplayManager {
         }
     }
 
+    public interface ReplaySessionControl extends java.io.Closeable {
+        void stop();
+    }
+
+    public interface ProcessMonitorReplaySessionControl extends ReplaySessionControl {
+        ProcessMonitor<File, File> getProcessMonitor();
+    }
+
+    private static class ScopedProcessTrackerSessionControl implements ProcessMonitorReplaySessionControl {
+
+        private static final long SIGINT_TIMEOUT_MILLIS = 500;
+        private static final long SIGTERM_TIMEOUT_MILLIS = 500;
+
+        private final ScopedProcessTracker processTracker;
+        private final ProcessMonitor<File, File> processMonitor;
+
+        protected ScopedProcessTrackerSessionControl(ScopedProcessTracker processTracker, ProcessMonitor<File, File> processMonitor) {
+            this.processTracker = requireNonNull(processTracker);
+            this.processMonitor = requireNonNull(processMonitor);
+        }
+
+        @Override
+        public ProcessMonitor<File, File> getProcessMonitor() {
+            return processMonitor;
+        }
+
+        @Override
+        public void stop() throws ProcessStillAliveException {
+            getProcessMonitor().destructor()
+                    .sendTermSignal().timeout(SIGINT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                    .kill().timeoutOrThrow(SIGTERM_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                stop();
+            } catch (ProcessStillAliveException e) {
+                throw new IOException("failed to kill server process", e);
+            } finally {
+                processTracker.close();
+            }
+        }
+    }
+
     /**
      * Starts a server replay process on a separate thread. Writes out several configuration files first.
-     * @param processTracker the process tracker to use for launch
      * @param sessionConfig the session configuration
      * @return a future representing the server replay process
      * @throws IOException if an I/O error occurs
      */
-    public ProcessMonitor<File, File> startAsync(ProcessTracker processTracker, ReplaySessionConfig sessionConfig) throws IOException {
+    public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
+        ScopedProcessTracker processTracker = new ScopedProcessTracker();
+        ProcessMonitor<File, File> processMonitor = startAsyncWithTracker(processTracker, sessionConfig);
+        return new ScopedProcessTrackerSessionControl(processTracker, processMonitor);
+    }
+
+    /**
+     * Starts a server replay process using the given process tracker.
+     * @param processTracker the process tracker
+     * @param sessionConfig the session configuration
+     * @return a process monitor for the server process
+     * @throws IOException if an I/O error occurs
+     */
+    protected ProcessMonitor<File, File> startAsyncWithTracker(ProcessTracker processTracker, ReplaySessionConfig sessionConfig) throws IOException {
         if (!sessionConfig.harFile.isFile()) {
             throw new FileNotFoundException(sessionConfig.harFile.getAbsolutePath());
         }
