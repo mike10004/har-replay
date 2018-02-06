@@ -17,8 +17,7 @@ touch ${TESTFILE}
 echo "touched ${TESTFILE}"
 cd ${CLONE_DIR}
 echo "inside $CLONE_DIR"
-ls -l
 MVN='/usr/local/maven-3.5.2/bin/mvn'
 echo "mvn: resolving dependencies"
-${MVN} -B --settings travis-maven-settings.xml dependency:resolve dependency:resolve-plugins
+${MVN} -B --settings travis-maven-settings.xml dependency:resolve dependency:resolve-plugins > /tmp/install.log
 ${MVN} -B --settings travis-maven-settings.xml verify -Dhar-replay.chromedriver.chrome.arguments=--no-sandbox
