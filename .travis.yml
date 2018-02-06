@@ -2,5 +2,6 @@ dist: trusty
 language: java
 install:
   - mvn -B --settings travis-maven-settings.xml dependency:resolve
+  - mvn -B --settings travis-maven-settings.xml dependency:resolve-plugins
 script:
   - mvn --settings travis-maven-settings.xml verify -B
