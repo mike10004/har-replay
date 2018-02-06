@@ -40,7 +40,7 @@ public class ModifiedSwitcherooTest {
     public final XvfbRule xvfb = XvfbRule.builder().build();
 
     @Rule
-    public final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
+    public final Timeout timeout = new Timeout(120, TimeUnit.SECONDS);
 
     private static Set<ChromeDriver> chromeDriverInstances;
 
