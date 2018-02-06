@@ -12,11 +12,11 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -24,9 +24,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -139,46 +139,33 @@ public class ReplayManager {
         ProcessMonitor<File, File> monitor = program.launcher(processTracker)
                 .outputFiles(stdoutFile, stderrFile)
                 .launch();
-        Executor directExecutor = MoreExecutors.directExecutor();
+        Executor directExecutor = getTerminationCallbackExecutor();
         ListenableFuture<ProcessResult<File, File>> future = monitor.future();
         for (FutureCallback<? super ProcessResult<File, File>> terminationCallback : sessionConfig.serverTerminationCallbacks) {
             Futures.addCallback(monitor.future(), terminationCallback, directExecutor);
         }
-        final Object listenLock = new Object();
-        final AtomicBoolean heardListeningNotification = new AtomicBoolean(false);
+        final CountDownLatch listeningLatch = new CountDownLatch(1);
         final Tailer listeningWatch = Tailer.create(stdoutFile, new TailerListenerAdapter(){
             @Override
             public void handle(String line) {
-                boolean changed = heardListeningNotification.compareAndSet(false, isServerListeningNotificationLine(line));
-                if (changed) {
-                    synchronized (listenLock) {
-                        listenLock.notifyAll();
-                    }
+                boolean listeningNotificationLine = isServerListeningNotificationLine(line);
+                if (listeningNotificationLine) {
+                    listeningLatch.countDown();
                 }
             }
         }, replayManagerConfig.serverReadinessPollIntervalMillis, false); // false => tail from beginning of file
         addTailers(sessionConfig.stdoutListeners, stdoutFile, future);
         addTailers(sessionConfig.stderrListeners, stderrFile, future);
-        synchronized (listenLock) {
-            long waitedMillis = 0;
-            long waitingStart = System.currentTimeMillis();
-            while (!heardListeningNotification.get()) {
-                long remainingWait = replayManagerConfig.serverReadinessTimeoutMillis - waitedMillis;
-                if (remainingWait > 0) {
-                    try {
-                        listenLock.wait(remainingWait);
-                    } catch (InterruptedException e) {
-                        LoggerFactory.getLogger(getClass()).info("interrupted while waiting", e);
-                    }
-                }
-                waitedMillis = System.currentTimeMillis() - waitingStart;
-            }
-        }
+        boolean foundListeningLine = Uninterruptibles.awaitUninterruptibly(listeningLatch, replayManagerConfig.serverReadinessTimeoutMillis, TimeUnit.MILLISECONDS);
         listeningWatch.stop();
-        if (!heardListeningNotification.get()) {
+        if (!foundListeningLine) {
             throw new ServerFailedToStartException("timed out while waiting for server to start");
         }
         return monitor;
+    }
+
+    protected Executor getTerminationCallbackExecutor() {
+        return MoreExecutors.directExecutor();
     }
 
     static boolean isServerListeningNotificationLine(String line) {
@@ -231,6 +218,7 @@ public class ReplayManager {
             tailer.stop();
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public void onFailure(Throwable t) {
             tailer.stop();
