@@ -69,7 +69,7 @@ Note that the extension will not rewrite URLs that are visited as a result of
 redirects. To swap HTTPS for HTTP in those URLs, you have to add a response
 header transform to the `ReplaySessionConfig` object.
 
-Building a new har-replay-proxy
+Dependency on har-replay-proxy
 -------------------------------
 
 The current **har-replay-proxy** version is 0.0.1. If an update is available, then
@@ -83,6 +83,25 @@ a new packaged zip:
 * zip the folder so that the zip contains a `har-replay-proxy` directory at
   its root. 
 
+Debugging Travis Builds
+-----------------------
+
+A note about debugging Travis builds. If the Travis build is failing, you can 
+test locally by running ./travis-debug.sh (if you have Docker installed). However,
+the `mvn verify` command appears to exit early but does not report a nonzero exit
+code, so it's not clear whether it's actually succeeding or something funky is
+going on. It should be useful for debugging failures that happen earlier, though.
+If the failure you see on Travis happens later on in `mvn verify`, you can follow
+the [Troubleshooting in a local container][troubleshooting] instructions, which 
+say to execute:
+
+    $ docker run --name travis-debug -dit $TRAVIS_IMAGE /sbin/init
+    $ docker exec -it travis-debug bash -l 
+
+This puts you inside the container, where you can `su -l travis` and clone the 
+repo and proceed as you would expect.
+
 [har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
+[troubleshooting]: https://docs.travis-ci.com/user/common-build-problems/
