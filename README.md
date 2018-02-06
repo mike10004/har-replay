@@ -73,6 +73,20 @@ Note that the extension will not rewrite URLs that are visited as a result of
 redirects. To swap HTTPS for HTTP in those URLs, you have to add a response
 header transform to the `ReplaySessionConfig` object.
 
+Building a new har-replay-proxy
+-------------------------------
+
+The current **har-replay-proxy** version is 0.0.1. If an update is available, then
+the packaged zip in `src/main/resources` needs to be updated as well. To create
+a new packaged zip:
+
+* clone the **har-replay-proxy** repository, 
+* run `npm install` in that directory so that its `node_modules` subdirectory 
+  is populated,
+* delete the `.git` folder from that cloned repo directory, and
+* zip the folder so that the zip contains a `har-replay-proxy` directory at
+  its root. 
+
 [har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting

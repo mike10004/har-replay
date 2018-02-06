@@ -57,7 +57,7 @@ public class ReplayManagerConfig {
 
     /**
      * Constructs and returns a new builder.
-     * @return
+     * @return a new builder
      */
     public static Builder builder() {
         return new Builder();
@@ -91,8 +91,9 @@ public class ReplayManagerConfig {
 
     static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
-        static final String ZIP_ROOT = "har-replay-proxy"; // must be equal to outputDirectory in assembly descriptor
-        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy.zip";
+        static final String ZIP_ROOT = "har-replay-proxy";
+        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy-0.0.1.zip";
+
         public static ResourceDirectoryProvider getInstance() {
             return instance;
         }
