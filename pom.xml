@@ -33,7 +33,7 @@
         <url>https://github.com/mike10004/har-replay</url>
     </scm>
     <properties>
-        <xvfb-manager.version>0.15</xvfb-manager.version>
+        <xvfb-manager.version>0.16</xvfb-manager.version>
         <selenium.version>3.7.1</selenium.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
