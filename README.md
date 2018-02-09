@@ -1,4 +1,5 @@
 [![Travis build status](https://img.shields.io/travis/mike10004/har-replay.svg)](https://travis-ci.org/mike10004/har-replay)
+[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/tfhj96elsi8ytf82?svg=true)](https://ci.appveyor.com/project/mike10004/har-replay)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/har-replay.svg)](https://repo1.maven.org/maven2/com/github/mike10004/har-replay/)
 
 har-replay
