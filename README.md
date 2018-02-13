@@ -87,20 +87,20 @@ a new packaged zip:
 Debugging Travis Builds
 -----------------------
 
-A note about debugging Travis builds. If the Travis build is failing, you can 
-test locally by running ./travis-debug.sh (if you have Docker installed). However,
-the `mvn verify` command appears to exit early but does not report a nonzero exit
-code, so it's not clear whether it's actually succeeding or something funky is
-going on. It should be useful for debugging failures that happen earlier, though.
-If the failure you see on Travis happens later on in `mvn verify`, you can follow
-the [Troubleshooting in a local container][troubleshooting] instructions, which 
+If the Travis build is failing, you can test locally with Docker by running 
+`./travis-debug.sh`. However, the `mvn verify` command appears to exit early 
+but does not report a nonzero exit code, so it's not clear whether it's 
+actually succeeding or something funky is going on. It should be useful for 
+debugging failures that happen earlier, though. If the failure you see on 
+Travis happens later on in `mvn verify`, you can follow the Travis
+[Troubleshooting in a local container][troubleshooting] instructions, which 
 say to execute:
 
     $ docker run --name travis-debug -dit $TRAVIS_IMAGE /sbin/init
     $ docker exec -it travis-debug bash -l 
 
-This puts you inside the container, where you can `su -l travis` and clone the 
-repo and proceed as you would expect.
+This puts you inside the container, where you can `su -l travis`, clone the 
+repo, and proceed manually from there.
 
 [har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
