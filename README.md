@@ -18,7 +18,7 @@ Maven dependency:
     <dependency>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay</artifactId>
-        <version>0.8</version>
+        <version>0.11</version>
     </dependency>
 
 See Maven badge above for the actual latest version.

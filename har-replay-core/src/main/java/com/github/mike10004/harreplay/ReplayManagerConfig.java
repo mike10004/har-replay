@@ -150,6 +150,7 @@ public class ReplayManagerConfig {
         private Builder() {
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public Builder nodeExecutable(@Nullable File executableFile) {
             nodeExecutable = executableFile;
             if (executableFile != null) {

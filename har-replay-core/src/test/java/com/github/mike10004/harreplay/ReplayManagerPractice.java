@@ -5,6 +5,7 @@ import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
+import io.github.mike10004.harreplay.tests.Fixtures;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 

@@ -1,15 +1,16 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.Fixtures.Fixture;
+import io.github.mike10004.harreplay.tests.Fixtures;
+import io.github.mike10004.harreplay.tests.Fixtures.Fixture;
 import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.net.HostAndPort;
+import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -32,6 +33,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ModifiedSwitcherooTest {
+
+    @ClassRule
+    public static FixturesRule fixturesRule = Fixtures.asRule();
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -64,13 +68,13 @@ public class ModifiedSwitcherooTest {
     @Test
     public void testExtensionWithSelenium_https() throws Exception {
         System.out.println("testExtensionWithSelenium_https");
-        testExtensionWithSelenium(Fixtures.https());
+        testExtensionWithSelenium(fixturesRule.getFixtures().https());
     }
 
     @Test
     public void testExtensionWithSelenium_httpsRedirect() throws Exception {
         System.out.println("testExtensionWithSelenium_httpsRedirect");
-        testExtensionWithSelenium(Fixtures.httpsRedirect());
+        testExtensionWithSelenium(fixturesRule.getFixtures().httpsRedirect());
     }
 
     private void testExtensionWithSelenium(Fixture fixture) throws Exception {
