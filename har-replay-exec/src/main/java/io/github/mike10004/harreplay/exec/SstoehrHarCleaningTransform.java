@@ -1,7 +1,10 @@
 package io.github.mike10004.harreplay.exec;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteSource;
 import com.google.common.io.CharSource;
+import com.google.common.io.Files;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -9,8 +12,15 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -18,6 +28,9 @@ import java.util.Date;
 import java.util.stream.Stream;
 
 public class SstoehrHarCleaningTransform implements HarTransform {
+
+    private SstoehrHarCleaningTransform() {}
+
     @Override
     public CharSource transform(CharSource originalHar) throws IOException {
         JsonObject har;
@@ -27,6 +40,30 @@ public class SstoehrHarCleaningTransform implements HarTransform {
         fixPageStartedDateTime(har);
         fixEntryStartedDateTime(har);
         fixResponseCookieExpires(har);
+        return repackage(har);
+    }
+
+    public static HarTransform inMemory() {
+        return new SstoehrHarCleaningTransform();
+    }
+
+    public static HarTransform onDisk(Path scratchDir) {
+        return new SstoehrHarCleaningTransform() {
+
+            private final Charset charset =  StandardCharsets.UTF_8;
+
+            @Override
+            protected CharSource repackage(JsonObject har) throws IOException {
+                File file = File.createTempFile("sstoehr-cleaned", ".har", scratchDir.toFile());
+                try (Writer out = new OutputStreamWriter(new FileOutputStream(file), charset)) {
+                    new Gson().toJson(har, out);
+                }
+                return Files.asCharSource(file, charset);
+            }
+        };
+    }
+
+    protected CharSource repackage(JsonObject har) throws IOException {
         return CharSource.wrap(har.toString());
     }
 

@@ -22,7 +22,7 @@ public class SstoehrHarCleaningTransformTest {
     public void transformLightbodyHar() throws Exception {
         File lightbodyHarFile = new File(getClass().getResource("/example-lightbody.har").toURI());
         CharSource originalHar = Files.asCharSource(lightbodyHarFile, StandardCharsets.UTF_8);
-        String transformed = new SstoehrHarCleaningTransform().transform(originalHar).read();
+        String transformed = SstoehrHarCleaningTransform.inMemory().transform(originalHar).read();
         Har har = new HarReader().readFromString(transformed);
         Date date = har.getLog().getPages().get(0).getStartedDateTime();
         System.out.format("date: %s%n", date);

@@ -25,9 +25,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -149,8 +151,14 @@ public class NodeServerReplayManager implements ReplayManager {
                 }
             }
         }, replayManagerConfig.serverReadinessPollIntervalMillis, false); // false => tail from beginning of file
-        addTailers(replayManagerConfig.stdoutListeners, stdoutFile, future);
-        addTailers(replayManagerConfig.stderrListeners, stderrFile, future);
+        List<TailerListener> stdoutListeners = replayManagerConfig.stdoutListeners.stream()
+                .map(factory -> factory.createTailer(sessionConfig))
+                .collect(Collectors.toList());
+        List<TailerListener> stderrListeners = replayManagerConfig.stderrListeners.stream()
+                .map(factory -> factory.createTailer(sessionConfig))
+                .collect(Collectors.toList());
+        addTailers(stdoutListeners, stdoutFile, future);
+        addTailers(stderrListeners, stderrFile, future);
         boolean foundListeningLine = Uninterruptibles.awaitUninterruptibly(listeningLatch, replayManagerConfig.serverReadinessTimeoutMillis, TimeUnit.MILLISECONDS);
         listeningWatch.stop();
         if (!foundListeningLine) {
@@ -228,11 +236,13 @@ public class NodeServerReplayManager implements ReplayManager {
             this.wrapped = requireNonNull(wrapped);
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public void onSuccess(ProcessResult<File, File> result) {
             wrapped.terminated(null);
         }
 
+        @SuppressWarnings("NullableProblems")
         @Override
         public void onFailure(Throwable t) {
             wrapped.terminated(t);

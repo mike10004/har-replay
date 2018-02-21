@@ -54,6 +54,7 @@ public class HarReplayMain {
     static final String OPT_SCRATCH_DIR = "scratch-dir";
     static final String OPT_PORT = "port";
     static final String OPT_BROWSER = "browser";
+    static final String OPT_ECHO_SERVER = "echo-server";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -64,6 +65,7 @@ public class HarReplayMain {
     private final OptionSpec<Void> helpSpec;
     private final OptionSpec<Browser> browserSpec;
     private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
+    private final OptionSpec<Void> echoServerSpec;
 
     public HarReplayMain() {
         this(new OptionParser());
@@ -90,10 +92,12 @@ public class HarReplayMain {
                 .withRequiredArg().ofType(HarDumpStyle.class)
                 .describedAs("STYLE")
                 .defaultsTo(HarDumpStyle.summary);
+        echoServerSpec = parser.acceptsAll(Collections.singletonList(OPT_ECHO_SERVER), "echo proxy server output");
+
     }
 
-    protected List<HarEntry> readHarEntries(File harFile) throws IOException, HarReaderException {
-        CharSource cleanSource = new SstoehrHarCleaningTransform().transform(Files.asCharSource(harFile, StandardCharsets.UTF_8));
+    protected List<HarEntry> readHarEntries(File harFile, Path scratchDir) throws IOException, HarReaderException {
+        CharSource cleanSource = SstoehrHarCleaningTransform.onDisk(scratchDir).transform(Files.asCharSource(harFile, StandardCharsets.UTF_8));
         Har har = new HarReader().readFromString(cleanSource.read(), HarReaderMode.LAX);
         return har.getLog().getEntries();
     }
@@ -115,7 +119,7 @@ public class HarReplayMain {
                     maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
                     HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
                     try {
-                        harDumpStyle.getDumper().dump(readHarEntries(sessionConfig.harFile), System.out);
+                        harDumpStyle.getDumper().dump(readHarEntries(sessionConfig.harFile, sessionConfig.scratchDir), System.out);
                     } catch (HarReaderException e) {
                         System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
                     }
@@ -147,7 +151,11 @@ public class HarReplayMain {
     }
 
     protected NodeServerReplayManagerConfig createReplayManagerConfig(OptionSet optionSet) {
-        return NodeServerReplayManagerConfig.auto();
+        NodeServerReplayManagerConfig.Builder b = NodeServerReplayManagerConfig.builder();
+        if (optionSet.has(echoServerSpec)) {
+            b.addOutputEchoes();
+        }
+        return b.build();
     }
 
     protected int findUnusedPort() throws IOException {

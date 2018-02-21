@@ -58,8 +58,8 @@ public class NodeServerReplayManagerConfig {
      */
     public final int serverReadinessTimeoutMillis = 3000;
 
-    public final ImmutableList<TailerListener> stdoutListeners;
-    public final ImmutableList<TailerListener> stderrListeners;
+    public final ImmutableList<TailerFactory> stdoutListeners;
+    public final ImmutableList<TailerFactory> stderrListeners;
 
     private NodeServerReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
@@ -157,18 +157,20 @@ public class NodeServerReplayManagerConfig {
         @Nullable
         private File nodeExecutable = null;
         private ResourceDirectoryProvider harReplayProxyDirProvider = EmbeddedClientDirProvider.getInstance();
-        private final List<TailerListener> stdoutListeners = new ArrayList<>();
-        private final List<TailerListener> stderrListeners = new ArrayList<>();
+        private final List<TailerFactory> stdoutListeners = new ArrayList<>();
+        private final List<TailerFactory> stderrListeners = new ArrayList<>();
 
         private Builder() {
         }
 
-        public Builder addStdoutListener(TailerListener val) {
+        @SuppressWarnings("UnusedReturnValue")
+        public Builder addStdoutListener(TailerFactory val) {
             stdoutListeners.add(val);
             return this;
         }
 
-        public Builder addStderrListener(TailerListener val) {
+        @SuppressWarnings("UnusedReturnValue")
+        public Builder addStderrListener(TailerFactory val) {
             stderrListeners.add(val);
             return this;
         }
@@ -182,14 +184,15 @@ public class NodeServerReplayManagerConfig {
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder harReplayProxyDirProvider(ResourceDirectoryProvider val) {
             harReplayProxyDirProvider = checkNotNull(val);
             return this;
         }
 
         public Builder addOutputEchoes() {
-            addStdoutListener(new PrintStreamTailerListener(System.out));
-            addStderrListener(new PrintStreamTailerListener(System.err));
+            addStdoutListener(config -> new PrintStreamTailerListener(System.out));
+            addStderrListener(config -> new PrintStreamTailerListener(System.err));
             return this;
         }
 
@@ -210,5 +213,11 @@ public class NodeServerReplayManagerConfig {
         public void handle(String line) {
             destination.println(line);
         }
+    }
+
+    public interface TailerFactory {
+
+        TailerListener createTailer(ReplaySessionConfig sessionConfig);
+
     }
 }
