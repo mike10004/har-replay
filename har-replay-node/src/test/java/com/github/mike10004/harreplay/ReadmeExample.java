@@ -1,6 +1,5 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import org.apache.http.HttpHost;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -17,8 +16,8 @@ import java.io.IOException;
 public class ReadmeExample {
 
     public void execute(File harFile) throws IOException {
-        ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
-        ReplayManager replayManager = new ReplayManager(replayManagerConfig);
+        NodeServerReplayManagerConfig replayManagerConfig = NodeServerReplayManagerConfig.auto();
+        ReplayManager replayManager = new NodeServerReplayManager(replayManagerConfig);
         ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
                 .build(harFile);
         try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {

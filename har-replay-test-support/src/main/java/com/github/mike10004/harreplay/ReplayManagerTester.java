@@ -1,16 +1,11 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplayManager.ProcessMonitorReplaySessionControl;
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteSource;
-import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.FutureCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,10 +23,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class ReplayManagerTester {
+public abstract class ReplayManagerTester {
 
     private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
-    static final String SYSPROP_NODE_EXECUTABLE = "har-replay.node.executable";
 
     private final Path tempDir;
     private final File harFile;
@@ -45,27 +39,19 @@ public class ReplayManagerTester {
         T useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception;
     }
 
-    protected ServerReplayConfig configureReplayModule() {
-        return ServerReplayConfig.empty();
+    protected ReplayServerConfig configureReplayModule() {
+        return ReplayServerConfig.empty();
     }
 
-    protected ReplayManagerConfig.Builder createReplayManagerConfigBuilder() {
-        ReplayManagerConfig.Builder builder = ReplayManagerConfig.builder();
-        String nodeExecutablePath = System.getProperty(SYSPROP_NODE_EXECUTABLE, "");
-        if (!nodeExecutablePath.isEmpty()) {
-            builder.nodeExecutable(new File(nodeExecutablePath));
-        }
-        return builder;
-    }
+    protected abstract ReplayManager createReplayManager();
 
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer httpPort) throws Exception {
-        ReplayManagerConfig replayManagerConfig = createReplayManagerConfigBuilder().build();
-        ReplayManager replay = new ReplayManager(replayManagerConfig);
+
+        ReplayManager replay = createReplayManager();
         ProgramInfoFutureCallback infoCallback = new ProgramInfoFutureCallback();
         ReplaySessionConfig.Builder rscb = ReplaySessionConfig.builder(tempDir)
                 .config(configureReplayModule())
-                .onTermination(infoCallback)
-                .addOutputEchoes();
+                .onTermination(infoCallback);
         if (httpPort != null) {
             rscb.port(httpPort);
         }
@@ -78,8 +64,7 @@ public class ReplayManagerTester {
         try (ReplaySessionControl sessionControl = replay.start(sessionParams)) {
             result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, sessionControl));
             sessionControl.stop();
-            ProcessMonitor<File, File> processMonitor = ((ProcessMonitorReplaySessionControl)sessionControl).getProcessMonitor();
-            assertFalse("process still alive", processMonitor.process().isAlive());
+            assertFalse("process still alive", sessionControl.isAlive());
             System.out.println("program future has finished");
         } catch (Exception e) {
             System.err.format("exercise() aborting abnormally due to exception%n");
@@ -111,17 +96,9 @@ public class ReplayManagerTester {
         private static final ImmutableSet<Integer> normalExitCodes = ImmutableSet.of(128 + SIGINT, 128 + SIGKILL);
 
         @Override
-        public void terminated(int exitCode, ByteSource stdout, ByteSource stderr) {
+        public void terminated(@Nullable Throwable cause) {
             try {
-                System.out.println("program finished: " + exitCode);
-                if (!normalExitCodes.contains(exitCode)) {
-                    try {
-                        stdout.copyTo(System.out);
-                        stderr.copyTo(System.err);
-                    } catch (IOException e) {
-                        e.printStackTrace(System.err);
-                    }
-                }
+                System.out.println("program finished: " + cause);
             } finally {
                 latch.countDown();
             }

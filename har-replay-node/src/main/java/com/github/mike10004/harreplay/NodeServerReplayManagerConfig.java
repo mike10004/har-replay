@@ -1,10 +1,13 @@
 package com.github.mike10004.harreplay;
 
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import org.apache.commons.io.input.TailerListener;
+import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
@@ -12,18 +15,21 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ReplayManagerConfig {
+public class NodeServerReplayManagerConfig {
 
-    private static final ReplayManagerConfig AUTO_CONFIG_INSTANCE = ReplayManagerConfig.builder().build();
+    private static final NodeServerReplayManagerConfig AUTO_CONFIG_INSTANCE = NodeServerReplayManagerConfig.builder().build();
 
     /**
      * Pathname of the Node executable. If null, the system path is queried for the executable.
@@ -52,9 +58,14 @@ public class ReplayManagerConfig {
      */
     public final int serverReadinessTimeoutMillis = 3000;
 
-    private ReplayManagerConfig(Builder builder) {
+    public final ImmutableList<TailerListener> stdoutListeners;
+    public final ImmutableList<TailerListener> stderrListeners;
+
+    private NodeServerReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
         harReplayProxyDirProvider = builder.harReplayProxyDirProvider;
+        stdoutListeners = ImmutableList.copyOf(builder.stdoutListeners);
+        stderrListeners = ImmutableList.copyOf(builder.stderrListeners);
     }
 
     /**
@@ -85,10 +96,10 @@ public class ReplayManagerConfig {
     /**
      * Constructs a configuration with best-guess strategies for the fields. This is the default
      * configuration, so this returns the same config you would get by invoking
-     * {@link ReplayManagerConfig.Builder#build()} on a new builder instance.
+     * {@link NodeServerReplayManagerConfig.Builder#build()} on a new builder instance.
      * @return the configuration
      */
-    public static ReplayManagerConfig auto() {
+    public static NodeServerReplayManagerConfig auto() {
         return AUTO_CONFIG_INSTANCE;
     }
 
@@ -140,14 +151,26 @@ public class ReplayManagerConfig {
 
     /**
      * Builder of replay manager configuration objects.
-     * @see ReplayManagerConfig
+     * @see NodeServerReplayManagerConfig
      */
     public static final class Builder {
         @Nullable
         private File nodeExecutable = null;
         private ResourceDirectoryProvider harReplayProxyDirProvider = EmbeddedClientDirProvider.getInstance();
+        private final List<TailerListener> stdoutListeners = new ArrayList<>();
+        private final List<TailerListener> stderrListeners = new ArrayList<>();
 
         private Builder() {
+        }
+
+        public Builder addStdoutListener(TailerListener val) {
+            stdoutListeners.add(val);
+            return this;
+        }
+
+        public Builder addStderrListener(TailerListener val) {
+            stderrListeners.add(val);
+            return this;
         }
 
         @SuppressWarnings("UnusedReturnValue")
@@ -164,8 +187,28 @@ public class ReplayManagerConfig {
             return this;
         }
 
-        public ReplayManagerConfig build() {
-            return new ReplayManagerConfig(this);
+        public Builder addOutputEchoes() {
+            addStdoutListener(new PrintStreamTailerListener(System.out));
+            addStderrListener(new PrintStreamTailerListener(System.err));
+            return this;
+        }
+
+        public NodeServerReplayManagerConfig build() {
+            return new NodeServerReplayManagerConfig(this);
+        }
+    }
+
+    private static class PrintStreamTailerListener extends TailerListenerAdapter {
+
+        private final PrintStream destination;
+
+        private PrintStreamTailerListener(PrintStream destination) {
+            this.destination = checkNotNull(destination);
+        }
+
+        @Override
+        public void handle(String line) {
+            destination.println(line);
         }
     }
 }

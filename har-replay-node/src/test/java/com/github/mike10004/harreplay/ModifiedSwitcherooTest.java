@@ -2,7 +2,6 @@ package com.github.mike10004.harreplay;
 
 import io.github.mike10004.harreplay.tests.Fixtures;
 import io.github.mike10004.harreplay.tests.Fixtures.Fixture;
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ArrayListMultimap;
@@ -78,7 +77,7 @@ public class ModifiedSwitcherooTest {
     }
 
     private void testExtensionWithSelenium(Fixture fixture) throws Exception {
-        ReplayManagerTester tester = new ReplayManagerTester(temporaryFolder.getRoot().toPath(), fixture.harFile());
+        ReplayManagerTester tester = new NodeServerReplayManagerTester(temporaryFolder.getRoot().toPath(), fixture.harFile());
         Multimap<URI, String> results = tester.exercise(new XvfbChromeDriverReplayClient(fixture.startUrl()), ReplayManagerTester.findHttpPortToUse());
         assertEquals("results map size", 1, results.size());
         String pageSource = results.values().iterator().next();

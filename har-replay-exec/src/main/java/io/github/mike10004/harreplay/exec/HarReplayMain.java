@@ -1,8 +1,9 @@
 package io.github.mike10004.harreplay.exec;
 
+import com.github.mike10004.harreplay.NodeServerReplayManager;
 import com.github.mike10004.harreplay.ReplayManager;
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
-import com.github.mike10004.harreplay.ReplayManagerConfig;
+import com.github.mike10004.harreplay.ReplaySessionControl;
+import com.github.mike10004.harreplay.NodeServerReplayManagerConfig;
 import com.github.mike10004.harreplay.ReplaySessionConfig;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
@@ -37,10 +38,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 public class HarReplayMain {
@@ -83,7 +86,7 @@ public class HarReplayMain {
         browserSpec = parser.acceptsAll(Arrays.asList("b", OPT_BROWSER), "launch browser configured for replay server; only 'chrome' is supported")
                 .withRequiredArg().ofType(Browser.class)
                 .describedAs("BROWSER");
-        harDumpStyleSpec = parser.acceptsAll(Arrays.asList("dump-har"), "dump har ('summary' or 'verbose')")
+        harDumpStyleSpec = parser.acceptsAll(Collections.singletonList("dump-har"), "dump har (choices: " + HarDumpStyle.describeChoices() + ")")
                 .withRequiredArg().ofType(HarDumpStyle.class)
                 .describedAs("STYLE")
                 .defaultsTo(HarDumpStyle.summary);
@@ -102,8 +105,8 @@ public class HarReplayMain {
                 parser.printHelpOn(System.out);
                 return 0;
             }
-            ReplayManagerConfig managerconfig = createReplayManagerConfig(optionSet);
-            ReplayManager manager = new ReplayManager(managerconfig);
+            NodeServerReplayManagerConfig managerconfig = createReplayManagerConfig(optionSet);
+            ReplayManager manager = new NodeServerReplayManager(managerconfig);
             try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
                 ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
                 HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
@@ -143,8 +146,8 @@ public class HarReplayMain {
         }
     }
 
-    protected ReplayManagerConfig createReplayManagerConfig(OptionSet optionSet) {
-        return ReplayManagerConfig.auto();
+    protected NodeServerReplayManagerConfig createReplayManagerConfig(OptionSet optionSet) {
+        return NodeServerReplayManagerConfig.auto();
     }
 
     protected int findUnusedPort() throws IOException {
@@ -245,6 +248,10 @@ public class HarReplayMain {
                 case verbose: return new VerboseDumper();
             }
             throw new IllegalStateException("not handled: " + this);
+        }
+
+        public static String describeChoices() {
+            return String.join(", ", Stream.of(values()).map(c -> String.format("'%s'", c.name())).collect(Collectors.toList()));
         }
     }
 

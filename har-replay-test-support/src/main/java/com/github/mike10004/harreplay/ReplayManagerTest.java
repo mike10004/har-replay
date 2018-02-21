@@ -1,12 +1,11 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
-import com.github.mike10004.harreplay.ServerReplayConfig.Mapping;
-import com.github.mike10004.harreplay.ServerReplayConfig.RegexHolder;
-import com.github.mike10004.harreplay.ServerReplayConfig.Replacement;
-import com.github.mike10004.harreplay.ServerReplayConfig.ResponseHeaderTransform;
-import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral;
+import com.github.mike10004.harreplay.ReplayServerConfig.Mapping;
+import com.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
+import com.github.mike10004.harreplay.ReplayServerConfig.Replacement;
+import com.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
+import com.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -35,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -45,7 +45,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public class ReplayManagerTest {
+public abstract class ReplayManagerTest {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -65,7 +65,7 @@ public class ReplayManagerTest {
         System.out.println("\n\nstartAsync_https\n");
         Fixture fixture = fixturesRule.getFixtures().https();
         File harFile = fixture.harFile();
-        ServerReplayConfig config = ServerReplayConfig.builder()
+        ReplayServerConfig config = ReplayServerConfig.builder()
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
@@ -79,7 +79,7 @@ public class ReplayManagerTest {
         Files.asCharSink(customContentFile, UTF_8).write(customContent);
         Fixture fixture = fixturesRule.getFixtures().http();
         URI uri = fixture.startUrl();
-        ServerReplayConfig config = ServerReplayConfig.builder()
+        ReplayServerConfig config = ReplayServerConfig.builder()
                 .map(Mapping.literalToFile(uri.toString(), customContentFile))
                 .build();
         File harFile = fixture.harFile();
@@ -93,7 +93,7 @@ public class ReplayManagerTest {
         Fixture fixture = fixturesRule.getFixtures().https();
         File harFile = fixture.harFile();
         URI uri = fixture.startUrl();
-        ServerReplayConfig config = ServerReplayConfig.builder()
+        ReplayServerConfig config = ReplayServerConfig.builder()
                 .replace(Replacement.literal(fixture.title(), replacementText))
                 .build();
         ApacheRecordingClient client = newApacheClient(uri, true);
@@ -109,17 +109,14 @@ public class ReplayManagerTest {
     private void testStartAsync(File harFile, URI uri) throws Exception {
         Har har = new HarReader().readFromFile(harFile);
         Predicate<String> checker = matchHarResponse(har, uri);
-        testStartAsync(harFile, uri, newApacheClient(uri, false), ServerReplayConfig.empty(), checker);
+        testStartAsync(harFile, uri, newApacheClient(uri, false), ReplayServerConfig.empty(), checker);
     }
 
-    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ServerReplayConfig config, Predicate<? super String> responseContentChecker) throws Exception {
+    protected abstract com.github.mike10004.harreplay.ReplayManagerTester createTester(Path tempDir, File harFile, ReplayServerConfig config) throws IOException;
+
+    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, Predicate<? super String> responseContentChecker) throws Exception {
         Path tempDir = temporaryFolder.getRoot().toPath();
-        Multimap<URI, ResponseSummary> responses = new ReplayManagerTester(tempDir, harFile) {
-            @Override
-            protected ServerReplayConfig configureReplayModule() {
-                return config;
-            }
-        }.exercise(client, ReplayManagerTester.findHttpPortToUse());
+        Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, com.github.mike10004.harreplay.ReplayManagerTester.findHttpPortToUse());
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
@@ -129,13 +126,15 @@ public class ReplayManagerTest {
         assertEquals("response content", true, responseContentChecker.test(response.entity));
     }
 
+
+
     @Test
     public void startAsync_http_unmatchedReturns404() throws Exception {
         System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
         File harFile = fixturesRule.getFixtures().http().harFile();
-        ResponseSummary response = new ReplayManagerTester(tempDir, harFile)
-                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findHttpPortToUse())
+        ResponseSummary response = createTester(tempDir, harFile, ReplayServerConfig.empty())
+                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), com.github.mike10004.harreplay.ReplayManagerTester.findHttpPortToUse())
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);
@@ -152,7 +151,7 @@ public class ReplayManagerTest {
         System.out.println("\n\nstartAsync_https_transformLocationResponseHeader\n");
         Fixture fixture = fixturesRule.getFixtures().httpsRedirect();
         File harFile = fixture.harFile();
-        ServerReplayConfig config = ServerReplayConfig.builder()
+        ReplayServerConfig config = ReplayServerConfig.builder()
                 .transformResponse(createLocationHttpsToHttpTransform())
                 .build();
         URI uri = fixture.startUrl();

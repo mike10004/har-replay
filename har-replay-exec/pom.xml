@@ -94,7 +94,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>har-replay-core</artifactId>
+            <artifactId>har-replay-node</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -126,7 +126,10 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>crxtool-core</artifactId>
-            <version>${crxtool.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.sstoehr</groupId>
+            <artifactId>har-reader</artifactId>
         </dependency>
     </dependencies>
 </project>

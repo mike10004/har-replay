@@ -1,6 +1,5 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplayManager.ReplaySessionControl;
 import com.github.mike10004.harreplay.ReplayManagerTester.ReplayClient;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
@@ -28,7 +27,7 @@ public class ReplayManagerPractice {
         } else {
             harFile = new File(ReplayManagerPractice.class.getResource("/http.www.example.com.har").toURI());
         }
-        ReplayManagerTester tester = new ReplayManagerTester(tempDir, harFile);
+        ReplayManagerTester tester = new NodeServerReplayManagerTester(tempDir, harFile);
         tester.exercise(new InteractiveChromeDriverClient(), null);
     }
 

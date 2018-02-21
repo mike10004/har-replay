@@ -1,6 +1,6 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ServerReplayConfig.StringLiteral.StringLiteralTypeAdapter;
+import com.github.mike10004.harreplay.ReplayServerConfig.StringLiteral.StringLiteralTypeAdapter;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * by the har-replay-proxy Node module just fine.
  * </p>
  */
-public class ServerReplayConfig {
+public class ReplayServerConfig {
 
     /**
      * Version. Use <code>1</code> for now.
@@ -41,7 +41,7 @@ public class ServerReplayConfig {
 
     public final ImmutableList<ResponseHeaderTransform> responseHeaderTransforms;
 
-    private ServerReplayConfig() {
+    private ReplayServerConfig() {
         this(1, ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
     }
 
@@ -51,7 +51,7 @@ public class ServerReplayConfig {
      * @param mappings the mappings
      * @param replacements the replacements
      */
-    public ServerReplayConfig(int version, Iterable<Mapping> mappings, Iterable<Replacement> replacements, Iterable<ResponseHeaderTransform> responseHeaderTransforms) {
+    public ReplayServerConfig(int version, Iterable<Mapping> mappings, Iterable<Replacement> replacements, Iterable<ResponseHeaderTransform> responseHeaderTransforms) {
         this.version = version;
         this.mappings = ImmutableList.copyOf(mappings);
         this.replacements = ImmutableList.copyOf(replacements);
@@ -63,8 +63,8 @@ public class ServerReplayConfig {
      * @return the configuration object
      */
     @SuppressWarnings("unused")
-    public static ServerReplayConfig empty() {
-        return new ServerReplayConfig();
+    public static ReplayServerConfig empty() {
+        return new ReplayServerConfig();
     }
 
     public static Builder builder() {
@@ -368,8 +368,8 @@ public class ServerReplayConfig {
             return this;
         }
 
-        public ServerReplayConfig build() {
-            return new ServerReplayConfig(version, mappings, replacements, responseHeaderTransforms);
+        public ReplayServerConfig build() {
+            return new ReplayServerConfig(version, mappings, replacements, responseHeaderTransforms);
         }
     }
 }

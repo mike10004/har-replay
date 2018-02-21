@@ -1,6 +1,6 @@
 package com.github.mike10004.harreplay;
 
-import com.github.mike10004.harreplay.ReplayManagerConfig.EmbeddedClientDirProvider;
+import com.github.mike10004.harreplay.NodeServerReplayManagerConfig.EmbeddedClientDirProvider;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
@@ -20,7 +20,7 @@ import java.util.zip.ZipFile;
 
 import static org.junit.Assert.*;
 
-public class ReplayManagerConfigTest {
+public class NodeServerReplayManagerConfigTest {
 
     private static final boolean verbose = false;
 
@@ -30,7 +30,7 @@ public class ReplayManagerConfigTest {
 
     @Test
     public void auto() throws Exception {
-        Path serverReplayDir = ReplayManagerConfig.auto().harReplayProxyDirProvider.provide(temporaryFolder.getRoot().toPath());
+        Path serverReplayDir = NodeServerReplayManagerConfig.auto().harReplayProxyDirProvider.provide(temporaryFolder.getRoot().toPath());
         Collection<File> files = FileUtils.listFiles(serverReplayDir.toFile(), null, true);
         for (File f : files) {
             if (verbose) System.out.println(f);
