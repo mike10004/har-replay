@@ -46,7 +46,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public abstract class ReplayManagerTest {
+public abstract class ReplayManagerTestBase {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -115,9 +115,11 @@ public abstract class ReplayManagerTest {
 
     protected abstract ReplayManagerTester createTester(Path tempDir, File harFile, ReplayServerConfig config) throws IOException;
 
+    protected abstract String getReservedPortSystemPropertyName();
+
     private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, Predicate<? super String> responseContentChecker) throws Exception {
         Path tempDir = temporaryFolder.getRoot().toPath();
-        Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, ReplayManagerTester.findHttpPortToUse());
+        Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()));
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
@@ -127,15 +129,13 @@ public abstract class ReplayManagerTest {
         assertEquals("response content", true, responseContentChecker.test(response.entity));
     }
 
-
-
     @Test
     public void startAsync_http_unmatchedReturns404() throws Exception {
         System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
         File harFile = fixturesRule.getFixtures().http().harFile();
         ResponseSummary response = createTester(tempDir, harFile, ReplayServerConfig.empty())
-                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findHttpPortToUse())
+                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()))
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);

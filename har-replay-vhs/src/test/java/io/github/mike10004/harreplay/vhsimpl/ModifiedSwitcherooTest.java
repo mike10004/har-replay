@@ -1,4 +1,4 @@
-package io.github.mike10004.harreplay.nodeimpl;
+package io.github.mike10004.harreplay.vhsimpl;
 
 import io.github.mike10004.harreplay.tests.ModifiedSwitcherooTestBase;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
@@ -10,6 +10,6 @@ public class ModifiedSwitcherooTest extends ModifiedSwitcherooTestBase {
 
     @Override
     protected ReplayManagerTester createTester(Path tempRoot, File harFile) {
-        return new NodeServerReplayManagerTester(tempRoot, harFile);
+        return new VhsReplayManagerTester(tempRoot, harFile);
     }
 }

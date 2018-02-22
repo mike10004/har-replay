@@ -28,8 +28,6 @@ import static org.junit.Assert.assertTrue;
 
 public abstract class ReplayManagerTester {
 
-    private static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
-
     private final Path tempDir;
     private final File harFile;
 
@@ -111,11 +109,13 @@ public abstract class ReplayManagerTester {
 
     private static final Logger log = LoggerFactory.getLogger(ReplayManagerTester.class);
 
-    public static int findHttpPortToUse() throws IOException {
-        return findPortToUse(SYSPROP_SERVER_REPLAY_HTTP_PORT);
+    public static int findOpenPort() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return socket.getLocalPort();
+        }
     }
 
-    private static int findPortToUse(String systemPropertyName) throws IOException {
+    public static int findReservedPort(String systemPropertyName) throws IOException {
         String portStr = System.getProperty(systemPropertyName);
         if (Strings.isNullOrEmpty(portStr)) { // probably running with IDE test runner, not Maven
             log.trace("unit test port not reserved by build process; will try to find open port");
