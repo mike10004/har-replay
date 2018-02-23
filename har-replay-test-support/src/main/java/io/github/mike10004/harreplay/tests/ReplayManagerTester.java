@@ -49,7 +49,7 @@ public abstract class ReplayManagerTester {
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer httpPort) throws Exception {
 
         ReplayManager replay = createReplayManager();
-        ProgramInfoFutureCallback infoCallback = new ProgramInfoFutureCallback();
+        AwaitableServerTerminationCallback infoCallback = new AwaitableServerTerminationCallback();
         Builder rscb = ReplaySessionConfig.builder(tempDir)
                 .config(configureReplayModule())
                 .onTermination(infoCallback);
@@ -73,7 +73,7 @@ public abstract class ReplayManagerTester {
             exception = e;
         } finally {
             System.out.println("awaiting execution of process callback");
-            infoCallback.await(5, TimeUnit.SECONDS);
+            infoCallback.await(3, TimeUnit.SECONDS);
         }
         assertTrue("callback executed", infoCallback.wasExecuted());
         assertNull("exception was thrown, probably from useReplayServer", exception);
@@ -81,7 +81,7 @@ public abstract class ReplayManagerTester {
         return result.orElse(null);
     }
 
-    private static class ProgramInfoFutureCallback implements ServerTerminationCallback {
+    private static class AwaitableServerTerminationCallback implements ServerTerminationCallback {
 
         private final CountDownLatch latch = new CountDownLatch(1);
 

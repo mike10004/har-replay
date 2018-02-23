@@ -22,7 +22,7 @@ class VhsReplayManagerTester extends ReplayManagerTester {
 
     @Override
     protected ReplayManager createReplayManager() {
-        throw new UnsupportedOperationException();
+        return new VhsReplayManager();
     }
 
     @Override

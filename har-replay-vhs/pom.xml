@@ -10,7 +10,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>har-replay-vhs</artifactId>
-
+    <properties>
+        <vhs.version>0.1-SNAPSHOT</vhs.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -30,6 +32,16 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>virtual-har-server-nanohttpd</artifactId>
+            <version>${vhs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>virtual-har-server-har-bridge-sstoehr</artifactId>
+            <version>${vhs.version}</version>
         </dependency>
     </dependencies>
 </project>

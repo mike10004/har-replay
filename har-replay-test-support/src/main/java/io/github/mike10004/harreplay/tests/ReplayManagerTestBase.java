@@ -1,13 +1,5 @@
 package io.github.mike10004.harreplay.tests;
 
-import io.github.mike10004.harreplay.ReplayServerConfig;
-import io.github.mike10004.harreplay.ReplaySessionControl;
-import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;
-import io.github.mike10004.harreplay.ReplayServerConfig.Mapping;
-import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
-import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
-import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
-import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -16,10 +8,20 @@ import com.google.common.net.HostAndPort;
 import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarEntry;
+import io.github.mike10004.harreplay.ReplayServerConfig;
+import io.github.mike10004.harreplay.ReplayServerConfig.Mapping;
+import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
+import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
+import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
+import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
+import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.tests.Fixtures.Fixture;
 import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
+import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -29,6 +31,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.hamcrest.Description;
+import org.hamcrest.DiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,17 +40,23 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 public abstract class ReplayManagerTestBase {
+
+    private static final boolean debug = true;
+    private static final boolean dumpHarResponseComparison = true;
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -61,6 +71,16 @@ public abstract class ReplayManagerTestBase {
         testStartAsync(harFile, fixturesRule.getFixtures().http().startUrl());
     }
 
+    private static void dumpTagged(String tag, String content, PrintStream out) {
+        out.println("============================================================");
+        out.format("===================== start %s: %3d characters ============%n", tag, content.length());
+        out.println("============================================================");
+        out.print(content);
+        out.println("============================================================");
+        out.format("===================== end %s ===========================%n", tag);
+        out.println("============================================================");
+    }
+
     @Test
     public void startAsync_https() throws Exception {
         System.out.println("\n\nstartAsync_https\n");
@@ -70,7 +90,7 @@ public abstract class ReplayManagerTestBase {
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, content -> content.contains(fixture.title()));
+        testStartAsync(harFile, uri, client, config, matcher("title absent", describing(content -> content.contains(fixture.title()), "text must contain title " + fixture.title())));
     }
 
     @Test
@@ -85,7 +105,7 @@ public abstract class ReplayManagerTestBase {
                 .build();
         File harFile = fixture.harFile();
         ApacheRecordingClient client = newApacheClient(uri, false);
-        testStartAsync(harFile, uri, client, config, customContent::equals);
+        testStartAsync(harFile, uri, client, config, matcher("custom content expected", describing(customContent::equals, StringUtils.abbreviate(customContent, 64))));
     }
 
     @Test
@@ -98,18 +118,68 @@ public abstract class ReplayManagerTestBase {
                 .replace(Replacement.literal(fixture.title(), replacementText))
                 .build();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, responseContent -> responseContent.contains(replacementText));
+        testStartAsync(harFile, uri, client, config, matcher("replacement text absent", describing(responseContent -> responseContent.contains(replacementText), replacementText)));
     }
 
-    private static Predicate<String> matchHarResponse(Har har, URI uri) {
+    private static <T> Predicate<T> describing(Predicate<T> predicate, String description) {
+        return new Predicate<T>() {
+            @Override
+            public boolean test(T t) {
+                return predicate.test(t);
+            }
+
+            @Override
+            public String toString() {
+                return description;
+            }
+        };
+    }
+
+    private static class MyMatcher extends DiagnosingMatcher<String> {
+
+        public final String statement;
+        private final Predicate<? super String> predicate;
+
+        public MyMatcher(String statement, Predicate<? super String> predicate) {
+            this.statement = statement;
+            this.predicate = predicate;
+        }
+
+        @Override
+        protected boolean matches(Object item, Description mismatchDescription) {
+            if (!(item instanceof String)) {
+                mismatchDescription.appendText("not a string");
+                return false;
+            }
+            boolean ok = predicate.test((String)item);
+            if (!ok) {
+                mismatchDescription.appendText(StringUtils.abbreviateMiddle(item.toString(), "[...]", 1024));
+            }
+            return ok;
+        }
+
+        @Override
+        public void describeTo(Description d) {
+            d.appendText(predicate.toString());
+        }
+    }
+
+    private static MyMatcher matcher(String description, Predicate<? super String> predicate) {
+        return new MyMatcher(description, predicate);
+    }
+
+    private static MyMatcher matchHarResponse(Har har, URI uri) {
         HarEntry basicEntry = har.getLog().getEntries().stream().filter(entry -> uri.getPath().equals(URI.create(entry.getRequest().getUrl()).getPath())).findFirst().get();
         String expectedText = basicEntry.getResponse().getContent().getText();
-        return expectedText::equals;
+        if (dumpHarResponseComparison) {
+            dumpTagged("expected", expectedText, System.out);
+        }
+        return matcher("har response content", describing(expectedText::equals, "har response content incorrect; expected " + StringUtils.abbreviateMiddle(expectedText, "[...]", 256)));
     }
 
     private void testStartAsync(File harFile, URI uri) throws Exception {
         Har har = new HarReader().readFromFile(harFile);
-        Predicate<String> checker = matchHarResponse(har, uri);
+        MyMatcher checker = matchHarResponse(har, uri);
         testStartAsync(harFile, uri, newApacheClient(uri, false), ReplayServerConfig.empty(), checker);
     }
 
@@ -117,16 +187,19 @@ public abstract class ReplayManagerTestBase {
 
     protected abstract String getReservedPortSystemPropertyName();
 
-    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, Predicate<? super String> responseContentChecker) throws Exception {
+    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, MyMatcher responseContentChecker) throws Exception {
         Path tempDir = temporaryFolder.getRoot().toPath();
         Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()));
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
         System.out.format("response: %s%n", response.statusLine);
+        if (dumpHarResponseComparison) {
+            dumpTagged("actual", response.entity, System.out);
+        }
         assertEquals("status", HttpStatus.SC_OK, response.statusLine.getStatusCode());
         System.out.println(StringUtils.abbreviate(response.entity, 128));
-        assertEquals("response content", true, responseContentChecker.test(response.entity));
+        assertThat(responseContentChecker.statement, response.entity, responseContentChecker);
     }
 
     @Test
@@ -134,8 +207,10 @@ public abstract class ReplayManagerTestBase {
         System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
         File harFile = fixturesRule.getFixtures().http().harFile();
+        ApacheRecordingClient client = newApacheClient(URI.create("http://www.google.com/"), false);
+        int port = ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName());
         ResponseSummary response = createTester(tempDir, harFile, ReplayServerConfig.empty())
-                .exercise(newApacheClient(URI.create("http://www.google.com/"), false), ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()))
+                .exercise(client, port)
                 .values().iterator().next();
         System.out.format("response: %s%n", response.statusLine);
         System.out.format("response text:%n%s%n", response.entity);
@@ -157,7 +232,7 @@ public abstract class ReplayManagerTestBase {
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, content -> content.contains(fixture.title()));
+        testStartAsync(harFile, uri, client, config, matcher("title absent", describing(content -> content.contains(fixture.title()), "expected title " + fixture.title())));
     }
 
     private static class ApacheRecordingClient implements ReplayClient<Multimap<URI, ResponseSummary>> {
@@ -186,21 +261,39 @@ public abstract class ReplayManagerTestBase {
         public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
             Multimap<URI, ResponseSummary> result = ArrayListMultimap.create();
             try (CloseableHttpClient client = HttpClients.custom()
+                    // TODO figure out why we need to disable compression here;
+                    //      it shouldn't be necessary but without it
+                    // .disableContentCompression()
                     .setProxy(new HttpHost(proxy.getHost(), proxy.getPort()))
                     .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
                     .build()) {
                 for (URI uri : urisToGet) {
-                    System.out.format("fetching %s%n", uri);
-                    HttpGet get = new HttpGet(transformUri(uri));
+                    URI transformedUri = transformUri(uri);
+                    System.out.format("fetching %s as %s%n", uri, transformedUri);
+                    HttpGet get = new HttpGet(transformedUri);
                     try (CloseableHttpResponse response = client.execute(get)) {
                         StatusLine statusLine = response.getStatusLine();
-                        String entity = EntityUtils.toString(response.getEntity());
+                        String entity = toString(response);
                         result.put(uri, new ResponseSummary(statusLine, entity));
                     }
                 }
             }
             return result;
         }
+
+        private static String toString(HttpResponse response) throws IOException {
+            String entityContent = EntityUtils.toString(response.getEntity());
+            if (debug) {
+                Header[] allHeaders = response.getAllHeaders();
+                System.out.format("toString: %s, length = %d%n", response.getEntity().getContentType().getValue(), response.getEntity().getContentLength());
+                System.out.format("toString: %d headers%n", allHeaders.length);
+                Stream.of(allHeaders).forEach(header -> {
+                    System.out.format("%s: %s%n", header.getName(), header.getValue());
+                });
+            }
+            return entityContent;
+        }
+
     }
 
     private ApacheRecordingClient newApacheClient(URI uri, boolean transformHttpsToHttp) {

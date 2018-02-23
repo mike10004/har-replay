@@ -64,14 +64,21 @@ public class NodeServerReplayManager implements ReplayManager {
 
         private final ScopedProcessTracker processTracker;
         private final ProcessMonitor<File, File> processMonitor;
+        private final int port;
 
-        protected ScopedProcessTrackerSessionControl(ScopedProcessTracker processTracker, ProcessMonitor<File, File> processMonitor) {
+        protected ScopedProcessTrackerSessionControl(ScopedProcessTracker processTracker, ProcessMonitor<File, File> processMonitor, int port) {
             this.processTracker = requireNonNull(processTracker);
             this.processMonitor = requireNonNull(processMonitor);
+            this.port = port;
         }
 
         private ProcessMonitor<File, File> getProcessMonitor() {
             return processMonitor;
+        }
+
+        @Override
+        public int getListeningPort() {
+            return port;
         }
 
         @Override
@@ -108,7 +115,7 @@ public class NodeServerReplayManager implements ReplayManager {
     public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
         ScopedProcessTracker processTracker = new ScopedProcessTracker();
         ProcessMonitor<File, File> processMonitor = startAsyncWithTracker(processTracker, sessionConfig);
-        return new ScopedProcessTrackerSessionControl(processTracker, processMonitor);
+        return new ScopedProcessTrackerSessionControl(processTracker, processMonitor, sessionConfig.port);
     }
 
     /**
