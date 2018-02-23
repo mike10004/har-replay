@@ -5,11 +5,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -74,12 +80,22 @@ public class ReplayServerConfig {
     /**
      * Interface for classes that represent the {@code match} field of a {@link Mapping}.
      */
-    public interface MappingMatch {}
+    public interface MappingMatch {
+
+        boolean evaluateUrlMatch(String url);
+
+        String transformUrlToPath(String url, String path);
+
+    }
 
     /**
      * Interface for classes that represent the {@code path} field of a {@link Mapping}.
      */
-    public interface MappingPath {}
+    public interface MappingPath {
+
+        File resolveFile(Path root, MappingMatch match, String url);
+
+    }
 
     /**
      * Interface for classes that represent the {@code match} field of a {@link Replacement}.
@@ -89,7 +105,11 @@ public class ReplayServerConfig {
     /**
      * Interface for classes that represent the {@code replace} field of a {@link Replacement}.
      */
-    public interface ReplacementReplace {}
+    public interface ReplacementReplace {
+
+        String interpolate(String url);
+
+    }
 
     public interface ResponseHeaderTransformNameMatch {}
 
@@ -171,6 +191,27 @@ public class ReplayServerConfig {
             return new StringLiteral(value);
         }
 
+        @Override
+        public String transformUrlToPath(String url, String path) {
+            return path;
+        }
+
+        @Override
+        public boolean evaluateUrlMatch(String url) {
+            return Objects.equals(value, url);
+        }
+
+        @Override
+        public File resolveFile(Path root, MappingMatch match, String url) {
+
+            File f = new File(value);
+            if (f.isAbsolute()) {
+                return f;
+            } else {
+                return root.resolve(f.toPath()).toFile();
+            }
+        }
+
         public static class StringLiteralTypeAdapter extends TypeAdapter<StringLiteral> {
 
             @Override
@@ -183,6 +224,11 @@ public class ReplayServerConfig {
                 String value = in.nextString();
                 return new StringLiteral(value);
             }
+        }
+
+        @Override
+        public String interpolate(String url) {
+            return value;
         }
     }
 
@@ -205,6 +251,15 @@ public class ReplayServerConfig {
 
         public static VariableHolder of(String var) {
             return new VariableHolder(var);
+        }
+
+        @Override
+        public String interpolate(String url) {
+            if ("request.url".equals(var)) {
+                return url;
+            }
+            LoggerFactory.getLogger(getClass()).info("unresolved variable {}", var);
+            return var;
         }
     }
 
@@ -232,14 +287,23 @@ public class ReplayServerConfig {
         public static RegexHolder of(String regex) {
             return new RegexHolder(regex);
         }
+
+        @Override
+        public boolean evaluateUrlMatch(String url) {
+            return url != null && url.matches(regex);
+        }
+
+        @Override
+        public String transformUrlToPath(String url, String path) {
+            return url.replaceAll(regex, path);
+        }
     }
 
     /**
-     * Replacement strategy for textual response content. {@link #match Match} field is a string, Javascript regex or variable,
-     * and {@link #replace} field is a string or variable. The {@code replace} field can contain $n references to
-     * substitute capture groups from match.
+     * Replacement strategy for textual response content. {@link #match Match} field is a string,
+     * Javascript regex or variable, and {@link #replace} field is a string or variable.
+     * The {@code replace} field can contain $n references to substitute capture groups from match.
      */
-    @SuppressWarnings("unused")
     public static final class Replacement {
 
         public final ReplacementMatch match;

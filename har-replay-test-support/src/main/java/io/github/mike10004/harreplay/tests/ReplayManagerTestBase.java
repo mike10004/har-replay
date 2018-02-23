@@ -55,8 +55,8 @@ import static org.junit.Assert.assertThat;
 
 public abstract class ReplayManagerTestBase {
 
-    private static final boolean debug = true;
-    private static final boolean dumpHarResponseComparison = true;
+    private static final boolean debug = false;
+    private static final boolean dumpHarResponseComparison = false;
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();

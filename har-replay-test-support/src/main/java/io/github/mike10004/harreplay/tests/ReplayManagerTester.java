@@ -76,6 +76,9 @@ public abstract class ReplayManagerTester {
             infoCallback.await(3, TimeUnit.SECONDS);
         }
         assertTrue("callback executed", infoCallback.wasExecuted());
+        if (exception != null) {
+            exception.printStackTrace(System.err);
+        }
         assertNull("exception was thrown, probably from useReplayServer", exception);
         checkState(result != null, "result never set");
         return result.orElse(null);
