@@ -79,6 +79,7 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
     private static NanoHTTPD.IHTTPSession session(String url) {
         return new NanoHTTPD.IHTTPSession() {
 
+            @SuppressWarnings("RedundantThrows")
             @Override
             public void execute() throws IOException {
                 throw new UnsupportedOperationException();
@@ -124,6 +125,7 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
                 return url;
             }
 
+            @SuppressWarnings("RedundantThrows")
             @Override
             public void parseBody(Map<String, String> map) throws IOException, ResponseException {
                 throw new UnsupportedOperationException();

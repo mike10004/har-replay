@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.net.HttpHeaders;
@@ -19,11 +20,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -103,14 +104,34 @@ public class ReplacingInterceptor implements ResponseInterceptor {
         }
     }
 
+    protected interface WritingAction<T> {
+        T write(OutputStream outputStream) throws IOException;
+    }
+
+    protected static class WritingActionResult<T> {
+        public final T actionReturnValue;
+        public final byte[] byteArray;
+
+        public WritingActionResult(T actionReturnValue, byte[] byteArray) {
+            this.actionReturnValue = actionReturnValue;
+            this.byteArray = byteArray;
+        }
+    }
+
+    protected static <T> WritingActionResult<T> writeByteArray(WritingAction<T> action, int expectedOutputLength) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(expectedOutputLength);
+        T returnValue = action.write(baos);
+        baos.flush();
+        byte[] data = baos.toByteArray();
+        return new WritingActionResult<>(returnValue, data);
+    }
+
     protected static FlushedContent toByteArray(HttpRespondable respondable) throws IOException {
         HeaderList hlist = HeaderList.from(respondable.streamHeaders());
         String contentEncodingHeaderValue = hlist.getValue(HttpHeaders.CONTENT_ENCODING);
         List<String> contentEncodings = HttpContentCodecs.parseEncodings(contentEncodingHeaderValue);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
-        MediaType contentType = respondable.writeBody(baos);
-        baos.flush();
-        byte[] data = baos.toByteArray();
+        WritingActionResult<MediaType> writeResult = writeByteArray(respondable::writeBody, 256);
+        byte[] data = writeResult.byteArray;
         for (String encoding : contentEncodings) {
             HttpContentCodec codec = HttpContentCodecs.getCodec(encoding);
             if (codec == null) {
@@ -118,7 +139,7 @@ public class ReplacingInterceptor implements ResponseInterceptor {
             }
             data = codec.decompress(data);
         }
-        return new FlushedContent(contentType, data);
+        return new FlushedContent(writeResult.actionReturnValue, data);
     }
 
     private static final Charset DEFAULT_INTERNET_TEXT_CHARSET = StandardCharsets.ISO_8859_1;
@@ -145,7 +166,12 @@ public class ReplacingInterceptor implements ResponseInterceptor {
         return false;
     }
 
-    private static final ImmutableSet<MediaType> parameterlessTextLikeTypes = ImmutableSet.<MediaType>builder()
+    @VisibleForTesting
+    static final ImmutableSet<MediaType> parameterlessTextLikeTypes = ImmutableSet.<MediaType>builder()
             .add(MediaType.JSON_UTF_8.withoutParameters())
+            .add(MediaType.JAVASCRIPT_UTF_8.withoutParameters())
+            .add(MediaType.XML_UTF_8.withoutParameters())
+            .add(MediaType.APPLICATION_XML_UTF_8.withoutParameters())
+            .add(MediaType.XHTML_UTF_8.withoutParameters())
             .build();
 }
