@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.exec;
 
+import com.google.common.base.Joiner;
 import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplaySessionControl;
@@ -20,6 +21,8 @@ import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
+import io.github.mike10004.harreplay.vhsimpl.VhsReplayManager;
+import io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerConfig;
 import joptsimple.NonOptionArgumentSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -55,6 +58,7 @@ public class HarReplayMain {
     static final String OPT_PORT = "port";
     static final String OPT_BROWSER = "browser";
     static final String OPT_ECHO_SERVER = "echo-server";
+    static final String OPT_ENGINE = "engine";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -66,6 +70,7 @@ public class HarReplayMain {
     private final OptionSpec<Browser> browserSpec;
     private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
     private final OptionSpec<Void> echoServerSpec;
+    private final OptionSpec<ReplayServerEngine> engineSpec;
 
     public HarReplayMain() {
         this(new OptionParser());
@@ -93,7 +98,10 @@ public class HarReplayMain {
                 .describedAs("STYLE")
                 .defaultsTo(HarDumpStyle.summary);
         echoServerSpec = parser.acceptsAll(Collections.singletonList(OPT_ECHO_SERVER), "echo proxy server output");
-
+        engineSpec = parser.acceptsAll(Arrays.asList("e", OPT_ENGINE), "specify replay server engine; ENGINE must be one of " + ReplayServerEngine.describeChoices())
+                .withRequiredArg().ofType(ReplayServerEngine.class)
+                .describedAs("ENGINE")
+                .defaultsTo(ReplayServerEngine.vhs);
     }
 
     protected List<HarEntry> readHarEntries(File harFile, Path scratchDir) throws IOException, HarReaderException {
@@ -109,8 +117,8 @@ public class HarReplayMain {
                 parser.printHelpOn(System.out);
                 return 0;
             }
-            NodeServerReplayManagerConfig managerconfig = createReplayManagerConfig(optionSet);
-            ReplayManager manager = new NodeServerReplayManager(managerconfig);
+            ReplayServerEngine engine = optionSet.valueOf(engineSpec);
+            ReplayManager manager = engine.createManager(this, optionSet);
             try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
                 ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
                 HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
@@ -148,14 +156,6 @@ public class HarReplayMain {
         if (notifyFile != null) {
             Files.asCharSink(notifyFile, NOTIFY_FILE_CHARSET).write(String.valueOf(sessionConfig.port));
         }
-    }
-
-    protected NodeServerReplayManagerConfig createReplayManagerConfig(OptionSet optionSet) {
-        NodeServerReplayManagerConfig.Builder b = NodeServerReplayManagerConfig.builder();
-        if (optionSet.has(echoServerSpec)) {
-            b.addOutputEchoes();
-        }
-        return b.build();
     }
 
     protected int findUnusedPort() throws IOException {
@@ -239,6 +239,41 @@ public class HarReplayMain {
                     return new ChromeBrowserSupport();
             }
             throw new IllegalStateException("not handled: " + this);
+        }
+    }
+
+    public enum ReplayServerEngine {
+        node,
+        vhs;
+
+        public static String describeChoices() {
+            return "{" + String.join(", ", Stream.of(values()).map(ReplayServerEngine::name).collect(Collectors.toSet())) + "}";
+        }
+
+        protected NodeServerReplayManagerConfig createNodeReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
+            NodeServerReplayManagerConfig.Builder b = NodeServerReplayManagerConfig.builder();
+            if (optionSet.has(main.echoServerSpec)) {
+                b.addOutputEchoes();
+            }
+            return b.build();
+        }
+
+        @SuppressWarnings("unused") // no options to set when creating config instance yet
+        protected VhsReplayManagerConfig createVhsReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
+            return VhsReplayManagerConfig.getDefault();
+        }
+
+        public ReplayManager createManager(HarReplayMain main, OptionSet optionSet) {
+            switch (this) {
+                case node:
+                    NodeServerReplayManagerConfig nodeConfig = createNodeReplayManagerConfig(main, optionSet);
+                    return new NodeServerReplayManager(nodeConfig);
+                case vhs:
+                    VhsReplayManagerConfig vhsConfig = createVhsReplayManagerConfig(main, optionSet);
+                    return new VhsReplayManager(vhsConfig);
+                default:
+                    throw new IllegalStateException("unhandled: " + this);
+            }
         }
     }
 

@@ -10,9 +10,13 @@ import com.github.mike10004.xvfbmanager.Poller.StopReason;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
+import com.google.common.net.HttpHeaders;
+import com.google.common.net.MediaType;
 import io.github.mike10004.harreplay.tests.Fixtures;
 import io.github.mike10004.harreplay.tests.Fixtures.Fixture;
 import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
+import io.github.mike10004.vhs.harbridge.HttpContentCodec;
+import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
@@ -32,12 +36,17 @@ import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class HarReplayIT {
 
@@ -119,21 +128,48 @@ public class HarReplayIT {
         return HostAndPort.fromParts("localhost", outcome.content);
     }
 
+    @Nullable
+    private static String getFirstHeaderValue(Map<String, List<String>> headers, String headerName) {
+        requireNonNull(headerName);
+        return headers.entrySet().stream()
+                .filter(header -> headerName.equalsIgnoreCase(header.getKey()))
+                .map(header -> header.getValue().iterator().next())
+                .findFirst().orElse(null);
+    }
+
     private void visitSite(HostAndPort replayServerAddress, Fixture fixture) throws IOException {
         URL url = fixture.startUrl().toURL();
         Proxy proxy = new java.net.Proxy(Proxy.Type.HTTP, new InetSocketAddress(replayServerAddress.getHost(), replayServerAddress.getPort()));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
-        String html;
+        byte[] bytes;
+        Map<String, List<String>> headers;
         try {
+            headers = conn.getHeaderFields();
             try (InputStream in = conn.getInputStream()) {
-                byte[] bytes = ByteStreams.toByteArray(in);
-                html = new String(bytes, StandardCharsets.UTF_8);
+                bytes = ByteStreams.toByteArray(in);
             }
         } finally {
             conn.disconnect();
         }
+        String contentType = getFirstHeaderValue(headers, HttpHeaders.CONTENT_TYPE);
+        System.out.format("content-type: %s%n", contentType);
+        assertNotNull("value of content-type header", contentType);
+        Charset charset = MediaType.parse(contentType).charset().or(StandardCharsets.ISO_8859_1);
+        String html = new String(bytes, charset);
         System.out.format("parsing html from %s...%n%s%n%n", url, StringUtils.abbreviateMiddle(html, "\n[...]\n", 256));
         String actualTitle = Jsoup.parse(html).title();
+        if (!fixture.title().equals(actualTitle)) {
+            String encoding = getFirstHeaderValue(headers, HttpHeaders.CONTENT_ENCODING);
+            if (encoding != null) {
+                HttpContentCodec codec = HttpContentCodecs.getCodec(encoding);
+                assertNotNull("codec", codec);
+                bytes = codec.decompress(bytes);
+                html = new String(bytes, charset);
+                System.out.format("parsing html from decompressed text %s...%n%s%n%n", url, StringUtils.abbreviateMiddle(html, "\n[...]\n", 256));
+                actualTitle = Jsoup.parse(html).title();
+                fail("content stream was compressed with " + encoding + " but we did not ask for that with an Accept-Encoding header");
+            }
+        }
         assertEquals("title", fixture.title(), actualTitle);
     }
 
