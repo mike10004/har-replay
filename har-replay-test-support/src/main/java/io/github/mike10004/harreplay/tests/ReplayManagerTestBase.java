@@ -21,15 +21,21 @@ import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.ProtocolException;
 import org.apache.http.StatusLine;
+import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.hamcrest.Description;
 import org.hamcrest.DiagnosingMatcher;
@@ -48,6 +54,7 @@ import java.util.Collection;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -55,7 +62,7 @@ import static org.junit.Assert.assertThat;
 
 public abstract class ReplayManagerTestBase {
 
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     private static final boolean dumpHarResponseComparison = false;
 
     @ClassRule
@@ -188,6 +195,10 @@ public abstract class ReplayManagerTestBase {
     protected abstract String getReservedPortSystemPropertyName();
 
     private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, MyMatcher responseContentChecker) throws Exception {
+        if (debug) {
+            Files.asByteSource(harFile).copyTo(System.out);
+            System.out.println();
+        }
         Path tempDir = temporaryFolder.getRoot().toPath();
         Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()));
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
@@ -197,7 +208,7 @@ public abstract class ReplayManagerTestBase {
         if (dumpHarResponseComparison) {
             dumpTagged("actual", response.entity, System.out);
         }
-        assertEquals("status", HttpStatus.SC_OK, response.statusLine.getStatusCode());
+        checkState(HttpStatus.SC_OK == response.statusLine.getStatusCode(), "should have received '200 OK' response but was '%s'", response.statusLine);
         System.out.println(StringUtils.abbreviate(response.entity, 128));
         assertThat(responseContentChecker.statement, response.entity, responseContentChecker);
     }
@@ -217,7 +228,7 @@ public abstract class ReplayManagerTestBase {
         assertEquals("status", HttpStatus.SC_NOT_FOUND, response.statusLine.getStatusCode());
     }
 
-    private static ResponseHeaderTransform createLocationHttpsToHttpTransform() {
+    public static ResponseHeaderTransform createLocationHttpsToHttpTransform() {
         return ResponseHeaderTransform.valueByNameAndValue(StringLiteral.of(org.apache.http.HttpHeaders.LOCATION),
                 RegexHolder.of("^https://(.+)"), StringLiteral.of("http://$1"));
     }
@@ -227,12 +238,13 @@ public abstract class ReplayManagerTestBase {
         System.out.println("\n\nstartAsync_https_transformLocationResponseHeader\n");
         Fixture fixture = fixturesRule.getFixtures().httpsRedirect();
         File harFile = fixture.harFile();
+        System.out.format("using fixture %s with har %s%n", fixture, harFile);
         ReplayServerConfig config = ReplayServerConfig.builder()
                 .transformResponse(createLocationHttpsToHttpTransform())
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, matcher("title absent", describing(content -> content.contains(fixture.title()), "expected title " + fixture.title())));
+        testStartAsync(harFile, uri, client, config, matcher("expect fixture title to be present", describing(content -> content.contains(fixture.title()), "expected title " + fixture.title())));
     }
 
     private static class ApacheRecordingClient implements ReplayClient<Multimap<URI, ResponseSummary>> {
@@ -260,11 +272,20 @@ public abstract class ReplayManagerTestBase {
         @Override
         public Multimap<URI, ResponseSummary> useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
             Multimap<URI, ResponseSummary> result = ArrayListMultimap.create();
+            RedirectStrategy redirectStrategy = new DefaultRedirectStrategy() {
+                @Override
+                public HttpUriRequest getRedirect(HttpRequest request, HttpResponse response, HttpContext context) throws ProtocolException {
+                    HttpUriRequest redirect = super.getRedirect(request, response, context);
+                    System.out.format("redirected to %s %s%n", redirect.getMethod(), redirect.getURI());
+                    return redirect;
+                }
+            };
             try (CloseableHttpClient client = HttpClients.custom()
                     // TODO figure out why we need to disable compression here;
                     //      it shouldn't be necessary but without it
                     // .disableContentCompression()
                     .setProxy(new HttpHost(proxy.getHost(), proxy.getPort()))
+                    .setRedirectStrategy(redirectStrategy)
                     .setRetryHandler(new DefaultHttpRequestRetryHandler(0, false))
                     .build()) {
                 for (URI uri : urisToGet) {

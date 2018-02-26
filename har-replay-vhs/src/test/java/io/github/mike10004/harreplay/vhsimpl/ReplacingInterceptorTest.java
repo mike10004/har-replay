@@ -10,7 +10,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import io.github.mike10004.harreplay.vhsimpl.ReplacingInterceptor.WritingActionResult;
 import io.github.mike10004.vhs.HttpMethod;
 import io.github.mike10004.vhs.HttpRespondable;
-import io.github.mike10004.vhs.HttpRespondable.ImmutableHttpRespondable;
+import io.github.mike10004.vhs.ImmutableHttpRespondable;
 import io.github.mike10004.vhs.ParsedRequest;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -93,7 +93,7 @@ public class ReplacingInterceptorTest {
         Multimap<String, String> headers = ImmutableMultimap.of(HttpHeaders.CONTENT_TYPE, contentType.toString());
         ParsedRequest request = ParsedRequest.inMemory(HttpMethod.GET, URI.create("http://www.example.com/"), ImmutableMultimap.of(), ImmutableMultimap.of(), null);
         HttpRespondable response = HttpRespondable.inMemory(HttpStatus.SC_OK, headers, contentType, body);
-        ReplacingInterceptor interceptor = new ReplacingInterceptor(replacement);
+        ReplacingInterceptor interceptor = new ReplacingInterceptor(VhsReplayManagerConfig.getDefault(), replacement);
         HttpRespondable intercepted = interceptor.intercept(request, response);
         return intercepted;
     }

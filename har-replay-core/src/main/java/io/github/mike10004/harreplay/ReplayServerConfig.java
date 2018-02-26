@@ -1,13 +1,14 @@
 package io.github.mike10004.harreplay;
 
-import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral.StringLiteralTypeAdapter;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import org.apache.commons.io.FilenameUtils;
+import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral.StringLiteralTypeAdapter;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Class that represents the configuration that a server replay process uses. This object's structure
@@ -84,8 +86,6 @@ public class ReplayServerConfig {
 
         boolean evaluateUrlMatch(String url);
 
-        String transformUrlToPath(String url, String path);
-
     }
 
     /**
@@ -111,13 +111,134 @@ public class ReplayServerConfig {
 
     }
 
-    public interface ResponseHeaderTransformNameMatch {}
+    public interface ResponseHeaderTransformNameMatch {
 
-    public interface ResponseHeaderTransformNameImage {}
+        boolean isMatchingHeaderName(String headerName);
 
-    public interface ResponseHeaderTransformValueMatch {}
+        static ResponseHeaderTransformNameMatch always() {
+            return AlwaysMatch.getInstance();
+        }
 
-    public interface ResponseHeaderTransformValueImage {}
+        Pattern asRegex();
+
+    }
+
+    public interface ResponseHeaderTransformNameImage {
+
+        @Nullable
+        String transformHeaderName(String headerName, Pattern nameMatchRegex);
+
+        static ResponseHeaderTransformNameImage identity() {
+            return IdentityImage.getInstance();
+        }
+
+    }
+
+    public interface ResponseHeaderTransformValueMatch {
+
+        boolean isMatchingHeaderValue(String headerName, String headerValue);
+
+        Pattern asRegex();
+
+        static ResponseHeaderTransformValueMatch always() {
+            return AlwaysMatch.getInstance();
+        }
+
+    }
+
+    public interface ResponseHeaderTransformValueImage {
+
+        @Nullable
+        String transformHeaderValue(String headerName, Pattern valueMatchRegex, String headerValue);
+
+        static ResponseHeaderTransformValueImage identity() {
+            return IdentityImage.getInstance();
+        }
+
+    }
+
+    private static class AlwaysMatch implements ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
+
+        private static final AlwaysMatch INSTANCE = new AlwaysMatch();
+        private static final Pattern REGEX = Pattern.compile("^(.*)$");
+
+        private AlwaysMatch() {}
+
+        @Override
+        public Pattern asRegex() {
+            return REGEX;
+        }
+
+        @Override
+        public boolean isMatchingHeaderName(String headerName) {
+            return true;
+        }
+
+        @Override
+        public boolean isMatchingHeaderValue(String headerName, String headerValue) {
+            return true;
+        }
+
+        public static AlwaysMatch getInstance() {
+            return INSTANCE;
+        }
+
+        public String toString() {
+            return "ResponseHeaderTransformMatch{ALWAYS}";
+        }
+    }
+
+    private static class IdentityImage implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage{
+
+        private static final IdentityImage INSTANCE = new IdentityImage();
+
+        private IdentityImage() {}
+
+        @Override
+        public String transformHeaderName(String headerName, Pattern nameMatchRegex) {
+            return headerName;
+        }
+
+        @Override
+        public String transformHeaderValue(String headerName, Pattern valueMatchRegex, String headerValue) {
+            return headerValue;
+        }
+
+        public static IdentityImage getInstance() {
+            return INSTANCE;
+        }
+
+        public String toString() {
+            return "ResponseHeaderTransformImage{IDENTITY}";
+        }
+    }
+
+    public static class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
+
+        private RemoveHeader() {}
+
+        private static final RemoveHeader INSTANCE = new RemoveHeader();
+
+        public static RemoveHeader getInstance() {
+            return INSTANCE;
+        }
+
+        @Nullable
+        @Override
+        public String transformHeaderName(String headerName, Pattern nameMatchRegex) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public String transformHeaderValue(String headerName, Pattern valueMatchRegex, String headerValue) {
+            return null;
+        }
+
+        public String toString() {
+            return "ResponseHeaderTransformImage{REMOVE}";
+        }
+    }
 
     /**
      * Mapping from URL to filesystem pathname. Match field is a string or Javascript regex, and path is a string.
@@ -182,18 +303,15 @@ public class ReplayServerConfig {
             ResponseHeaderTransformValueMatch, ResponseHeaderTransformValueImage {
 
         public final String value;
+        private transient final Pattern regex;
 
         private StringLiteral(String value) {
-            this.value = checkNotNull(value);
+            this.value = requireNonNull(value);
+            this.regex = Pattern.compile("(" + Pattern.quote(value) + ")");
         }
 
         public static StringLiteral of(String value) {
             return new StringLiteral(value);
-        }
-
-        @Override
-        public String transformUrlToPath(String url, String path) {
-            return path;
         }
 
         @Override
@@ -203,7 +321,6 @@ public class ReplayServerConfig {
 
         @Override
         public File resolveFile(Path root, MappingMatch match, String url) {
-
             File f = new File(value);
             if (f.isAbsolute()) {
                 return f;
@@ -229,6 +346,60 @@ public class ReplayServerConfig {
         @Override
         public String interpolate(String url) {
             return value;
+        }
+
+        @Override
+        public boolean isMatchingHeaderName(String headerName) {
+            return value.equalsIgnoreCase(headerName);
+        }
+
+        @Nullable
+        @Override
+        public String transformHeaderName(String headerName, Pattern nameMatchRegex) {
+            return nameMatchRegex.matcher(headerName).replaceAll(value);
+        }
+
+        /**
+         * Performs case-sensitive match on the header value.
+         * @param headerName the header name
+         * @param headerValue the header value
+         * @return true iff header value is case sensitive match for this instance's value
+         */
+        @Override
+        public boolean isMatchingHeaderValue(String headerName, String headerValue) {
+            return value.equals(headerValue);
+        }
+
+        @Nullable
+        @Override
+        public String transformHeaderValue(String headerName, Pattern valueMatchRegex, String headerValue) {
+            Matcher m = valueMatchRegex.matcher(headerValue);
+            return m.replaceAll(value);
+        }
+
+        @Override
+        public Pattern asRegex() {
+            return regex;
+        }
+
+        @Override
+        public String toString() {
+            return "StringLiteral{" +
+                    "value='" + value + '\'' +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            StringLiteral that = (StringLiteral) o;
+            return Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
         }
     }
 
@@ -274,14 +445,20 @@ public class ReplayServerConfig {
          * Regex in Javascript syntax.
          */
         public final String regex;
+        private transient final Pattern caseSensitivePattern;
+        private transient final Pattern caseInsensitivePattern;
 
         @SuppressWarnings("unused") // for deserialization
         private RegexHolder() {
             regex = null;
+            caseSensitivePattern = null;
+            caseInsensitivePattern = null;
         }
 
         private RegexHolder(String regex) {
-            this.regex = checkNotNull(regex);
+            this.regex = requireNonNull(regex);
+            this.caseSensitivePattern = Pattern.compile(regex);
+            this.caseInsensitivePattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
         }
 
         public static RegexHolder of(String regex) {
@@ -294,8 +471,41 @@ public class ReplayServerConfig {
         }
 
         @Override
-        public String transformUrlToPath(String url, String path) {
-            return url.replaceAll(regex, path);
+        public boolean isMatchingHeaderName(String headerName) {
+            Matcher matcher = caseInsensitivePattern.matcher(headerName);
+            return matcher.find();
+        }
+
+        @Override
+        public boolean isMatchingHeaderValue(String headerName, String headerValue) {
+            Matcher matcher = caseSensitivePattern.matcher(headerValue);
+            boolean found = matcher.find();
+            return found;
+        }
+
+        @Override
+        public String toString() {
+            return "RegexHolder{" +
+                    "regex='" + regex + '\'' +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RegexHolder that = (RegexHolder) o;
+            return Objects.equals(regex, that.regex);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(regex);
+        }
+
+        @Override
+        public Pattern asRegex() {
+            return caseSensitivePattern;
         }
     }
 
@@ -355,16 +565,56 @@ public class ReplayServerConfig {
 
     @SuppressWarnings("unused")
     public static final class ResponseHeaderTransform {
-        public final ResponseHeaderTransformNameMatch nameMatch;
-        public final ResponseHeaderTransformNameImage nameImage;
-        public final ResponseHeaderTransformValueMatch valueMatch;
-        public final ResponseHeaderTransformValueImage valueImage;
+
+        private final ResponseHeaderTransformNameMatch nameMatch;
+
+        private final ResponseHeaderTransformNameImage nameImage;
+
+        private final ResponseHeaderTransformValueMatch valueMatch;
+
+        private final ResponseHeaderTransformValueImage valueImage;
 
         private ResponseHeaderTransform(ResponseHeaderTransformNameMatch nameMatch, ResponseHeaderTransformValueMatch valueMatch, ResponseHeaderTransformNameImage nameImage, ResponseHeaderTransformValueImage valueImage) {
             this.nameMatch = nameMatch;
             this.nameImage = nameImage;
             this.valueMatch = valueMatch;
             this.valueImage = valueImage;
+        }
+
+        private static ResponseHeaderTransformNameMatch orAlwaysMatch(@Nullable ResponseHeaderTransformNameMatch nameMatch) {
+            //noinspection ConstantConditions
+            return MoreObjects.firstNonNull(nameMatch, ResponseHeaderTransformNameMatch.always());
+        }
+
+        private static ResponseHeaderTransformValueMatch orAlwaysMatch(@Nullable ResponseHeaderTransformValueMatch valueMatch) {
+            //noinspection ConstantConditions
+            return MoreObjects.firstNonNull(valueMatch, ResponseHeaderTransformValueMatch.always());
+        }
+
+        private static ResponseHeaderTransformNameImage orIdentity(@Nullable ResponseHeaderTransformNameImage nameImage) {
+            //noinspection ConstantConditions
+            return MoreObjects.firstNonNull(nameImage, ResponseHeaderTransformNameImage.identity());
+        }
+
+        private static ResponseHeaderTransformValueImage orIdentity(@Nullable ResponseHeaderTransformValueImage valueImage) {
+            //noinspection ConstantConditions
+            return MoreObjects.firstNonNull(valueImage, ResponseHeaderTransformValueImage.identity());
+        }
+
+        public ResponseHeaderTransformNameMatch getNameMatch() {
+            return orAlwaysMatch(nameMatch);
+        }
+
+        public ResponseHeaderTransformNameImage getNameImage() {
+            return orIdentity(nameImage);
+        }
+
+        public ResponseHeaderTransformValueMatch getValueMatch() {
+            return orAlwaysMatch(valueMatch);
+        }
+
+        public ResponseHeaderTransformValueImage getValueImage() {
+            return orIdentity(valueImage);
         }
 
         public static ResponseHeaderTransform name(ResponseHeaderTransformNameMatch nameMatch,
@@ -406,6 +656,28 @@ public class ReplayServerConfig {
             return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), checkNotNull(nameImage), checkNotNull(valueImage));
         }
 
+        public static ResponseHeaderTransform removeByName(ResponseHeaderTransformNameMatch nameMatch) {
+            return new ResponseHeaderTransform(nameMatch, null, RemoveHeader.getInstance(), null);
+        }
+
+        public static ResponseHeaderTransform removeByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
+                                                                   ResponseHeaderTransformValueMatch valueMatch) {
+            return new ResponseHeaderTransform(nameMatch, valueMatch, null, RemoveHeader.getInstance());
+        }
+
+        public static ResponseHeaderTransform removeByValue(ResponseHeaderTransformValueMatch valueMatch) {
+            return new ResponseHeaderTransform(null, valueMatch, null, RemoveHeader.getInstance());
+        }
+
+        @Override
+        public String toString() {
+            return "ResponseHeaderTransform{" +
+                    "nameMatch=" + nameMatch +
+                    ", nameImage=" + nameImage +
+                    ", valueMatch=" + valueMatch +
+                    ", valueImage=" + valueImage +
+                    '}';
+        }
     }
 
     public static final class Builder {

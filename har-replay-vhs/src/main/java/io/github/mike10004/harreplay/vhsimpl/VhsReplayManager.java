@@ -6,6 +6,7 @@ import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
+import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.vhs.BasicHeuristic;
@@ -58,8 +59,8 @@ public class VhsReplayManager implements ReplayManager {
         EntryMatcher harEntryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
         EntryMatcher compositeEntryMatcher = buildEntryMatcher(harEntryMatcher, sessionConfig.replayServerConfig);
         List<ResponseInterceptor> interceptors = new ArrayList<>();
-        //noinspection CollectionAddAllCanBeReplacedWithConstructor
         interceptors.addAll(buildInterceptors(sessionConfig.replayServerConfig.replacements));
+        interceptors.addAll(buildInterceptorsForTransforms(sessionConfig.replayServerConfig.responseHeaderTransforms));
         ReplayingRequestHandler rh = new ReplayingRequestHandler(compositeEntryMatcher, interceptors, ResponseManager.identity());
         int port = sessionConfig.port;
         NanochampVirtualHarServer vhs = new NanochampVirtualHarServer(rh, port);
@@ -73,7 +74,11 @@ public class VhsReplayManager implements ReplayManager {
     }
 
     protected List<ResponseInterceptor> buildInterceptors(Collection<Replacement> replacements) {
-        return replacements.stream().map(ReplacingInterceptor::new).collect(Collectors.toList());
+        return replacements.stream().map(replacement ->  new ReplacingInterceptor(config, replacement)).collect(Collectors.toList());
+    }
+
+    protected List<ResponseInterceptor> buildInterceptorsForTransforms(Collection<ResponseHeaderTransform> headerTransforms) {
+        return headerTransforms.stream().map(headerTransform -> new HeaderTransformInterceptor(config, headerTransform)).collect(Collectors.toList());
     }
 
     protected EntryMatcher buildEntryMatcher(EntryMatcher harEntryMatcher, ReplayServerConfig serverConfig) {

@@ -79,18 +79,20 @@ public class Fixtures {
     }
 
     private Fixtures(Path scratchDir) throws IOException {
-        http = new Fixture(copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/"));
-        https = new Fixture(copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/"));
-        httpsRedirect = new Fixture(copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from"));
+        http = new Fixture("example-http", copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/"));
+        https = new Fixture("example-https", copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/"));
+        httpsRedirect = new Fixture("example-redirect", copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from"));
     }
 
     public static class Fixture {
 
+        private final String name;
         private final File harFile;
         private final String title;
         private final URI startUrl;
 
-        private Fixture(File harFile, String title, URI startUrl) {
+        private Fixture(String name, File harFile, String title, URI startUrl) {
+            this.name = name;
             this.harFile = harFile;
             this.title = title;
             this.startUrl = startUrl;
@@ -106,6 +108,10 @@ public class Fixtures {
 
         public URI startUrl() {
             return startUrl;
+        }
+
+        public String toString() {
+            return String.format("Fixture{name=%s, startUrl=%s}", name, startUrl);
         }
     }
 

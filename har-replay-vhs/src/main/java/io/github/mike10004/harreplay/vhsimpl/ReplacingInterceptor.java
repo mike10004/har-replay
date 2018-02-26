@@ -10,7 +10,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
 import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import io.github.mike10004.vhs.HttpRespondable;
-import io.github.mike10004.vhs.HttpRespondable.ImmutableHttpRespondable;
+import io.github.mike10004.vhs.ImmutableHttpRespondable;
 import io.github.mike10004.vhs.ParsedRequest;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
 import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
@@ -35,10 +35,13 @@ import static java.util.Objects.requireNonNull;
 
 public class ReplacingInterceptor implements ResponseInterceptor {
 
+    @SuppressWarnings({"FieldCanBeLocal", "unused"}) // future: allow some configuration of replacement actions, such as ignoring content type
+    private final VhsReplayManagerConfig config;
     private final Replacement replacement;
 
-    public ReplacingInterceptor(Replacement replacement) {
-        this.replacement = replacement;
+    public ReplacingInterceptor(VhsReplayManagerConfig config, Replacement replacement) {
+        this.config = requireNonNull(config, "config");
+        this.replacement = requireNonNull(replacement, "replacement");
         requireNonNull(replacement.match, "replacement.match");
         requireNonNull(replacement.replace, "replacement.replace");
     }

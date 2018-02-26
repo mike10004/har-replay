@@ -23,16 +23,8 @@ public class ReplayServerConfig_MappingPathTest {
         assertEquals("abs", new File(absolutePath).toPath(), absfile.toPath());
     }
 
-    private static final MappingMatch MOCKMATCH = new MappingMatch() {
-        @Override
-        public boolean evaluateUrlMatch(String url) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String transformUrlToPath(String url, String path) {
-            throw new UnsupportedOperationException();
-        }
+    private static final MappingMatch MOCKMATCH = url -> {
+        throw new UnsupportedOperationException();
     };
 
     private static final String MOCKURL = "";
