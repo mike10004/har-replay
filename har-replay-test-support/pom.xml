@@ -90,5 +90,10 @@
             <groupId>de.sstoehr</groupId>
             <artifactId>har-reader</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.nanohttpd</groupId>
+            <artifactId>nanohttpd</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

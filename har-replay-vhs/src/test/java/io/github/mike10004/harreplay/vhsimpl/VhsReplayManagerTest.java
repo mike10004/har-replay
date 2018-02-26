@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
@@ -8,6 +9,7 @@ import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
+import io.github.mike10004.harreplay.tests.Fixtures.Fixture;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse;
 import io.github.mike10004.harreplay.tests.ReplayManagerTestBase;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
@@ -18,6 +20,8 @@ import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.Method;
 import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.ResponseException;
 import io.github.mike10004.nanochamp.server.NanoServer;
 import io.github.mike10004.nanochamp.server.NanoServer.RequestHandler;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -32,6 +36,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 public class VhsReplayManagerTest extends ReplayManagerTestBase {
 
@@ -69,7 +74,31 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
         }
     }
 
-    private static void checkNanoResponses() {
+    @Test
+    public void acceptEncodingIsObeyed() throws Exception {
+        ReplayManager replayManager = new VhsReplayManager();
+        Fixture fixture = fixturesRule.getFixtures().http();
+        File harFile = fixture.harFile();
+        ReplaySessionConfig config = ReplaySessionConfig.builder(temporaryFolder.getRoot().toPath())
+                .build(harFile);
+        URI url = fixture.startUrl();
+        try (ReplaySessionControl ctrl = replayManager.start(config)) {
+            HostAndPort proxyAddress = ctrl.getSocketAddress();
+            System.out.format("fetching %s%n", url);
+            ImmutableHttpResponse rsp = Tests.fetchWithNoAcceptEncodingRequestHeader(proxyAddress, url);
+            String actual = rsp.data.asCharSource(StandardCharsets.UTF_8).read();
+            boolean allAscii = ASCII.matchesAllOf(actual);
+            if (!allAscii) {
+                System.out.format("text \"%s\" has first non-ascii character at index %d%n", StringEscapeUtils.escapeJava(StringUtils.abbreviateMiddle(actual, "[...]", 64)), ASCII.negate().indexIn(actual));
+            }
+            assertTrue("response content all ascii", allAscii);
+        }
+    }
+
+    private static final CharMatcher ASCII = CharMatcher.ascii();
+
+    @Test
+    public void checkNanoResponses() {
         RequestHandler rh = NanoServer.RequestHandler.getDefault();
         NanoHTTPD.Response rsp1 = rh.serve(session("http://www.example.com/x"));
         NanoHTTPD.Response rsp2 = rh.serve(session("http://www.example.com/y"));
