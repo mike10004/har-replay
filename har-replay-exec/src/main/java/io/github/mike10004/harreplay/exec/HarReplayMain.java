@@ -1,11 +1,5 @@
 package io.github.mike10004.harreplay.exec;
 
-import com.google.common.base.Joiner;
-import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
-import io.github.mike10004.harreplay.ReplayManager;
-import io.github.mike10004.harreplay.ReplaySessionControl;
-import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig;
-import io.github.mike10004.harreplay.ReplaySessionConfig;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.google.common.annotations.VisibleForTesting;
@@ -18,9 +12,14 @@ import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.HarReaderMode;
 import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarEntry;
+import io.github.mike10004.harreplay.ReplayManager;
+import io.github.mike10004.harreplay.ReplaySessionConfig;
+import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
+import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
+import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManager;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerConfig;
 import joptsimple.NonOptionArgumentSpec;
@@ -79,6 +78,7 @@ public class HarReplayMain {
     @VisibleForTesting
     HarReplayMain(OptionParser parser) throws UsageException {
         this.parser = requireNonNull(parser, "parser");
+        parser.formatHelpWith(new CustomHelpFormatter());
         helpSpec = parser.acceptsAll(Arrays.asList("h", "help"), "print help and exit").forHelp();
         harFileSpec = parser.nonOptions("har file").ofType(File.class).describedAs("FILE");
         notifySpec = parser.accepts(OPT_NOTIFY, "notify that server is up by printing listening port to file")
@@ -123,7 +123,7 @@ public class HarReplayMain {
                 ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
                 HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
                 try (ReplaySessionControl ignore = manager.start(sessionConfig);
-                     ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
+                     ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
                     maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
                     HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
                     try {
@@ -133,6 +133,7 @@ public class HarReplayMain {
                     }
                     Browser browser = optionSet.valueOf(browserSpec);
                     if (browser != null) {
+                        //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
                         ProcessMonitor<?, ?> monitor = browser.getSupport()
                                 .prepare(sessionConfig.scratchDir)
                                 .launch(replayServerAddress, processTracker);
@@ -143,6 +144,7 @@ public class HarReplayMain {
             }
         } catch (UsageException e) {
             System.err.format("har-replay: %s%n", e.getMessage());
+            System.err.format("har-replay: use --help to print options");
             return 1;
         }
         return 0;
@@ -295,6 +297,17 @@ public class HarReplayMain {
 
         public static String describeChoices() {
             return String.join(", ", Stream.of(values()).map(c -> String.format("'%s'", c.name())).collect(Collectors.toList()));
+        }
+    }
+
+    private static class ProcessTrackerWithShutdownHook extends ScopedProcessTracker {
+
+        public ProcessTrackerWithShutdownHook(Runtime runtime) {
+            addShutdownHook(runtime);
+        }
+
+        private void addShutdownHook(Runtime runtime) {
+            runtime.addShutdownHook(new Thread(this::destroyAll));
         }
     }
 
