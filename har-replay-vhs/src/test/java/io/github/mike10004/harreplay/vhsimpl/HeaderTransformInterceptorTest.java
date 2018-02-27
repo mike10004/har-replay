@@ -8,9 +8,9 @@ import com.google.common.net.MediaType;
 import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import io.github.mike10004.harreplay.tests.ReplayManagerTestBase;
-import io.github.mike10004.vhs.HttpMethod;
+import io.github.mike10004.vhs.harbridge.HttpMethod;
 import io.github.mike10004.vhs.HttpRespondable;
-import io.github.mike10004.vhs.ParsedRequest;
+import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import org.apache.http.HttpStatus;
 import org.junit.Test;
 

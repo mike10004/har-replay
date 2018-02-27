@@ -11,7 +11,7 @@
 
     <artifactId>har-replay-vhs</artifactId>
     <properties>
-        <vhs.version>0.2-SNAPSHOT</vhs.version>
+        <vhs.version>0.2</vhs.version>
     </properties>
     <dependencies>
         <dependency>
@@ -28,6 +28,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

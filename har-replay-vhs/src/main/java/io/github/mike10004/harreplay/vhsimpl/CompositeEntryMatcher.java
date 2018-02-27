@@ -3,7 +3,7 @@ package io.github.mike10004.harreplay.vhsimpl;
 import com.google.common.collect.ImmutableList;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.HttpRespondable;
-import io.github.mike10004.vhs.ParsedRequest;
+import io.github.mike10004.vhs.harbridge.ParsedRequest;
 
 import javax.annotation.Nullable;
 

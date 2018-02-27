@@ -11,7 +11,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import io.github.mike10004.vhs.HttpRespondable;
 import io.github.mike10004.vhs.ImmutableHttpRespondable;
-import io.github.mike10004.vhs.ParsedRequest;
+import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
 import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
 import io.github.mike10004.vhs.nanohttpd.ResponseInterceptor;

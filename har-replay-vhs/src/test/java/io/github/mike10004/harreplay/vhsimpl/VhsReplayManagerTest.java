@@ -20,8 +20,8 @@ import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.Method;
 import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.ResponseException;
 import io.github.mike10004.nanochamp.server.NanoServer;
 import io.github.mike10004.nanochamp.server.NanoServer.RequestHandler;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -76,6 +76,7 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
 
     @Test
     public void acceptEncodingIsObeyed() throws Exception {
+        io.github.mike10004.vhs.harbridge.Hars.class.getName();
         ReplayManager replayManager = new VhsReplayManager();
         Fixture fixture = fixturesRule.getFixtures().http();
         File harFile = fixture.harFile();

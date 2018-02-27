@@ -2,7 +2,7 @@ package io.github.mike10004.harreplay.vhsimpl;
 
 import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
 import io.github.mike10004.vhs.HttpRespondable;
-import io.github.mike10004.vhs.ParsedRequest;
+import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.nanohttpd.ResponseInterceptor;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
