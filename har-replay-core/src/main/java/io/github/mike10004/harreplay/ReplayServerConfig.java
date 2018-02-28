@@ -41,8 +41,10 @@ import static java.util.Objects.requireNonNull;
  * Class that represents the configuration that a server replay process uses.
  * You may find this to be a weird way to design a configuration object. The
  * inspiration was the Node {@code har-replay-proxy} configuration object,
- * and this remains compatible with that while also (hopefully) being adequate
- * for other replay server implementations.
+ * and this remains compatible with that (mostly) while also (hopefully) being
+ * adequate for other replay server implementations.
+ *
+ * <p>Instances are immutable; invoke {@link #builder()} to get a {@link Builder}.</p>
  */
 public class ReplayServerConfig {
 
@@ -98,9 +100,16 @@ public class ReplayServerConfig {
 
     /**
      * Interface for classes that represent the {@code match} field of a {@link Mapping}.
+     * Instances of this class represent a strategy to use when determining whether
+     * the URL of a request should be responded to with a file mapping.
      */
     public interface MappingMatch {
 
+        /**
+         * Evaluates whether a given URL is a match for this instance.
+         * @param url the url
+         * @return true iff the URL is a match
+         */
         boolean evaluateUrlMatch(String url);
 
     }
@@ -110,6 +119,13 @@ public class ReplayServerConfig {
      */
     public interface MappingPath {
 
+        /**
+         * Resolves the file to be served when the mapping matches.
+         * @param root the root to resolve relative paths against
+         * @param match the matching strategy instance
+         * @param url the URL that was matched
+         * @return the pathname
+         */
         File resolveFile(Path root, MappingMatch match, String url);
 
     }
@@ -124,11 +140,26 @@ public class ReplayServerConfig {
      */
     public interface ReplacementReplace {
 
+        /**
+         * Produces the string that is to be used as replacement text.
+         * @param dictionary a dictionary (may not be necessary)
+         * @return the interpolated string
+         */
         String interpolate(VariableDictionary dictionary);
 
     }
 
-    public interface ResponseHeaderTransformNameMatch {
+    /**
+     * Parent interface of matching strategies for response header transforms.
+     */
+    public interface ResponseHeaderTransformMatch {
+        Pattern asRegex();
+    }
+
+    /**
+     * Interface that represents a strategy for matching header names in response header transforms.
+     */
+    public interface ResponseHeaderTransformNameMatch extends ResponseHeaderTransformMatch {
 
         boolean isMatchingHeaderName(String headerName);
 
@@ -136,45 +167,82 @@ public class ReplayServerConfig {
             return AlwaysMatch.getInstance();
         }
 
-        Pattern asRegex();
-
     }
 
+    /**
+     * Interface that represents a strategy for modifying a header name.
+     */
     public interface ResponseHeaderTransformNameImage {
 
+        /**
+         * Transforms the header name.
+         * @param headerName the header name
+         * @param nameMatchRegex the name matching regex
+         * @return the transformed name, or null if the header is to be removed
+         */
         @Nullable
         String transformHeaderName(String headerName, Pattern nameMatchRegex);
 
+        /**
+         * Gets an instance that represents the identity transform.
+         * @return the identity transform
+         */
         static ResponseHeaderTransformNameImage identity() {
             return IdentityImage.getInstance();
         }
 
     }
 
-    public interface ResponseHeaderTransformValueMatch {
+    /**
+     * Interface that represents a strategy for matching header values in response header transforms.
+     */
+    public interface ResponseHeaderTransformValueMatch extends ResponseHeaderTransformMatch {
 
+        /**
+         * Determines whether a header value is a match according to this instance.
+         * @param headerName the header name (in case you want it)
+         * @param headerValue the header value to test
+         * @return true iff the header value is a match for this instance
+         */
         boolean isMatchingHeaderValue(String headerName, String headerValue);
 
-        Pattern asRegex();
-
+        /**
+         * Gets an instance that represents a trivial always-true match.
+         * @return the matching strategy instance
+         */
         static ResponseHeaderTransformValueMatch always() {
             return AlwaysMatch.getInstance();
         }
 
     }
 
+    /**
+     * Interface that represents a strategy for a response header transform to modify a header value.
+     */
     public interface ResponseHeaderTransformValueImage {
 
+        /**
+         * Transforms a header value.
+         * @param headerName the header name
+         * @param valueMatchRegex the regex that determined whether the header was a match
+         * @param headerValue the original header value
+         * @return the new header value, or null if the header is to be removed from the response
+         */
         @Nullable
         String transformHeaderValue(String headerName, Pattern valueMatchRegex, String headerValue);
 
+        /**
+         * Gets an instance representing the identity transform. The identity transform does not
+         * modify the header.
+         * @return the identity image
+         */
         static ResponseHeaderTransformValueImage identity() {
             return IdentityImage.getInstance();
         }
 
     }
 
-    static final class AlwaysMatch implements ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
+    private static final class AlwaysMatch implements ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
 
         private static final AlwaysMatch INSTANCE = new AlwaysMatch();
         private static final Pattern REGEX = Pattern.compile("^(.*)$");
@@ -250,7 +318,7 @@ public class ReplayServerConfig {
         }
     }
 
-    public static final class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
+    private static final class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
 
         static final String TYPE_FIELD_VALUE = "RemoveHeader";
 
@@ -300,9 +368,21 @@ public class ReplayServerConfig {
     @SuppressWarnings("unused")
     public final static class Mapping {
 
+        /**
+         * Matching strategy for this mapping.
+         */
         public final MappingMatch match;
+
+        /**
+         * Pathname of the file to be served if the URL matches this mapping.
+         */
         public final MappingPath path;
 
+        /**
+         * Constructs a new mapping instance.
+         * @param match the matching strategy
+         * @param path pathname of the file to be served
+         */
         public Mapping(MappingMatch match, MappingPath path) {
             this.match = requireNonNull(match);
             this.path = requireNonNull(path);
@@ -318,6 +398,12 @@ public class ReplayServerConfig {
             return new Mapping(match, new StringLiteral(file.getAbsolutePath()));
         }
 
+        /**
+         * Constructs a new mapping given an exact match strategy and a pathname
+         * @param literalMatch the string that must match the URL exactly
+         * @param file the file
+         * @return the mapping
+         */
         public static Mapping literalToFile(String literalMatch, File file) {
             return Mapping.toFile(new StringLiteral(literalMatch), file);
         }
@@ -355,7 +441,6 @@ public class ReplayServerConfig {
 
         @Override
         public int hashCode() {
-
             return Objects.hash(match, path);
         }
     }
@@ -377,6 +462,11 @@ public class ReplayServerConfig {
             this.regexSupplier = Suppliers.memoize(() -> Pattern.compile("(" + Pattern.quote(value) + ")"));
         }
 
+        /**
+         * Returns an instance representing a string.
+         * @param value the string value
+         * @return the instance
+         */
         public static StringLiteral of(String value) {
             return new StringLiteral(value);
         }
@@ -396,6 +486,10 @@ public class ReplayServerConfig {
             }
         }
 
+        /**
+         * Type adapter used in serialization.
+         * @see GsonBuilder#registerTypeAdapter(Type, Object)
+         */
         public static class StringLiteralTypeAdapter extends TypeAdapter<StringLiteral> {
 
             @Override
@@ -501,6 +595,11 @@ public class ReplayServerConfig {
             this.var = requireNonNull(var);
         }
 
+        /**
+         * Returns an instance representing a variable.
+         * @param var the variable name
+         * @return the instance
+         */
         public static VariableHolder of(String var) {
             return new VariableHolder(var);
         }
@@ -566,6 +665,11 @@ public class ReplayServerConfig {
             this.caseInsensitivePatternSupplier = Suppliers.memoize(() -> Pattern.compile(regex, Pattern.CASE_INSENSITIVE));
         }
 
+        /**
+         * Returns an instance representing a regular expression.
+         * @param regex the regular expression
+         * @return the instance
+         */
         public static RegexHolder of(String regex) {
             return new RegexHolder(regex);
         }
@@ -622,7 +726,14 @@ public class ReplayServerConfig {
      */
     public static final class Replacement {
 
+        /**
+         * Matching strategy for this replacement.
+         */
         public final ReplacementMatch match;
+
+        /**
+         * Text substitution strategy for this replacement.
+         */
         public final ReplacementReplace replace;
 
         @SuppressWarnings("unused") // for deserialization
@@ -631,6 +742,11 @@ public class ReplayServerConfig {
             replace = null;
         }
 
+        /**
+         * Constructs a new replacement instance.
+         * @param match the matching strategy
+         * @param replace the text replacement strategy
+         */
         public Replacement(ReplacementMatch match, ReplacementReplace replace) {
             this.match = match;
             this.replace = replace;
@@ -679,11 +795,13 @@ public class ReplayServerConfig {
 
         @Override
         public int hashCode() {
-
             return Objects.hash(match, replace);
         }
     }
 
+    /**
+     * Class that represents a response header transform.
+     */
     @SuppressWarnings("unused")
     public static final class ResponseHeaderTransform {
 
@@ -722,54 +840,119 @@ public class ReplayServerConfig {
             return MoreObjects.firstNonNull(valueImage, ResponseHeaderTransformValueImage.identity());
         }
 
+        /**
+         * Gets the header name matching strategy for this instance.
+         * @return the name matching strategy
+         */
         public ResponseHeaderTransformNameMatch getNameMatch() {
             return orAlwaysMatch(nameMatch);
         }
 
+        /**
+         * Gets the header name transform strategy for this instance.
+         * @return the name transform strategy
+         */
         public ResponseHeaderTransformNameImage getNameImage() {
             return orIdentity(nameImage);
         }
 
+        /**
+         * Gets the header value matching strategy for this instance.
+         * @return the value matching strategy
+         */
         public ResponseHeaderTransformValueMatch getValueMatch() {
             return orAlwaysMatch(valueMatch);
         }
 
+        /**
+         * Gets the header value transform strategy for this instance.
+         * @return the value transform strategy
+         */
         public ResponseHeaderTransformValueImage getValueImage() {
             return orIdentity(valueImage);
         }
 
+        /**
+         * Creates a transform that matches based on name and transforms only the header name.
+         * @param nameMatch the name matching strategy
+         * @param nameImage the name transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform name(ResponseHeaderTransformNameMatch nameMatch,
                                                    ResponseHeaderTransformNameImage nameImage) {
             return new ResponseHeaderTransform(requireNonNull(nameMatch), null, requireNonNull(nameImage), null);
         }
 
+        /**
+         * Creates a transform that matches based on header value and transforms only the header value.
+         * @param valueMatch the value matching strategy
+         * @param valueImage the value transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform value(ResponseHeaderTransformValueMatch valueMatch,
                                                     ResponseHeaderTransformValueImage valueImage) {
             return new ResponseHeaderTransform(null, requireNonNull(valueMatch), null, requireNonNull(valueImage));
         }
 
+        /**
+         * Creates a transform that matches based on header name and transforms only the header value.
+         * @param nameMatch the name matching strategy
+         * @param valueImage the value transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform valueByName(ResponseHeaderTransformNameMatch nameMatch,
                                                           ResponseHeaderTransformValueImage valueImage) {
             return new ResponseHeaderTransform(requireNonNull(nameMatch), null, null, requireNonNull(valueImage));
         }
 
+        /**
+         * Creates a transform that matches based on header value and transforms the header name.
+         * @param valueMatch the value matching strategy
+         * @param nameImage the name transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform nameByValue(ResponseHeaderTransformValueMatch valueMatch,
                                                           ResponseHeaderTransformNameImage nameImage) {
             return new ResponseHeaderTransform(null, requireNonNull(valueMatch), requireNonNull(nameImage), null);
         }
 
+        /**
+         * Creates a transform that matches based on header name and header value and transforms only the
+         * header value.
+         * @param nameMatch name matching strategy
+         * @param valueMatch value matching strategy
+         * @param valueImage
+         * @return
+         */
         public static ResponseHeaderTransform valueByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
                                                                   ResponseHeaderTransformValueMatch valueMatch,
                                                                   ResponseHeaderTransformValueImage valueImage) {
             return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), null, requireNonNull(valueImage));
         }
 
+        /**
+         * Creates a transform that matches based on header name and header value and transforms only
+         * the header name.
+         * @param nameMatch the name matching strategy
+         * @param valueMatch the value matching strategy
+         * @param nameImage the name transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform nameByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
                                                                   ResponseHeaderTransformValueMatch valueMatch,
                                                                   ResponseHeaderTransformNameImage nameImage) {
             return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), requireNonNull(nameImage), null);
         }
 
+        /**
+         * Creates a transform that matches based on header name and header value and transforms
+         * both the header name and header value.
+         * @param nameMatch the name matching strategy
+         * @param valueMatch the value matching strategy
+         * @param nameImage the name transform strategy
+         * @param valueImage the value transform strategy
+         * @return the transform
+         */
         public static ResponseHeaderTransform everything(ResponseHeaderTransformNameMatch nameMatch,
                                                            ResponseHeaderTransformValueMatch valueMatch,
                                                            ResponseHeaderTransformNameImage nameImage,
@@ -777,15 +960,34 @@ public class ReplayServerConfig {
             return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), requireNonNull(nameImage), requireNonNull(valueImage));
         }
 
+        /**
+         * Produces a transform that removes a header, selecting based on the header name.
+         * <p>Warning: this is not compatible with the Node engine.
+         * @param nameMatch the name matching strategy
+         * @return the header transform
+         */
         public static ResponseHeaderTransform removeByName(ResponseHeaderTransformNameMatch nameMatch) {
             return new ResponseHeaderTransform(nameMatch, null, RemoveHeader.getInstance(), null);
         }
 
+        /**
+         * Produces a transform that removes a header, selecting based on the header name and header value.
+         * <p>Warning: this is not compatible with the Node engine.
+         * @param nameMatch the name matching strategy
+         * @param valueMatch the value matching strategy
+         * @return the header transform
+         */
         public static ResponseHeaderTransform removeByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
                                                                    ResponseHeaderTransformValueMatch valueMatch) {
             return new ResponseHeaderTransform(nameMatch, valueMatch, null, RemoveHeader.getInstance());
         }
 
+        /**
+         * Produces a transform that removes a header, selecting based on header value.
+         * <p>Warning: this is not compatible with the Node engine.
+         * @param valueMatch the value matching strategy
+         * @return the header transform
+         */
         public static ResponseHeaderTransform removeByValue(ResponseHeaderTransformValueMatch valueMatch) {
             return new ResponseHeaderTransform(null, valueMatch, null, RemoveHeader.getInstance());
         }
@@ -818,30 +1020,53 @@ public class ReplayServerConfig {
         }
     }
 
+    /**
+     * Builder of {@code ReplayServerConfig} instances.
+     */
     public static final class Builder {
 
         private int version = 1;
         private final List<Mapping> mappings = new ArrayList<>();
         private final List<Replacement> replacements = new ArrayList<>();
         private final List<ResponseHeaderTransform> responseHeaderTransforms = new ArrayList<>();
+
         private Builder() {
         }
 
+        /**
+         * Adds a mapping.
+         * @param mapping the mapping
+         * @return this builder instance
+         */
         public Builder map(Mapping mapping) {
             mappings.add(requireNonNull(mapping));
             return this;
         }
 
+        /**
+         * Adds a replacement.
+         * @param val the replacement
+         * @return this builder instance
+         */
         public Builder replace(Replacement val) {
             replacements.add(requireNonNull(val));
             return this;
         }
 
+        /**
+         * Adds a response header transform.
+         * @param responseHeaderTransform the transform
+         * @return this builder instance
+         */
         public Builder transformResponse(ResponseHeaderTransform responseHeaderTransform) {
             responseHeaderTransforms.add(requireNonNull(responseHeaderTransform));
             return this;
         }
 
+        /**
+         * Builds the config instance.
+         * @return the immutable config instance
+         */
         public ReplayServerConfig build() {
             return new ReplayServerConfig(version, mappings, replacements, responseHeaderTransforms);
         }
@@ -860,7 +1085,6 @@ public class ReplayServerConfig {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(version, mappings, replacements, responseHeaderTransforms);
     }
 
@@ -936,7 +1160,11 @@ public class ReplayServerConfig {
             .add(ResponseHeaderTransformValueMatch.class)
             .add(ResponseHeaderTransformValueImage.class)
             .build();
-    
+
+    /**
+     * Constructs and returns a Gson instance capable of deserializing instances of this class.
+     * @return a new gson instance
+     */
     public static Gson createSerialist() {
         JsonDeserializer<?> commonDeserializer = CommonDeserializer.getInstance();
         GsonBuilder b = new GsonBuilder().setPrettyPrinting();

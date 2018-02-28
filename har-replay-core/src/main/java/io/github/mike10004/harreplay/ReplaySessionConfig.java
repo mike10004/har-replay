@@ -19,10 +19,29 @@ import static java.util.Objects.requireNonNull;
  */
 public class ReplaySessionConfig {
 
+    /**
+     * Directory for temporary files that can be deleted after the session is complete.
+     */
     public final Path scratchDir;
+
+    /**
+     * Port the proxy server should listen on.
+     */
     public final int port;
+
+    /**
+     * HAR file containing responses to be served.
+     */
     public final File harFile;
+
+    /**
+     * Configuration of the replay server.
+     */
     public final ReplayServerConfig replayServerConfig;
+
+    /**
+     * Callbacks invoked when the server stops.
+     */
     public final ImmutableList<ServerTerminationCallback> serverTerminationCallbacks;
 
     private ReplaySessionConfig(Builder builder) {
@@ -33,28 +52,57 @@ public class ReplaySessionConfig {
         serverTerminationCallbacks = ImmutableList.copyOf(builder.serverTerminationCallbacks);
     }
 
+    /**
+     * Interface representing a callback invoked on termination of the replay server.
+     */
     public interface ServerTerminationCallback {
 
+        /**
+         * Method invoked when the replay server terminates.
+         * @param cause termination cause; null if not terminated due to exception
+         */
         void terminated(@Nullable Throwable cause);
 
     }
 
+    /**
+     * Creates a builder instance that uses the system temp directory as the scratch directory.
+     * @return the builder
+     * @throws IOException on I/O error
+     */
     public static Builder usingTempDir() throws IOException {
         File systemTempDir = FileUtils.getTempDirectory();
         return usingNewTempDirUnder(systemTempDir.toPath());
     }
 
+    /**
+     * Creates a builder instance that uses a new temporary directory under a given
+     * directory as the scratch directory.
+     * @return the builder
+     * @throws IOException on I/O error
+     */
     public static Builder usingNewTempDirUnder(Path tempDir) throws IOException {
         Path child = java.nio.file.Files.createTempDirectory(tempDir, "ServerReplay");
         return builder(child);
     }
 
+    /**
+     * Creates a builder instance that uses the given directory as the scratch directory.
+     * @return the builder
+     */
     public static Builder builder(Path scratchDir) {
         return new Builder(scratchDir);
     }
 
+    /**
+     * Builder of replay session configuration instances.
+     * @see ReplaySessionConfig
+     */
     public static final class Builder {
 
+        /**
+         * Default port the builder uses.
+         */
         public static final int DEFAULT_PORT = 49877;
 
         private final Path scratchDir;

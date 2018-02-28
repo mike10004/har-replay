@@ -15,6 +15,11 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Type adapter factory for immutable lists.
+ * @see ImmutableList
+ * @see com.google.gson.GsonBuilder#registerTypeAdapterFactory(TypeAdapterFactory)
+ */
 public class ImmutableListTypeAdapterFactory implements TypeAdapterFactory {
 
     @Override
@@ -22,6 +27,7 @@ public class ImmutableListTypeAdapterFactory implements TypeAdapterFactory {
         if (!ImmutableList.class.equals(type.getRawType())) {
             return null;
         }
+        //noinspection unchecked
         return (TypeAdapter<T>) createImmutableListTypeAdapter(gson, type);
     }
 
@@ -52,7 +58,6 @@ public class ImmutableListTypeAdapterFactory implements TypeAdapterFactory {
      * @return a type adapter
      */
     protected <E> TypeAdapter<E> getElementTypeAdapter(Gson gson, Type elementType) {
-//        TypeAdapter<?> typeAdapter = gson.getDelegateAdapter(this, TypeToken.get(elementType));
         TypeAdapter<?> typeAdapter = gson.getAdapter(TypeToken.get(elementType));
         //noinspection unchecked // because elementType is not generified
         return (TypeAdapter<E>) typeAdapter;
