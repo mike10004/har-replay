@@ -18,7 +18,6 @@ public class HarReplay_NonparamIT extends HarReplayITBase {
         System.out.format("stdout:%n%s%n", result.content().stdout());
         assertEquals("exit code", 0, result.exitCode());
         assertNotEquals("stdout", "", result.content().stdout());
-        assertEquals("stderr", "", result.content().stderr());
     }
 
 }
