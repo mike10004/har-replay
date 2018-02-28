@@ -6,7 +6,7 @@ package io.github.mike10004.harreplay.nodeimpl;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
 import io.github.mike10004.harreplay.tests.ChromeOptionsProducer;
-import io.github.mike10004.harreplay.tests.Fixtures;
+import io.github.mike10004.harreplay.tests.Tests;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -53,7 +53,7 @@ public class BrowseHarWithChromeExample extends ReadmeExample {
     protected void doSomethingWithProxy(String host, int port) throws IOException {
         HostAndPort proxy = HostAndPort.fromParts(host, port);
         System.out.format("har replay proxy listening at %s%n", proxy);
-        ChromeDriverManager.getInstance().version(Fixtures.getRecommendedChromeDriverVersion()).setup();
+        ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
         ChromeOptions options = ChromeOptionsProducer.getDefault().produceOptions(proxy);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         ChromeDriver driver = new ChromeDriver(options);

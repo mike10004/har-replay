@@ -7,7 +7,7 @@ import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
-import io.github.mike10004.harreplay.tests.Fixtures;
+import io.github.mike10004.harreplay.tests.Tests;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
@@ -43,7 +43,7 @@ public class ReplayManagerPractice {
             if (!profileDir.isDirectory()) {
                 throw new IOException("could not create directory for Chrome profile");
             }
-            ChromeDriverManager.getInstance().version(Fixtures.getRecommendedChromeDriverVersion()).setup();
+            ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
             ChromeOptions chromeOptions = new ChromeOptions();
             File switcherooCrxFile = File.createTempFile("modified-switcheroo", ".crx", tempDir.toFile());
             ModifiedSwitcheroo.getExtensionCrxByteSource().copyTo(Files.asByteSink(switcherooCrxFile));

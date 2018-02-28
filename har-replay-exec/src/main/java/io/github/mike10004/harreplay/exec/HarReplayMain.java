@@ -7,12 +7,15 @@ import com.google.common.io.CharSource;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.HarReaderMode;
 import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.ReplayManager;
+import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
@@ -34,6 +37,7 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.ServerSocket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +62,7 @@ public class HarReplayMain {
     static final String OPT_BROWSER = "browser";
     static final String OPT_ECHO_SERVER = "echo-server";
     static final String OPT_ENGINE = "engine";
+    static final String OPT_REPLAY_CONFIG = "config";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -70,6 +75,7 @@ public class HarReplayMain {
     private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
     private final OptionSpec<Void> echoServerSpec;
     private final OptionSpec<ReplayServerEngine> engineSpec;
+    private final OptionSpec<File> replayConfigSpec;
 
     public HarReplayMain() {
         this(new OptionParser());
@@ -82,8 +88,7 @@ public class HarReplayMain {
         helpSpec = parser.acceptsAll(Arrays.asList("h", "help"), "print help and exit").forHelp();
         harFileSpec = parser.nonOptions("har file").ofType(File.class).describedAs("FILE");
         notifySpec = parser.accepts(OPT_NOTIFY, "notify that server is up by printing listening port to file")
-                .withRequiredArg().ofType(File.class)
-                .describedAs("FILE");
+                .withRequiredArg().ofType(File.class);
         portSpec = parser.acceptsAll(Arrays.asList("p", OPT_PORT), "port to listen on")
                 .withRequiredArg().ofType(Integer.class)
                 .describedAs("PORT");
@@ -102,6 +107,9 @@ public class HarReplayMain {
                 .withRequiredArg().ofType(ReplayServerEngine.class)
                 .describedAs("ENGINE")
                 .defaultsTo(ReplayServerEngine.vhs);
+        replayConfigSpec = parser.acceptsAll(Arrays.asList("f", OPT_REPLAY_CONFIG), "specify replay config file")
+                .withRequiredArg().ofType(File.class);
+
     }
 
     protected List<HarEntry> readHarEntries(File harFile, Path scratchDir) throws IOException, HarReaderException {
@@ -190,7 +198,9 @@ public class HarReplayMain {
         if (harFile == null) {
             throw new UsageException("har file must be specified as positional argument");
         }
+        ReplayServerConfig serverConfig = buildReplayServerConfig(optionSet);
         ReplaySessionConfig config = ReplaySessionConfig.builder(scratchDir.toPath())
+                .config(serverConfig)
                 .port(port)
                 .build(harFile);
         return new CloseableWrapper<ReplaySessionConfig>() {
@@ -204,6 +214,25 @@ public class HarReplayMain {
                 cleanups.forEach(Runnable::run);
             }
         };
+    }
+
+    protected Gson createReplayServerConfigGson() {
+        return createDefaultReplayServerConfigGson();
+    }
+
+    protected static Gson createDefaultReplayServerConfigGson() {
+        return ReplayServerConfig.createSerialist();
+    }
+
+    protected ReplayServerConfig buildReplayServerConfig(OptionSet optionSet) throws IOException {
+        File replayConfigFile = replayConfigSpec.value(optionSet);
+        if (replayConfigFile != null) {
+            try (Reader reader = Files.asCharSource(replayConfigFile, StandardCharsets.UTF_8).openStream()) {
+                return createReplayServerConfigGson().fromJson(reader, ReplayServerConfig.class);
+            }
+        } else {
+            return ReplayServerConfig.empty();
+        }
     }
 
     @SuppressWarnings("unused")

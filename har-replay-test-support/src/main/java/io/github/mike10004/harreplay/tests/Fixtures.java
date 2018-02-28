@@ -5,8 +5,8 @@
  */
 package io.github.mike10004.harreplay.tests;
 
+import com.google.common.base.Suppliers;
 import com.google.common.io.Files;
-import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
@@ -14,28 +14,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
-
-import static java.util.Objects.requireNonNull;
+import java.util.function.Supplier;
 
 public class Fixtures {
-
-    public static final String SYSPROP_CHROMEDRIVER_VERSION = "har-replay.chromedriver.version";
-
-    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
-
-    public static String getRecommendedChromeDriverVersion() {
-        return System.getProperty(SYSPROP_CHROMEDRIVER_VERSION, _RECOMMENDED_CHROME_DRIVER_VERSION);
-    }
-
-    public static class ChromeDriverSetupRule extends ExternalResource {
-        @Override
-        protected void before() {
-            ChromeDriverManager.getInstance().version(getRecommendedChromeDriverVersion()).setup();
-        }
-    }
 
     public static class FixturesRule extends ExternalResource {
 
@@ -66,7 +49,7 @@ public class Fixtures {
         }
     }
 
-    public static Fixtures inDirectory(Path scratchDir) throws IOException {
+    public static Fixtures inDirectory(Path scratchDir) {
         return new Fixtures(scratchDir);
     }
 
@@ -74,14 +57,15 @@ public class Fixtures {
         return new FixturesRule();
     }
 
+    @SuppressWarnings("unused")
     public static FixturesRule asRule(TemporaryFolder temporaryFolder) {
         return new FixturesRule(temporaryFolder);
     }
 
-    private Fixtures(Path scratchDir) throws IOException {
-        http = new Fixture("example-http", copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/"));
-        https = new Fixture("example-https", copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/"));
-        httpsRedirect = new Fixture("example-redirect", copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from"));
+    private Fixtures(Path scratchDir) {
+        http = Suppliers.memoize(() -> new Fixture("example-http", copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/")));
+        https = Suppliers.memoize(() -> new Fixture("example-https", copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/")));
+        httpsRedirect = Suppliers.memoize(() -> new Fixture("example-redirect", copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from")));
     }
 
     public static class Fixture {
@@ -115,30 +99,34 @@ public class Fixtures {
         }
     }
 
-    private final Fixture http;
-    private final Fixture https;
-    private final Fixture httpsRedirect;
+    private final Supplier<Fixture> http;
+    private final Supplier<Fixture> https;
+    private final Supplier<Fixture> httpsRedirect;
 
     public Fixture http() {
-        return http;
+        return http.get();
     }
 
     public Fixture https() {
-        return https;
+        return https.get();
     }
 
     public Fixture httpsRedirect() {
-        return httpsRedirect;
+        return httpsRedirect.get();
     }
 
-    private File copyResourceToFile(String resourcePath, Path scratchDir) throws IOException {
-        URL resource = Fixtures.class.getResource(resourcePath);
-        if (resource == null) {
-            throw new FileNotFoundException("resource not found: classpath:/" + resourcePath);
+    private static File copyResourceToFile(String resourcePath, Path scratchDir) {
+        try {
+            URL resource = Fixtures.class.getResource(resourcePath);
+            if (resource == null) {
+                throw new FileNotFoundException("resource not found: classpath:/" + resourcePath);
+            }
+            File file = File.createTempFile("har-replay-fixture", ".tmp", scratchDir.toFile());
+            com.google.common.io.Resources.asByteSource(resource).copyTo(Files.asByteSink(file));
+            return file;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        File file = File.createTempFile("har-replay-fixture", ".tmp", scratchDir.toFile());
-        com.google.common.io.Resources.asByteSource(resource).copyTo(Files.asByteSink(file));
-        return file;
     }
 
 }

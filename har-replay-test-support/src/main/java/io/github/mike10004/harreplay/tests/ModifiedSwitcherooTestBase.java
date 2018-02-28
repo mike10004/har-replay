@@ -33,22 +33,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public abstract class ModifiedSwitcherooTestBase {
+
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
 
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Rule
-    public final XvfbRule xvfb = XvfbRule.builder().build();
-
-    @Rule
-    public final Timeout timeout = new Timeout(120, TimeUnit.SECONDS);
-
-    private static Set<ChromeDriver> chromeDriverInstances;
-
     @ClassRule
-    public static Fixtures.ChromeDriverSetupRule chromeDriverSetupRule = new Fixtures.ChromeDriverSetupRule();
+    public static ChromeDriverSetupRule chromeDriverSetupRule = new ChromeDriverSetupRule();
 
     @BeforeClass
     public static void initChromeDriver() {
@@ -63,6 +53,17 @@ public abstract class ModifiedSwitcherooTestBase {
             System.out.println("@AfterClass did quit " + driver);
         });
     }
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Rule
+    public final XvfbRule xvfb = XvfbRule.builder().build();
+
+    @Rule
+    public final Timeout timeout = new Timeout(60, TimeUnit.SECONDS);
+
+    private static Set<ChromeDriver> chromeDriverInstances;
 
     @Test
     public void testExtensionWithSelenium_https() throws Exception {

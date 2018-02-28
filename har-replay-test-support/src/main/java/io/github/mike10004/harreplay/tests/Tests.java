@@ -19,9 +19,11 @@ import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 
 public class Tests {
+
+    public static final String SYSPROP_CHROMEDRIVER_VERSION = "har-replay.chromedriver.version";
+    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
 
     private Tests () {
 
@@ -37,8 +39,12 @@ public class Tests {
         return statuscode / 100 >= 4;
     }
 
+    public static Proxy toProxy(HostAndPort socketAddress) {
+        return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(socketAddress.getHost(), socketAddress.getPort()));
+    }
+
     public static ImmutableHttpResponse fetch(HostAndPort proxy, URI url) throws IOException {
-        return fetch(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxy.getHost(), proxy.getPort())), url);
+        return fetch(toProxy(proxy), url);
     }
 
     public static ImmutableHttpResponse fetchWithNoAcceptEncodingRequestHeader(Proxy proxy, URI url) throws IOException {
@@ -60,22 +66,26 @@ public class Tests {
         checkArgument("http".equals(url.getScheme()) || "https".equals(url.getScheme()));
         HttpURLConnection conn = (HttpURLConnection) url.toURL().openConnection(proxy);
         try {
-            int status = conn.getResponseCode();
-            Builder b = ImmutableHttpResponse.builder(status);
-            conn.getHeaderFields().forEach((name, values) -> {
-                if (name != null) {
-                    values.forEach(value -> b.header(name, value));
-                }
-            });
-            byte[] data;
-            try (InputStream stream = isHttpErrorCode(status) ? conn.getErrorStream() : conn.getInputStream()) {
-                data = ByteStreams.toByteArray(stream);
-            }
-            b.data(ByteSource.wrap(data));
-            return b.build();
+            return captureResponse(conn);
         } finally {
             conn.disconnect();
         }
+    }
+
+    public static ImmutableHttpResponse captureResponse(HttpURLConnection conn) throws IOException {
+        int status = conn.getResponseCode();
+        Builder b = ImmutableHttpResponse.builder(status);
+        conn.getHeaderFields().forEach((name, values) -> {
+            if (name != null) {
+                values.forEach(value -> b.header(name, value));
+            }
+        });
+        byte[] data;
+        try (InputStream stream = isHttpErrorCode(status) ? conn.getErrorStream() : conn.getInputStream()) {
+            data = ByteStreams.toByteArray(stream);
+        }
+        b.data(ByteSource.wrap(data));
+        return b.build();
     }
 
     @Nullable
@@ -87,5 +97,9 @@ public class Tests {
         return mapEntries.filter(entry -> key.equalsIgnoreCase(entry.getKey()))
                 .map(Entry::getValue)
                 .findFirst().orElse(null);
+    }
+
+    public static String getRecommendedChromeDriverVersion() {
+        return System.getProperty(SYSPROP_CHROMEDRIVER_VERSION, _RECOMMENDED_CHROME_DRIVER_VERSION);
     }
 }

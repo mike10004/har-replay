@@ -1,34 +1,48 @@
 package io.github.mike10004.harreplay;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral.StringLiteralTypeAdapter;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Class that represents the configuration that a server replay process uses. This object's structure
- * matches the structure of the object that the Node har-replay-proxy module uses. See that project's
- * documentation for information on the various parameters.
- *
- * <p>This class is not currently deserializable, but it serializes to the JSON format required
- * by the har-replay-proxy Node module just fine.
- * </p>
+ * Class that represents the configuration that a server replay process uses.
+ * You may find this to be a weird way to design a configuration object. The
+ * inspiration was the Node {@code har-replay-proxy} configuration object,
+ * and this remains compatible with that while also (hopefully) being adequate
+ * for other replay server implementations.
  */
 public class ReplayServerConfig {
 
@@ -40,13 +54,16 @@ public class ReplayServerConfig {
     /**
      * Maps from URLs to file system paths. Use these to serve matching URLs from the filesystem instead of the HAR.
      */
+    @JsonAdapter(ImmutableListTypeAdapterFactory.class)
     public final ImmutableList<Mapping> mappings;
 
     /**
      * Definitions of replacements to execute for in the body of textual response content.
      */
+    @JsonAdapter(ImmutableListTypeAdapterFactory.class)
     public final ImmutableList<Replacement> replacements;
 
+    @JsonAdapter(ImmutableListTypeAdapterFactory.class)
     public final ImmutableList<ResponseHeaderTransform> responseHeaderTransforms;
 
     private ReplayServerConfig() {
@@ -107,7 +124,7 @@ public class ReplayServerConfig {
      */
     public interface ReplacementReplace {
 
-        String interpolate(String url);
+        String interpolate(VariableDictionary dictionary);
 
     }
 
@@ -157,7 +174,7 @@ public class ReplayServerConfig {
 
     }
 
-    private static class AlwaysMatch implements ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
+    static final class AlwaysMatch implements ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
 
         private static final AlwaysMatch INSTANCE = new AlwaysMatch();
         private static final Pattern REGEX = Pattern.compile("^(.*)$");
@@ -186,9 +203,19 @@ public class ReplayServerConfig {
         public String toString() {
             return "ResponseHeaderTransformMatch{ALWAYS}";
         }
+
+        @Override
+        public int hashCode() {
+            return getClass().hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof AlwaysMatch;
+        }
     }
 
-    private static class IdentityImage implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage{
+    private static final class IdentityImage implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage{
 
         private static final IdentityImage INSTANCE = new IdentityImage();
 
@@ -211,9 +238,25 @@ public class ReplayServerConfig {
         public String toString() {
             return "ResponseHeaderTransformImage{IDENTITY}";
         }
+
+        @Override
+        public int hashCode() {
+            return getClass().hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof IdentityImage;
+        }
     }
 
-    public static class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
+    public static final class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
+
+        static final String TYPE_FIELD_VALUE = "RemoveHeader";
+
+        @SuppressWarnings("unused") // used in deserialization
+        @SerializedName(CommonDeserializer.TYPE_FIELD_NAME)
+        private final String kind = TYPE_FIELD_VALUE;
 
         private RemoveHeader() {}
 
@@ -238,6 +281,16 @@ public class ReplayServerConfig {
         public String toString() {
             return "ResponseHeaderTransformImage{REMOVE}";
         }
+
+        @Override
+        public int hashCode() {
+            return RemoveHeader.class.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof RemoveHeader;
+        }
     }
 
     /**
@@ -251,8 +304,8 @@ public class ReplayServerConfig {
         public final MappingPath path;
 
         public Mapping(MappingMatch match, MappingPath path) {
-            this.match = checkNotNull(match);
-            this.path = checkNotNull(path);
+            this.match = requireNonNull(match);
+            this.path = requireNonNull(path);
         }
 
         /**
@@ -291,6 +344,20 @@ public class ReplayServerConfig {
             return Mapping.toPath(new RegexHolder(regex), path);
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Mapping mapping = (Mapping) o;
+            return Objects.equals(match, mapping.match) &&
+                    Objects.equals(path, mapping.path);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(match, path);
+        }
     }
 
     /**
@@ -303,11 +370,11 @@ public class ReplayServerConfig {
             ResponseHeaderTransformValueMatch, ResponseHeaderTransformValueImage {
 
         public final String value;
-        private transient final Pattern regex;
+        private transient final Supplier<Pattern> regexSupplier;
 
-        private StringLiteral(String value) {
-            this.value = requireNonNull(value);
-            this.regex = Pattern.compile("(" + Pattern.quote(value) + ")");
+        private StringLiteral(String value_) {
+            this.value = requireNonNull(value_);
+            this.regexSupplier = Suppliers.memoize(() -> Pattern.compile("(" + Pattern.quote(value) + ")"));
         }
 
         public static StringLiteral of(String value) {
@@ -343,8 +410,13 @@ public class ReplayServerConfig {
             }
         }
 
+        /**
+         * Returns the value held by this instance.
+         * @param dictionary a variable dictionary (unused)
+         * @return this instance's value, always
+         */
         @Override
-        public String interpolate(String url) {
+        public String interpolate(VariableDictionary dictionary) {
             return value;
         }
 
@@ -379,7 +451,7 @@ public class ReplayServerConfig {
 
         @Override
         public Pattern asRegex() {
-            return regex;
+            return regexSupplier.get();
         }
 
         @Override
@@ -405,10 +477,19 @@ public class ReplayServerConfig {
 
     /**
      * Class that represents a variable object. These are used in {@link Replacement}s.
-     * See https://github.com/Stuk/server-replay.
+     * See https://github.com/Stuk/server-replay. In a pure-Java implementation
      */
     public static final class VariableHolder implements ReplacementMatch, ReplacementReplace {
 
+        /**
+         * Field name that signals to {@link CommonDeserializer} that a given JSON object
+         * should be deserialized as an instance of this class.
+         */
+        static final String SIGNAL_FIELD_NAME = "var";
+
+        /**
+         * Variable name.
+         */
         public final String var;
 
         @SuppressWarnings("unused") // for deserialization
@@ -417,20 +498,39 @@ public class ReplayServerConfig {
         }
 
         private VariableHolder(String var) {
-            this.var = checkNotNull(var);
+            this.var = requireNonNull(var);
         }
 
         public static VariableHolder of(String var) {
             return new VariableHolder(var);
         }
 
+        /**
+         * Substitutes
+         * @param dictionary the variable lookup dictionary
+         * @return the substitution text, or empty string if variable not found
+         */
         @Override
-        public String interpolate(String url) {
-            if ("request.url".equals(var)) {
-                return url;
+        public String interpolate(VariableDictionary dictionary) {
+            @Nullable
+            Optional<String> substitution = dictionary.substitute(var);
+            if (substitution == null) {
+                return "";
             }
-            LoggerFactory.getLogger(getClass()).info("unresolved variable {}", var);
-            return var;
+            return substitution.orElse("");
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            VariableHolder that = (VariableHolder) o;
+            return Objects.equals(var, that.var);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(var);
         }
     }
 
@@ -442,23 +542,28 @@ public class ReplayServerConfig {
             ResponseHeaderTransformNameMatch, ResponseHeaderTransformValueMatch {
 
         /**
-         * Regex in Javascript syntax.
+         * Field name that signals to {@link CommonDeserializer} that a given JSON object
+         * should be deserialized as an instance of this class.
+         */
+        static final String SIGNAL_FIELD_NAME = "regex";
+        /**
+         * Regex in syntax corresponding to destination engine. If using the node engine,
+         * then JavaScript syntax is required. If using the VHS engine, then Java syntax
+         * is required.
          */
         public final String regex;
-        private transient final Pattern caseSensitivePattern;
-        private transient final Pattern caseInsensitivePattern;
+        private transient final Supplier<Pattern> caseSensitivePatternSupplier;
+        private transient final Supplier<Pattern> caseInsensitivePatternSupplier;
 
         @SuppressWarnings("unused") // for deserialization
         private RegexHolder() {
-            regex = null;
-            caseSensitivePattern = null;
-            caseInsensitivePattern = null;
+            this("");
         }
 
-        private RegexHolder(String regex) {
-            this.regex = requireNonNull(regex);
-            this.caseSensitivePattern = Pattern.compile(regex);
-            this.caseInsensitivePattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        private RegexHolder(String regex_) {
+            this.regex = requireNonNull(regex_);
+            this.caseSensitivePatternSupplier = Suppliers.memoize(() -> Pattern.compile(regex));
+            this.caseInsensitivePatternSupplier = Suppliers.memoize(() -> Pattern.compile(regex, Pattern.CASE_INSENSITIVE));
         }
 
         public static RegexHolder of(String regex) {
@@ -472,13 +577,13 @@ public class ReplayServerConfig {
 
         @Override
         public boolean isMatchingHeaderName(String headerName) {
-            Matcher matcher = caseInsensitivePattern.matcher(headerName);
+            Matcher matcher = caseInsensitivePatternSupplier.get().matcher(headerName);
             return matcher.find();
         }
 
         @Override
         public boolean isMatchingHeaderValue(String headerName, String headerValue) {
-            Matcher matcher = caseSensitivePattern.matcher(headerValue);
+            Matcher matcher = caseSensitivePatternSupplier.get().matcher(headerValue);
             boolean found = matcher.find();
             return found;
         }
@@ -505,8 +610,9 @@ public class ReplayServerConfig {
 
         @Override
         public Pattern asRegex() {
-            return caseSensitivePattern;
+            return caseSensitivePatternSupplier.get();
         }
+
     }
 
     /**
@@ -560,6 +666,21 @@ public class ReplayServerConfig {
          */
         public static Replacement varToVar(String matchVariable, String replaceVariable) {
             return new Replacement(new VariableHolder(matchVariable), new VariableHolder(replaceVariable));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Replacement that = (Replacement) o;
+            return Objects.equals(match, that.match) &&
+                    Objects.equals(replace, that.replace);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(match, replace);
         }
     }
 
@@ -619,41 +740,41 @@ public class ReplayServerConfig {
 
         public static ResponseHeaderTransform name(ResponseHeaderTransformNameMatch nameMatch,
                                                    ResponseHeaderTransformNameImage nameImage) {
-            return new ResponseHeaderTransform(checkNotNull(nameMatch), null, checkNotNull(nameImage), null);
+            return new ResponseHeaderTransform(requireNonNull(nameMatch), null, requireNonNull(nameImage), null);
         }
 
         public static ResponseHeaderTransform value(ResponseHeaderTransformValueMatch valueMatch,
                                                     ResponseHeaderTransformValueImage valueImage) {
-            return new ResponseHeaderTransform(null, checkNotNull(valueMatch), null, checkNotNull(valueImage));
+            return new ResponseHeaderTransform(null, requireNonNull(valueMatch), null, requireNonNull(valueImage));
         }
 
         public static ResponseHeaderTransform valueByName(ResponseHeaderTransformNameMatch nameMatch,
                                                           ResponseHeaderTransformValueImage valueImage) {
-            return new ResponseHeaderTransform(checkNotNull(nameMatch), null, null, checkNotNull(valueImage));
+            return new ResponseHeaderTransform(requireNonNull(nameMatch), null, null, requireNonNull(valueImage));
         }
 
         public static ResponseHeaderTransform nameByValue(ResponseHeaderTransformValueMatch valueMatch,
                                                           ResponseHeaderTransformNameImage nameImage) {
-            return new ResponseHeaderTransform(null, checkNotNull(valueMatch), checkNotNull(nameImage), null);
+            return new ResponseHeaderTransform(null, requireNonNull(valueMatch), requireNonNull(nameImage), null);
         }
 
         public static ResponseHeaderTransform valueByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
                                                                   ResponseHeaderTransformValueMatch valueMatch,
                                                                   ResponseHeaderTransformValueImage valueImage) {
-            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), null, checkNotNull(valueImage));
+            return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), null, requireNonNull(valueImage));
         }
 
         public static ResponseHeaderTransform nameByNameAndValue(ResponseHeaderTransformNameMatch nameMatch,
                                                                   ResponseHeaderTransformValueMatch valueMatch,
                                                                   ResponseHeaderTransformNameImage nameImage) {
-            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), checkNotNull(nameImage), null);
+            return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), requireNonNull(nameImage), null);
         }
 
         public static ResponseHeaderTransform everything(ResponseHeaderTransformNameMatch nameMatch,
                                                            ResponseHeaderTransformValueMatch valueMatch,
                                                            ResponseHeaderTransformNameImage nameImage,
                                                            ResponseHeaderTransformValueImage valueImage) {
-            return new ResponseHeaderTransform(checkNotNull(nameMatch), checkNotNull(valueMatch), checkNotNull(nameImage), checkNotNull(valueImage));
+            return new ResponseHeaderTransform(requireNonNull(nameMatch), requireNonNull(valueMatch), requireNonNull(nameImage), requireNonNull(valueImage));
         }
 
         public static ResponseHeaderTransform removeByName(ResponseHeaderTransformNameMatch nameMatch) {
@@ -678,6 +799,23 @@ public class ReplayServerConfig {
                     ", valueImage=" + valueImage +
                     '}';
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ResponseHeaderTransform that = (ResponseHeaderTransform) o;
+            return Objects.equals(nameMatch, that.nameMatch) &&
+                    Objects.equals(nameImage, that.nameImage) &&
+                    Objects.equals(valueMatch, that.valueMatch) &&
+                    Objects.equals(valueImage, that.valueImage);
+        }
+
+        @Override
+        public int hashCode() {
+
+            return Objects.hash(nameMatch, nameImage, valueMatch, valueImage);
+        }
     }
 
     public static final class Builder {
@@ -690,17 +828,17 @@ public class ReplayServerConfig {
         }
 
         public Builder map(Mapping mapping) {
-            mappings.add(checkNotNull(mapping));
+            mappings.add(requireNonNull(mapping));
             return this;
         }
 
         public Builder replace(Replacement val) {
-            replacements.add(checkNotNull(val));
+            replacements.add(requireNonNull(val));
             return this;
         }
 
         public Builder transformResponse(ResponseHeaderTransform responseHeaderTransform) {
-            responseHeaderTransforms.add(checkNotNull(responseHeaderTransform));
+            responseHeaderTransforms.add(requireNonNull(responseHeaderTransform));
             return this;
         }
 
@@ -708,4 +846,104 @@ public class ReplayServerConfig {
             return new ReplayServerConfig(version, mappings, replacements, responseHeaderTransforms);
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ReplayServerConfig that = (ReplayServerConfig) o;
+        return version == that.version &&
+                Objects.equals(mappings, that.mappings) &&
+                Objects.equals(replacements, that.replacements) &&
+                Objects.equals(responseHeaderTransforms, that.responseHeaderTransforms);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(version, mappings, replacements, responseHeaderTransforms);
+    }
+
+    /**
+     * Deserializer for concrete classes that implement the set of interfaces
+     * contained in {@link #INTERFACES_HANDLED_BY_COMMON_DESERIALIZER}. Currently deserializes
+     * JSON to instances of {@link StringLiteral}, {@link RegexHolder}, {@link RemoveHeader},
+     * and {@link VariableHolder}.
+     */
+    @VisibleForTesting
+    static class CommonDeserializer implements JsonDeserializer<Object> {
+
+        private static final Logger log = LoggerFactory.getLogger(CommonDeserializer.class);
+
+        private static final CommonDeserializer INSTANCE = new CommonDeserializer();
+
+        public static final String TYPE_FIELD_NAME = "#kind";
+
+        private final Gson stockGson = new Gson();
+
+        CommonDeserializer() {
+        }
+
+        public static JsonDeserializer<Object> getInstance() {
+            return INSTANCE;
+        }
+
+        protected <E> E deserializeAs(JsonElement element, Class<E> type) {
+            return stockGson.fromJson(element, type);
+        }
+
+        @Override
+        public Object deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            if (json.isJsonPrimitive() && json.getAsJsonPrimitive().isString()) {
+                return StringLiteral.of(json.getAsString());
+            }
+            if (json.isJsonObject()) {
+                JsonObject obj = json.getAsJsonObject();
+                JsonElement typeFieldValue = obj.get(TYPE_FIELD_NAME);
+                if (typeFieldValue != null) {
+                    String kind = typeFieldValue.getAsString();
+                    if (Strings.isNullOrEmpty(kind)) {
+                        throw new JsonParseException(TYPE_FIELD_NAME + " field value must be nonempty");
+                    }
+                    switch (kind) {
+                        case RemoveHeader.TYPE_FIELD_VALUE:
+                            return RemoveHeader.getInstance();
+                        default:
+                            log.warn("unrecognized type field value: {}", kind);
+                    }
+                }
+                JsonElement regexFieldValue = obj.get(RegexHolder.SIGNAL_FIELD_NAME);
+                if (regexFieldValue != null) {
+                    return deserializeAs(obj, RegexHolder.class);
+                }
+                JsonElement varFieldValue = obj.get(VariableHolder.SIGNAL_FIELD_NAME);
+                if (varFieldValue != null) {
+                    return deserializeAs(obj, VariableHolder.class);
+                }
+            }
+            throw new JsonParseException("could not determine type of " + json);
+        }
+    }
+
+    @VisibleForTesting
+    static final ImmutableSet<Class<?>> INTERFACES_HANDLED_BY_COMMON_DESERIALIZER = ImmutableSet.<Class<?>>builder()
+            .add(MappingMatch.class)
+            .add(MappingPath.class)
+            .add(ReplacementMatch.class)
+            .add(ReplacementReplace.class)
+            .add(ResponseHeaderTransformNameMatch.class)
+            .add(ResponseHeaderTransformNameImage.class)
+            .add(ResponseHeaderTransformValueMatch.class)
+            .add(ResponseHeaderTransformValueImage.class)
+            .build();
+    
+    public static Gson createSerialist() {
+        JsonDeserializer<?> commonDeserializer = CommonDeserializer.getInstance();
+        GsonBuilder b = new GsonBuilder().setPrettyPrinting();
+        for (Class<?> interface_ : INTERFACES_HANDLED_BY_COMMON_DESERIALIZER) {
+            b.registerTypeHierarchyAdapter(interface_, commonDeserializer);
+        }
+        return b.create();
+    }
+
 }

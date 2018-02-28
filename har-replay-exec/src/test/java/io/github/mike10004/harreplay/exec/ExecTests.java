@@ -8,13 +8,13 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-public class Tests {
+public class ExecTests {
 
-    private Tests() {}
+    private ExecTests() {}
 
     private static final Supplier<Properties> testPropertiesSupplier = Suppliers.memoize(() -> {
         Properties testProperties = new Properties();
-        try (InputStream in = Tests.class.getResourceAsStream("/tests.properties")) {
+        try (InputStream in = ExecTests.class.getResourceAsStream("/tests.properties")) {
             if (in == null) {
                 throw new FileNotFoundException("/tests.properties must be on test classpath");
             }

@@ -9,6 +9,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
 import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
+import io.github.mike10004.harreplay.VariableDictionary;
 import io.github.mike10004.vhs.HttpRespondable;
 import io.github.mike10004.vhs.ImmutableHttpRespondable;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
@@ -88,7 +89,8 @@ public class ReplacingInterceptor implements ResponseInterceptor {
             throw new IllegalArgumentException("not sure how to handle replacment match of this type: " + replacement.match);
         }
         Matcher m = pattern.matcher(source);
-        String replacementText = replacement.replace.interpolate(request.url.toString());
+        VariableDictionary dictionary = new ReplacingInterceptorVariableDictionary(request);
+        String replacementText = replacement.replace.interpolate(dictionary);
         String textWithReplacements = m.replaceAll(replacementText);
         if (!source.equals(textWithReplacements)) {
             // TODO actually count the replacements
@@ -131,7 +133,7 @@ public class ReplacingInterceptor implements ResponseInterceptor {
 
     protected static FlushedContent toByteArray(HttpRespondable respondable) throws IOException {
         HeaderList hlist = HeaderList.from(respondable.streamHeaders());
-        String contentEncodingHeaderValue = hlist.getValue(HttpHeaders.CONTENT_ENCODING);
+        String contentEncodingHeaderValue = hlist.getFirstValue(HttpHeaders.CONTENT_ENCODING);
         List<String> contentEncodings = HttpContentCodecs.parseEncodings(contentEncodingHeaderValue);
         WritingActionResult<MediaType> writeResult = writeByteArray(respondable::writeBody, 256);
         byte[] data = writeResult.byteArray;
