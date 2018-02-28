@@ -2,7 +2,6 @@ dist: trusty
 language: java
 notifications:
   email: false
-install:
-  - mvn -B --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins
+install: true
 script:
-  - mvn -B --settings travis-maven-settings.xml -Ptravis verify
+  - mvn -B --settings travis-maven-settings.xml -Ptravis install

@@ -19,7 +19,11 @@ cd ${CLONE_DIR}
 echo "inside $CLONE_DIR"
 export PATH="/usr/local/phantomjs/bin:/usr/local/phantomjs:/usr/local/neo4j-3.2.7/bin:/usr/local/maven-3.5.2/bin:/usr/local/cmake-3.9.2/bin:/usr/local/clang-5.0.0/bin:$PATH"
 echo "exported PATH=$PATH"
-echo "mvn: resolving dependencies"
-mvn -B --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins > /tmp/mvn-dependency-resolve.log
-echo "mvn: verify"
-mvn -B --settings travis-maven-settings.xml -Ptravis verify 1>/tmp/mvn-verify.log 2>/tmp/mvn-verify-stderr.log
+
+# The commands run from this point on should line up with
+# the `install` and `script` config elements from .travis.yml
+echo "install: true"
+true
+echo "mvn: install"
+mvn -B --settings travis-maven-settings.xml -Ptravis install 1>/tmp/mvn-install.log 2>/tmp/mvn-install-stderr.log
+echo "mvn: install finished with exit code $?"
