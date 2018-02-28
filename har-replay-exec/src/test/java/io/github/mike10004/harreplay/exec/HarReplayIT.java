@@ -3,11 +3,12 @@ package io.github.mike10004.harreplay.exec;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.github.mike10004.xvfbmanager.Poller;
 import com.github.mike10004.xvfbmanager.Poller.PollOutcome;
 import com.github.mike10004.xvfbmanager.Poller.StopReason;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
@@ -22,7 +23,6 @@ import io.github.mike10004.harreplay.tests.ReplayManagerTestBase;
 import io.github.mike10004.harreplay.tests.Tests;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
 import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jsoup.Jsoup;
@@ -30,9 +30,12 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import javax.annotation.Nullable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -40,9 +43,9 @@ import java.io.Writer;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -55,9 +58,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class HarReplayIT {
-
-    private static boolean listedDirectoryAlready = false;
+@RunWith(Parameterized.class)
+public class HarReplayIT extends HarReplayITBase {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -65,22 +67,17 @@ public class HarReplayIT {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    @Test
-    public void executeHelp() throws Exception {
-        File jarFile = findJarFile();
-        Subprocess subprocess = Subprocess.running("java")
-                .args("-jar", jarFile.getAbsolutePath())
-                .arg("--help")
-                .build();
-        ProcessResult<String, String> result;
-        try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
-            result = subprocess.launcher(processTracker)
-                    .outputStrings(Charset.defaultCharset())
-                    .launch().await();
-        }
-        System.out.format("stdout:%n%s%n", result.content().stdout());
-        assertEquals("exit code", 0, result.exitCode());
-        assertEquals("stderr", "", result.content().stderr());
+    @Nullable
+    private final HarReplayMain.ReplayServerEngine engine;
+
+    public HarReplayIT(@Nullable HarReplayMain.ReplayServerEngine engine) {
+        this.engine = engine;
+    }
+
+    @Parameters
+    public static List<HarReplayMain.ReplayServerEngine> engines() {
+        //noinspection ConstantConditions // Lists.asList accepts a null first arg
+        return Lists.asList(null, HarReplayMain.ReplayServerEngine.values());
     }
 
     @Test
@@ -152,23 +149,28 @@ public class HarReplayIT {
         T visit(HostAndPort serverAddress) throws IOException;
     }
 
-    private <T> T execute(File harFile, Iterable<String> moreArgs, Visitor<T> visitor) throws IOException, InterruptedException, TimeoutException {        File jarFile = findJarFile();
+    private List<String> buildArgs(List<String> firstArgs, File notifyFile, File harFile) {
+        List<String> args = new ArrayList<>();
+        Iterables.addAll(args, firstArgs);
+        if (engine != null) {
+            args.add("--" + HarReplayMain.OPT_ENGINE);
+            args.add(engine.name());
+        }
+        args.addAll(Arrays.asList("--" + HarReplayMain.OPT_NOTIFY, notifyFile.getAbsolutePath()));
+        args.addAll(Arrays.asList("--" + HarReplayMain.OPT_SCRATCH_DIR, temporaryFolder.getRoot().getAbsolutePath()));
+        args.add(harFile.getAbsolutePath());
+        System.out.format("engine: %s; args = %s%n", engine, args);
+        return args;
+    }
+
+    private <T> T execute(File harFile, List<String> moreArgs, Visitor<T> visitor) throws IOException, InterruptedException, TimeoutException {
         File notifyFile = temporaryFolder.newFile();
         notifyFile.deleteOnExit();
-        Subprocess.Builder subprocessBuilder = Subprocess.running("java")
-                .args("-jar", jarFile.getAbsolutePath());
-        subprocessBuilder.args(moreArgs);
-        Subprocess subprocess = subprocessBuilder
-                .args("--" + HarReplayMain.OPT_NOTIFY, notifyFile.getAbsolutePath())
-                .args("--" + HarReplayMain.OPT_SCRATCH_DIR, temporaryFolder.getRoot().getAbsolutePath())
-                .arg(harFile.getAbsolutePath())
-                .build();
+        List<String> args = buildArgs(moreArgs, notifyFile, harFile);
         T retVal;
         ProcessMonitor<String, String> monitor;
         try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
-            monitor = subprocess.launcher(processTracker)
-                    .outputStrings(Charset.defaultCharset(), null)
-                    .launch();
+            monitor = execute(processTracker, args);
             HostAndPort serverAddress = pollUntilNotified(notifyFile);
             System.out.format("listening on %s%n", serverAddress);
             retVal = visitor.visit(serverAddress);
@@ -214,20 +216,4 @@ public class HarReplayIT {
         return responses;
     }
 
-    private File findJarFile() throws FileNotFoundException {
-        String artifactId = ExecTests.getTestProperty("project.artifactId");
-        String version = ExecTests.getTestProperty("project.version");
-        String filename = String.format("%s-%s-jar-with-dependencies.jar", artifactId, version);
-        File targetDir = new File(ExecTests.getTestProperty("project.build.directory"));
-        File jarFile = new File(targetDir, filename);
-        if (!jarFile.isFile()) {
-            if (!listedDirectoryAlready) {
-                System.out.println("target: " + targetDir);
-                FileUtils.listFiles(targetDir, null, false).forEach(System.out::println);
-                listedDirectoryAlready = true;
-            }
-            throw new FileNotFoundException(jarFile.getAbsolutePath());
-        }
-        return jarFile;
-    }
 }
