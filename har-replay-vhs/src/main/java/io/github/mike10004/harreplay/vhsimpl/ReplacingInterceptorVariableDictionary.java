@@ -1,12 +1,14 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
+import com.google.common.base.Suppliers;
 import io.github.mike10004.harreplay.VariableDictionary;
+import io.github.mike10004.harreplay.vhsimpl.NameValuePairList.StringMapEntryList;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -14,13 +16,23 @@ public class ReplacingInterceptorVariableDictionary implements VariableDictionar
 
     public static final String KEY_REQUEST_URL = "request.url";
     public static final String KEY_REQUEST_METHOD = "request.method";
-    public static final String PREFIX_KEY_REQUEST_HEADER = "request.header.";
+    public static final String PREFIX_KEY_REQUEST_HEADER = "request.headers.";
     public static final String PREFIX_KEY_REQUEST_QUERY = "request.query.";
 
     private final ParsedRequest request;
+    private transient final Supplier<NameValuePairList.StringMapEntryList> headersList;
+    private transient final Supplier<NameValuePairList.StringMapEntryList> queryParamsList;
 
     public ReplacingInterceptorVariableDictionary(ParsedRequest request) {
         this.request = requireNonNull(request);
+        headersList = Suppliers.memoize(() -> StringMapEntryList.caseInsensitive(request.indexedHeaders.entries()));
+        queryParamsList = Suppliers.memoize(() -> {
+            if (request.query != null) {
+                return NameValuePairList.StringMapEntryList.caseSensitive(request.query.entries());
+            } else {
+                return NameValuePairList.StringMapEntryList.empty();
+            }
+        });
     }
 
     @Nullable
@@ -57,15 +69,11 @@ public class ReplacingInterceptorVariableDictionary implements VariableDictionar
         }
         if (variableName.startsWith(PREFIX_KEY_REQUEST_HEADER)) {
             String headerName = StringUtils.removeStart(variableName, PREFIX_KEY_REQUEST_HEADER);
-            return request.getFirstHeaderValue(headerName);
+            return headersList.get().getFirstValue(headerName);
         }
         if (variableName.startsWith(PREFIX_KEY_REQUEST_QUERY)) {
             String queryParamName = StringUtils.removeStart(variableName, PREFIX_KEY_REQUEST_QUERY);
-            if (request.query != null) {
-                return NameValuePairList.caseInsensitive(request.query.entries(), Map.Entry::getKey, Map.Entry::getValue).getFirstValue(queryParamName);
-            } else {
-                return null;
-            }
+            return queryParamsList.get().getFirstValue(queryParamName);
         }
         throw new UnknownVariableNameException(variableName);
     }

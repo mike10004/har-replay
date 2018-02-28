@@ -1,6 +1,7 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharSource;
 import com.google.common.net.HttpHeaders;
@@ -10,6 +11,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
 import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
 import io.github.mike10004.harreplay.ReplayServerConfig.StringLiteral;
 import io.github.mike10004.harreplay.VariableDictionary;
+import io.github.mike10004.harreplay.vhsimpl.NameValuePairList.StringMapEntryList;
 import io.github.mike10004.vhs.HttpRespondable;
 import io.github.mike10004.vhs.ImmutableHttpRespondable;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -132,7 +135,7 @@ public class ReplacingInterceptor implements ResponseInterceptor {
     }
 
     protected static FlushedContent toByteArray(HttpRespondable respondable) throws IOException {
-        HeaderList hlist = HeaderList.from(respondable.streamHeaders());
+        StringMapEntryList hlist = StringMapEntryList.caseInsensitive(respondable.streamHeaders().collect(ImmutableList.toImmutableList()));
         String contentEncodingHeaderValue = hlist.getFirstValue(HttpHeaders.CONTENT_ENCODING);
         List<String> contentEncodings = HttpContentCodecs.parseEncodings(contentEncodingHeaderValue);
         WritingActionResult<MediaType> writeResult = writeByteArray(respondable::writeBody, 256);
