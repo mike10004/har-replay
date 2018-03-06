@@ -11,7 +11,7 @@
 
     <artifactId>har-replay-vhs</artifactId>
     <properties>
-        <vhs.version>0.2</vhs.version>
+        <vhs.version>0.4-SNAPSHOT</vhs.version>
     </properties>
     <dependencies>
         <dependency>
@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.mike10004</groupId>
-            <artifactId>virtual-har-server-nanohttpd</artifactId>
+            <artifactId>virtual-har-server-bmp</artifactId>
             <version>${vhs.version}</version>
         </dependency>
         <dependency>

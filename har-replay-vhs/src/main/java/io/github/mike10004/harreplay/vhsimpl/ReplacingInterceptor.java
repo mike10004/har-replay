@@ -17,7 +17,7 @@ import io.github.mike10004.vhs.ImmutableHttpRespondable;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
 import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
-import io.github.mike10004.vhs.nanohttpd.ResponseInterceptor;
+import io.github.mike10004.vhs.ResponseInterceptor;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;

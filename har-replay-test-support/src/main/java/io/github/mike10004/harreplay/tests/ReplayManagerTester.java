@@ -62,20 +62,24 @@ public abstract class ReplayManagerTester {
         @SuppressWarnings("OptionalAssignedToNull")
         Optional<T> result = null;
         Exception exception = null;
+        ReplaySessionControl sessionControlCopy = null;
+        boolean infoCallbackAwaitSucceeded;
         try (ReplaySessionControl sessionControl = replay.start(sessionParams)) {
+            sessionControlCopy = sessionControl;
             result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, sessionControl));
-            sessionControl.stop();
-            assertFalse("process still alive", sessionControl.isAlive());
-            System.out.println("program future has finished");
         } catch (Exception e) {
             System.err.format("exercise() aborting abnormally due to exception%n");
             e.printStackTrace(System.err);
             exception = e;
         } finally {
+            if (sessionControlCopy != null) {
+                assertFalse("process still alive", sessionControlCopy.isAlive());
+            }
             System.out.println("awaiting execution of process callback");
-            infoCallback.await(3, TimeUnit.SECONDS);
+            infoCallbackAwaitSucceeded = infoCallback.await(3, TimeUnit.SECONDS);
         }
         assertTrue("callback executed", infoCallback.wasExecuted());
+        assertTrue("infoCallbackAwaitSucceeded", infoCallbackAwaitSucceeded);
         if (exception != null) {
             exception.printStackTrace(System.err);
         }
@@ -88,8 +92,8 @@ public abstract class ReplayManagerTester {
 
         private final CountDownLatch latch = new CountDownLatch(1);
 
-        public void await(long duration, TimeUnit unit) throws InterruptedException {
-            latch.await(duration, unit);
+        public boolean await(long duration, TimeUnit unit) throws InterruptedException {
+            return latch.await(duration, unit);
         }
 
         public boolean wasExecuted() {

@@ -6,8 +6,11 @@ import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import de.sstoehr.harreader.HarReader;
+import de.sstoehr.harreader.HarReaderException;
+import de.sstoehr.harreader.HarReaderMode;
 import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarEntry;
+import de.sstoehr.harreader.model.HarResponse;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplayServerConfig.Mapping;
 import io.github.mike10004.harreplay.ReplayServerConfig.RegexHolder;
@@ -20,6 +23,7 @@ import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -43,7 +47,9 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -51,6 +57,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -70,6 +78,9 @@ public abstract class ReplayManagerTestBase {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Rule
+    public final Timeout timeout = new Timeout(8, TimeUnit.SECONDS);
 
     @Test
     public void startAsync_http() throws Exception {
@@ -194,9 +205,29 @@ public abstract class ReplayManagerTestBase {
 
     protected abstract String getReservedPortSystemPropertyName();
 
+    private void dumpHar(File harFile, PrintStream out) throws IOException {
+        List<HarEntry> entries;
+        try {
+            entries = new HarReader().readFromFile(harFile, HarReaderMode.LAX).getLog().getEntries();
+        } catch (HarReaderException e) {
+            throw new IOException(e);
+        }
+        entries.forEach(entry -> {
+            String reqDescription = String.format("%s %s", entry.getRequest().getMethod(), entry.getRequest().getUrl());
+            HarResponse rsp = entry.getResponse();
+            String rspDescription;
+            if (rsp != null) {
+                rspDescription = String.format("%s %s %s %s", rsp.getStatus(), rsp.getStatusText(), rsp.getContent().getMimeType(), rsp.getBodySize());
+            } else {
+                rspDescription = "<absent>";
+            }
+            out.format("%s -> %s%n", reqDescription, rspDescription);
+        });
+    }
+
     private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, MyMatcher responseContentChecker) throws Exception {
         if (debug) {
-            Files.asByteSource(harFile).copyTo(System.out);
+            dumpHar(harFile, System.out);
             System.out.println();
         }
         Path tempDir = temporaryFolder.getRoot().toPath();
@@ -306,7 +337,17 @@ public abstract class ReplayManagerTestBase {
             String entityContent = EntityUtils.toString(response.getEntity());
             if (debug) {
                 Header[] allHeaders = response.getAllHeaders();
-                System.out.format("toString: %s, length = %d%n", response.getEntity().getContentType().getValue(), response.getEntity().getContentLength());
+                HttpEntity entity = response.getEntity();
+                Long contentLengthValue = null;
+                String contentTypeValue = null;
+                if (entity != null) {
+                    Header contentType = entity.getContentType();
+                    if (contentType != null) {
+                        contentTypeValue = contentType.getValue();
+                    }
+                    contentLengthValue = entity.getContentLength();
+                }
+                System.out.format("toString: %s, length = %s%n", contentTypeValue, contentLengthValue);
                 System.out.format("toString: %d headers%n", allHeaders.length);
                 Stream.of(allHeaders).forEach(header -> {
                     System.out.format("%s: %s%n", header.getName(), header.getValue());

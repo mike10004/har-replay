@@ -1,7 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.google.common.net.HostAndPort;
@@ -14,29 +13,16 @@ import io.github.mike10004.harreplay.tests.ImmutableHttpResponse;
 import io.github.mike10004.harreplay.tests.ReplayManagerTestBase;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
 import io.github.mike10004.harreplay.tests.Tests;
-import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
-import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.CookieHandler;
-import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.Method;
-import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD.ResponseException;
-import io.github.mike10004.nanochamp.server.NanoServer;
-import io.github.mike10004.nanochamp.server.NanoServer.RequestHandler;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class VhsReplayManagerTest extends ReplayManagerTestBase {
 
@@ -61,7 +47,6 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
         ReplaySessionConfig config = ReplaySessionConfig.builder(temporaryFolder.getRoot().toPath())
                 .build(harFile);
         int numTrials = 12;
-        checkNanoResponses();
         URI url = URI.create("http://www.example.com/");
         try (ReplaySessionControl ctrl = replayManager.start(config)) {
             HostAndPort proxyAddress = ctrl.getSocketAddress();
@@ -99,77 +84,7 @@ public class VhsReplayManagerTest extends ReplayManagerTestBase {
     private static final CharMatcher ASCII = CharMatcher.ascii();
 
     @Test
-    public void checkNanoResponses() {
-        RequestHandler rh = NanoServer.RequestHandler.getDefault();
-        NanoHTTPD.Response rsp1 = rh.serve(session("http://www.example.com/x"));
-        NanoHTTPD.Response rsp2 = rh.serve(session("http://www.example.com/y"));
-        assertNotSame("responses should not be the same", rsp1, rsp2);
-    }
-
-    private static NanoHTTPD.IHTTPSession session(String url) {
-        return new NanoHTTPD.IHTTPSession() {
-
-            @SuppressWarnings("RedundantThrows")
-            @Override
-            public void execute() throws IOException {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public CookieHandler getCookies() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Map<String, String> getHeaders() {
-                return ImmutableMap.of();
-            }
-
-            @Override
-            public InputStream getInputStream() {
-                return new ByteArrayInputStream(new byte[0]);
-            }
-
-            @Override
-            public Method getMethod() {
-                return NanoHTTPD.Method.GET;
-            }
-
-            @Override
-            public Map<String, String> getParms() {
-                return ImmutableMap.of();
-            }
-
-            @Override
-            public Map<String, List<String>> getParameters() {
-                return null;
-            }
-
-            @Override
-            public String getQueryParameterString() {
-                return null;
-            }
-
-            @Override
-            public String getUri() {
-                return url;
-            }
-
-            @SuppressWarnings("RedundantThrows")
-            @Override
-            public void parseBody(Map<String, String> map) throws IOException, ResponseException {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public String getRemoteIpAddress() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public String getRemoteHostName() {
-                throw new UnsupportedOperationException();
-            }
-        };
+    public void nettyReflection() throws Exception {
+        Class.forName("io.netty.util.internal.ReflectionUtil");
     }
 }
