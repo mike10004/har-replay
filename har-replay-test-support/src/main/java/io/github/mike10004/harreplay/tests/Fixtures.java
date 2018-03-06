@@ -66,6 +66,7 @@ public class Fixtures {
         http = Suppliers.memoize(() -> new Fixture("example-http", copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/")));
         https = Suppliers.memoize(() -> new Fixture("example-https", copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/")));
         httpsRedirect = Suppliers.memoize(() -> new Fixture("example-redirect", copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from")));
+        javascriptRedirect = Suppliers.memoize(() -> new Fixture("javascript-redirect", copyResourceToFile("/session-with-javascript-redirect.har", scratchDir), "", URI.create("https://www.redi123.com/")));
     }
 
     public static class Fixture {
@@ -102,6 +103,7 @@ public class Fixtures {
     private final Supplier<Fixture> http;
     private final Supplier<Fixture> https;
     private final Supplier<Fixture> httpsRedirect;
+    private final Supplier<Fixture> javascriptRedirect;
 
     public Fixture http() {
         return http.get();
@@ -113,6 +115,10 @@ public class Fixtures {
 
     public Fixture httpsRedirect() {
         return httpsRedirect.get();
+    }
+
+    public Fixture javascriptRedirect() {
+        return javascriptRedirect.get();
     }
 
     private static File copyResourceToFile(String resourcePath, Path scratchDir) {
