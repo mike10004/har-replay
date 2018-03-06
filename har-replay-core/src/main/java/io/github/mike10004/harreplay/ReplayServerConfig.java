@@ -318,7 +318,8 @@ public class ReplayServerConfig {
         }
     }
 
-    private static final class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
+    @VisibleForTesting
+    static final class RemoveHeader implements ResponseHeaderTransformNameImage, ResponseHeaderTransformValueImage {
 
         static final String TYPE_FIELD_VALUE = "RemoveHeader";
 
