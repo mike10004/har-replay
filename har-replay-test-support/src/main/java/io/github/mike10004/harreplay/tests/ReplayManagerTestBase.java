@@ -49,7 +49,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -70,7 +69,7 @@ import static org.junit.Assert.assertThat;
 
 public abstract class ReplayManagerTestBase {
 
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     private static final boolean dumpHarResponseComparison = false;
 
     @ClassRule
@@ -80,7 +79,7 @@ public abstract class ReplayManagerTestBase {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Rule
-    public final Timeout timeout = new Timeout(8, TimeUnit.SECONDS);
+    public final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 
     @Test
     public void startAsync_http() throws Exception {
@@ -212,6 +211,7 @@ public abstract class ReplayManagerTestBase {
         } catch (HarReaderException e) {
             throw new IOException(e);
         }
+        out.format("%s contents:%n", harFile);
         entries.forEach(entry -> {
             String reqDescription = String.format("%s %s", entry.getRequest().getMethod(), entry.getRequest().getUrl());
             HarResponse rsp = entry.getResponse();
@@ -221,7 +221,7 @@ public abstract class ReplayManagerTestBase {
             } else {
                 rspDescription = "<absent>";
             }
-            out.format("%s -> %s%n", reqDescription, rspDescription);
+            out.format("    %s -> %s%n", reqDescription, rspDescription);
         });
     }
 

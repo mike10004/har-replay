@@ -2,8 +2,8 @@ package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.github.mike10004.harreplay.ReplayServerConfig.Mapping;
 import io.github.mike10004.vhs.EntryMatcher;
@@ -16,6 +16,8 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -68,7 +70,28 @@ public class MappingEntryMatcher implements EntryMatcher {
     }
 
     protected Multimap<String, String> constructHeaders(File file, MediaType contentType) {
-        return ArrayListMultimap.create();
+        Multimap<String, String> headers = ArrayListMultimap.create();
+        headers.put(HttpHeaders.CONTENT_TYPE, contentType.toString());
+        readFileAttributes(file).forEach(headers::put);
+        return headers;
+    }
+
+    private Map<String, String> readFileAttributes(File file) {
+        Map<String, String> attrMap = new HashMap<>();
+        // TODO use java.nio.file.Files.readAttributes to be more precise when populating attributes map
+//        if (file.isFile()) {
+//            try {
+//                PosixFileAttributes attr = java.nio.file.Files.readAttributes(file.toPath(), PosixFileAttributes.class);
+//                attr.size()
+//            } catch (IOException e) {
+//                log.info("failed to read file attributes", e);
+//            }
+//        }
+        long len = file.length();
+        if (len >= 0) {
+            attrMap.put(HttpHeaders.CONTENT_LENGTH, String.valueOf(len));
+        }
+        return attrMap;
     }
 
     protected MediaType divineContentType(File file) {

@@ -60,7 +60,7 @@ public class VhsReplayManager implements ReplayManager {
         EntryMatcher harEntryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
         EntryMatcher compositeEntryMatcher = buildEntryMatcher(harEntryMatcher, sessionConfig.replayServerConfig);
         List<ResponseInterceptor> interceptors = new ArrayList<>();
-        interceptors.addAll(buildInterceptors(sessionConfig.replayServerConfig.replacements));
+        interceptors.addAll(buildInterceptorsForReplacements(sessionConfig.replayServerConfig.replacements));
         interceptors.addAll(buildInterceptorsForTransforms(sessionConfig.replayServerConfig.responseHeaderTransforms));
         int port = sessionConfig.port;
         VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, compositeEntryMatcher, interceptors);
@@ -82,7 +82,7 @@ public class VhsReplayManager implements ReplayManager {
         return new BrowsermobVirtualHarServer(config);
     }
 
-    protected List<ResponseInterceptor> buildInterceptors(Collection<Replacement> replacements) {
+    protected List<ResponseInterceptor> buildInterceptorsForReplacements(Collection<Replacement> replacements) {
         return replacements.stream().map(replacement ->  new ReplacingInterceptor(config, replacement)).collect(Collectors.toList());
     }
 
