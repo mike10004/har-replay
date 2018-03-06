@@ -82,10 +82,10 @@ public abstract class ReplayManagerTestBase {
     public final Timeout timeout = new Timeout(15, TimeUnit.SECONDS);
 
     @Test
-    public void startAsync_http() throws Exception {
-        System.out.println("\n\nstartAsync_http\n");
+    public void http() throws Exception {
+        System.out.println("\n\nhttp\n");
         File harFile = fixturesRule.getFixtures().http().harFile();
-        testStartAsync(harFile, fixturesRule.getFixtures().http().startUrl());
+        fetchAndCompareToHar(harFile, fixturesRule.getFixtures().http().startUrl());
     }
 
     private static void dumpTagged(String tag, String content, PrintStream out) {
@@ -99,15 +99,15 @@ public abstract class ReplayManagerTestBase {
     }
 
     @Test
-    public void startAsync_https() throws Exception {
-        System.out.println("\n\nstartAsync_https\n");
+    public void https() throws Exception {
+        System.out.println("\n\nhttps\n");
         Fixture fixture = fixturesRule.getFixtures().https();
         File harFile = fixture.harFile();
         ReplayServerConfig config = ReplayServerConfig.builder()
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, matcher("title absent", describing(content -> content.contains(fixture.title()), "text must contain title " + fixture.title())));
+        fetchAndExamine(harFile, uri, client, config, matcher("title absent", describing(content -> content.contains(fixture.title()), "text must contain title " + fixture.title())));
     }
 
     @Test
@@ -122,7 +122,7 @@ public abstract class ReplayManagerTestBase {
                 .build();
         File harFile = fixture.harFile();
         ApacheRecordingClient client = newApacheClient(uri, false);
-        testStartAsync(harFile, uri, client, config, matcher("custom content expected", describing(customContent::equals, StringUtils.abbreviate(customContent, 64))));
+        fetchAndExamine(harFile, uri, client, config, matcher("custom content expected", describing(customContent::equals, StringUtils.abbreviate(customContent, 64))));
     }
 
     @Test
@@ -135,7 +135,7 @@ public abstract class ReplayManagerTestBase {
                 .replace(Replacement.literal(fixture.title(), replacementText))
                 .build();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, matcher("replacement text absent", describing(responseContent -> responseContent.contains(replacementText), replacementText)));
+        fetchAndExamine(harFile, uri, client, config, matcher("replacement text absent", describing(responseContent -> responseContent.contains(replacementText), replacementText)));
     }
 
     private static <T> Predicate<T> describing(Predicate<T> predicate, String description) {
@@ -194,10 +194,10 @@ public abstract class ReplayManagerTestBase {
         return matcher("har response content", describing(expectedText::equals, "har response content incorrect; expected " + StringUtils.abbreviateMiddle(expectedText, "[...]", 256)));
     }
 
-    private void testStartAsync(File harFile, URI uri) throws Exception {
+    private void fetchAndCompareToHar(File harFile, URI uri) throws Exception {
         Har har = new HarReader().readFromFile(harFile);
         MyMatcher checker = matchHarResponse(har, uri);
-        testStartAsync(harFile, uri, newApacheClient(uri, false), ReplayServerConfig.empty(), checker);
+        fetchAndExamine(harFile, uri, newApacheClient(uri, false), ReplayServerConfig.empty(), checker);
     }
 
     protected abstract ReplayManagerTester createTester(Path tempDir, File harFile, ReplayServerConfig config) throws IOException;
@@ -225,13 +225,14 @@ public abstract class ReplayManagerTestBase {
         });
     }
 
-    private void testStartAsync(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, MyMatcher responseContentChecker) throws Exception {
+    private void fetchAndExamine(File harFile, URI uri, ApacheRecordingClient client, ReplayServerConfig config, MyMatcher responseContentChecker) throws Exception {
         if (debug) {
             dumpHar(harFile, System.out);
             System.out.println();
         }
         Path tempDir = temporaryFolder.getRoot().toPath();
-        Multimap<URI, ResponseSummary> responses = createTester(tempDir, harFile, config).exercise(client, ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()));
+        ReplayManagerTester tester = createTester(tempDir, harFile, config);
+        Multimap<URI, ResponseSummary> responses = tester.exercise(client, ReplayManagerTester.findReservedPort(getReservedPortSystemPropertyName()));
         Collection<ResponseSummary> responsesForUri = responses.get(uri);
         assertFalse("no response for uri " + uri, responsesForUri.isEmpty());
         ResponseSummary response = responsesForUri.iterator().next();
@@ -245,8 +246,8 @@ public abstract class ReplayManagerTestBase {
     }
 
     @Test
-    public void startAsync_http_unmatchedReturns404() throws Exception {
-        System.out.println("\n\nstartAsync_http_unmatchedReturns404\n");
+    public void http_unmatchedReturns404() throws Exception {
+        System.out.println("\n\nhttp_unmatchedReturns404\n");
         Path tempDir = temporaryFolder.getRoot().toPath();
         File harFile = fixturesRule.getFixtures().http().harFile();
         ApacheRecordingClient client = newApacheClient(URI.create("http://www.google.com/"), false);
@@ -265,8 +266,8 @@ public abstract class ReplayManagerTestBase {
     }
 
     @Test
-    public void startAsync_https_transformLocationResponseHeader() throws Exception {
-        System.out.println("\n\nstartAsync_https_transformLocationResponseHeader\n");
+    public void https_transformLocationResponseHeader() throws Exception {
+        System.out.println("\n\nhttps_transformLocationResponseHeader\n");
         Fixture fixture = fixturesRule.getFixtures().httpsRedirect();
         File harFile = fixture.harFile();
         System.out.format("using fixture %s with har %s%n", fixture, harFile);
@@ -275,7 +276,7 @@ public abstract class ReplayManagerTestBase {
                 .build();
         URI uri = fixture.startUrl();
         ApacheRecordingClient client = newApacheClient(uri, true);
-        testStartAsync(harFile, uri, client, config, matcher("expect fixture title to be present", describing(content -> content.contains(fixture.title()), "expected title " + fixture.title())));
+        fetchAndExamine(harFile, uri, client, config, matcher("expect fixture title to be present", describing(content -> content.contains(fixture.title()), "expected title " + fixture.title())));
     }
 
     private static class ApacheRecordingClient implements ReplayClient<Multimap<URI, ResponseSummary>> {
