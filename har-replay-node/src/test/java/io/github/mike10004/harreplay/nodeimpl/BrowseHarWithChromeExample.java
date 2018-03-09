@@ -7,6 +7,7 @@ import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
 import io.github.mike10004.harreplay.tests.ChromeOptionsProducer;
 import io.github.mike10004.harreplay.tests.Tests;
+import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -15,6 +16,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -51,10 +53,11 @@ public class BrowseHarWithChromeExample extends ReadmeExample {
 
     @Override
     protected void doSomethingWithProxy(String host, int port) throws IOException {
+        Path tempDir = FileUtils.getTempDirectory().toPath();
         HostAndPort proxy = HostAndPort.fromParts(host, port);
         System.out.format("har replay proxy listening at %s%n", proxy);
         ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
-        ChromeOptions options = ChromeOptionsProducer.getDefault().produceOptions(proxy);
+        ChromeOptions options = ChromeOptionsProducer.withSwitcheroo(tempDir).produceOptions(proxy);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         ChromeDriver driver = new ChromeDriver(options);
         try {

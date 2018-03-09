@@ -37,7 +37,7 @@ public abstract class ReplayManagerTester {
     }
 
     public interface ReplayClient<T> {
-        T useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception;
+        T useReplayServer(Path tempDir, ReplaySessionControl sessionControl) throws Exception;
     }
 
     protected ReplayServerConfig configureReplayModule() {
@@ -66,7 +66,7 @@ public abstract class ReplayManagerTester {
         boolean infoCallbackAwaitSucceeded;
         try (ReplaySessionControl sessionControl = replay.start(sessionParams)) {
             sessionControlCopy = sessionControl;
-            result = Optional.ofNullable(client.useReplayServer(tempDir, proxy, sessionControl));
+            result = Optional.ofNullable(client.useReplayServer(tempDir, sessionControl));
         } catch (Exception e) {
             System.err.format("exercise() aborting abnormally due to exception%n");
             e.printStackTrace(System.err);

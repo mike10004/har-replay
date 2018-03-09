@@ -18,15 +18,19 @@ import io.github.mike10004.vhs.HeuristicEntryMatcher;
 import io.github.mike10004.vhs.ResponseInterceptor;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
+import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.bmp.BrowsermobVhsConfig;
 import io.github.mike10004.vhs.bmp.BrowsermobVirtualHarServer;
 import io.github.mike10004.vhs.bmp.HarReplayManufacturer;
+import io.github.mike10004.vhs.bmp.KeystoreData;
+import io.github.mike10004.vhs.bmp.NanohttpdTlsEndpointFactory;
 import io.github.mike10004.vhs.bmp.ScratchDirProvider;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -63,7 +67,7 @@ public class VhsReplayManager implements ReplayManager {
         interceptors.addAll(buildInterceptorsForReplacements(sessionConfig.replayServerConfig.replacements));
         interceptors.addAll(buildInterceptorsForTransforms(sessionConfig.replayServerConfig.responseHeaderTransforms));
         int port = sessionConfig.port;
-        VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, compositeEntryMatcher, interceptors);
+        VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, compositeEntryMatcher, interceptors, config.bmpResponseListener);
         VirtualHarServerControl ctrl = vhs.start();
         Runnable stopListener = () -> {
             sessionConfig.serverTerminationCallbacks.forEach(c -> {
@@ -73,13 +77,19 @@ public class VhsReplayManager implements ReplayManager {
         return new VhsReplaySessionControl(ctrl, true, stopListener);
     }
 
-    protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, EntryMatcher entryMatcher, Iterable<ResponseInterceptor> responseInterceptors) {
-        HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, responseInterceptors);
-        BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
-                .port(port)
-                .scratchDirProvider(ScratchDirProvider.under(scratchParentDir));
-        BrowsermobVhsConfig config = configBuilder.build();
-        return new BrowsermobVirtualHarServer(config);
+    protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, EntryMatcher entryMatcher, Iterable<ResponseInterceptor> responseInterceptors, BmpResponseListener bmpResponseListener) throws IOException {
+        try {
+            KeystoreData keystoreData = config.keystoreGenerator.generate("localhost");
+            HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, responseInterceptors, bmpResponseListener);
+            BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
+                    .port(port)
+                    .tlsEndpointFactory(NanohttpdTlsEndpointFactory.create(keystoreData, null))
+                    .scratchDirProvider(ScratchDirProvider.under(scratchParentDir));
+            BrowsermobVhsConfig config = configBuilder.build();
+            return new BrowsermobVirtualHarServer(config);
+        } catch (GeneralSecurityException e) {
+            throw new IOException(e);
+        }
     }
 
     protected List<ResponseInterceptor> buildInterceptorsForReplacements(Collection<Replacement> replacements) {

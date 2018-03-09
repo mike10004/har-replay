@@ -37,7 +37,8 @@ public class ReplayManagerPractice {
     private static class InteractiveChromeDriverClient implements ReplayClient<Void> {
 
         @Override
-        public Void useReplayServer(Path tempDir, HostAndPort proxy, ReplaySessionControl sessionControl) throws Exception {
+        public Void useReplayServer(Path tempDir, ReplaySessionControl sessionControl) throws Exception {
+            HostAndPort proxy = sessionControl.getSocketAddress();
             File profileDir = tempDir.resolve("chrome-profile").toFile();
             profileDir.mkdirs();
             if (!profileDir.isDirectory()) {

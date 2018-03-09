@@ -66,7 +66,7 @@ public class Fixtures {
         http = Suppliers.memoize(() -> new Fixture("example-http", copyResourceToFile("/http.www.example.com.har", scratchDir), "ABCDEFG Domain", URI.create("http://www.example.com/")));
         https = Suppliers.memoize(() -> new Fixture("example-https", copyResourceToFile("/https.www.example.com.har", scratchDir), "Example Abcdef", URI.create("https://www.example.com/")));
         httpsRedirect = Suppliers.memoize(() -> new Fixture("example-redirect", copyResourceToFile("/https.www.example.com.redirect.har", scratchDir), "Redirect Destination", URI.create("https://www.example.com/from")));
-        javascriptRedirect = Suppliers.memoize(() -> new Fixture("javascript-redirect", copyResourceToFile("/session-with-javascript-redirect.har", scratchDir), "", URI.create("https://www.redi123.com/")));
+        javascriptRedirect = Suppliers.memoize(() -> new Fixture("javascript-redirect", copyResourceToFile("/javascript-redirect.har", scratchDir), "", URI.create("https://www.redi123.com/")));
     }
 
     public static class Fixture {
@@ -135,4 +135,15 @@ public class Fixtures {
         }
     }
 
+    public static class JavascriptRedirectInfo {
+        public static final String REDIRECTING_SCRIPT_PATH = "/this-is-the-redirecting-script";
+        public static final String START_PAGE_PATH = "/start.html";
+        public static final String FAVICON_PATH = "/favicon.ico";
+        public static final String OTHER_PAGE_TEXT = "This is the redirect destination page";
+        public static final String OTHER_PAGE_PATH = "/other.html";
+
+        private JavascriptRedirectInfo() {}
+
+
+    }
 }

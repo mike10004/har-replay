@@ -8,7 +8,6 @@ import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.HarReaderMode;
@@ -18,6 +17,8 @@ import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
+import io.github.mike10004.harreplay.exec.ChromeBrowserSupport.OutputDestination;
+import io.github.mike10004.harreplay.exec.ChromeBrowserSupport.SwitcherooMode;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
@@ -63,6 +64,8 @@ public class HarReplayMain {
     static final String OPT_ECHO_SERVER = "echo-server";
     static final String OPT_ENGINE = "engine";
     static final String OPT_REPLAY_CONFIG = "config";
+    static final String OPT_SWITCHEROO = "switcheroo";
+    static final String OPT_ECHO_BROWSER_OUTPUT = "echo-browser-output";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -109,7 +112,8 @@ public class HarReplayMain {
                 .defaultsTo(ReplayServerEngine.vhs);
         replayConfigSpec = parser.acceptsAll(Arrays.asList("f", OPT_REPLAY_CONFIG), "specify replay config file")
                 .withRequiredArg().ofType(File.class);
-
+        parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
+        parser.accepts(OPT_SWITCHEROO, "with --browser=chrome, use extension to change https URLs to http");
     }
 
     protected List<HarEntry> readHarEntries(File harFile, Path scratchDir) throws IOException, HarReaderException {
@@ -142,7 +146,7 @@ public class HarReplayMain {
                     Browser browser = optionSet.valueOf(browserSpec);
                     if (browser != null) {
                         //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
-                        ProcessMonitor<?, ?> monitor = browser.getSupport()
+                        ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
                                 .prepare(sessionConfig.scratchDir)
                                 .launch(replayServerAddress, processTracker);
                     }
@@ -264,10 +268,11 @@ public class HarReplayMain {
     public enum Browser {
         chrome;
 
-        BrowserSupport getSupport() {
+        BrowserSupport getSupport(OptionSet options) {
             switch (this) {
                 case chrome:
-                    return new ChromeBrowserSupport();
+                    return new ChromeBrowserSupport(options.has(OPT_SWITCHEROO) ? SwitcherooMode.ENABLED : SwitcherooMode.NOT_ADDED,
+                            options.has(OPT_ECHO_BROWSER_OUTPUT) ? OutputDestination.CONSOLE : OutputDestination.FILES);
             }
             throw new IllegalStateException("not handled: " + this);
         }

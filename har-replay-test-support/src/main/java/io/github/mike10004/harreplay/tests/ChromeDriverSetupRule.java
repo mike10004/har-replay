@@ -6,6 +6,10 @@ import org.junit.rules.ExternalResource;
 public class ChromeDriverSetupRule extends ExternalResource {
     @Override
     protected void before() {
+        doSetup();
+    }
+
+    public static void doSetup() {
         ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
     }
 }

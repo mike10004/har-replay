@@ -24,7 +24,6 @@
                     <configuration>
                         <systemPropertyVariables>
                             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-                            <wdm.targetPath>${project.build.directory}/webdriver</wdm.targetPath>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

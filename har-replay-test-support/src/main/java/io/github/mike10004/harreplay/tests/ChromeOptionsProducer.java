@@ -9,11 +9,13 @@ import com.google.common.net.HostAndPort;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.chrome.ChromeOptions;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public interface ChromeOptionsProducer {
@@ -22,17 +24,31 @@ public interface ChromeOptionsProducer {
 
     ChromeOptions produceOptions(HostAndPort proxy) throws IOException;
 
-    static ChromeOptionsProducer getDefault() {
-        return getDefault(FileUtils.getTempDirectory().toPath());
+    static List<String> populateArgsList(@Nullable HostAndPort proxy) {
+        List<String> args = new ArrayList<>();
+        if (proxy != null) {
+            args.add("--proxy-server=" + proxy);
+        }
+        args.addAll(getAdditionalChromeArgs());
+        return args;
+    }
+
+    static ChromeOptionsProducer standard() {
+        return proxy -> {
+            ChromeOptions options = new ChromeOptions();
+            options.addArguments(populateArgsList(proxy));
+            return options;
+        };
     }
 
     /**
-     * Gets a producer instance that will use the given temp directory if necessary.
-     * @param temporaryDirectory the temp dir
+     * Gets a producer instance that configures Chrome to use the Switcheroo extension.
+     * @param temporaryDirectory the temp dir to copy the extension archive to
      * @return the producer
      */
-    static ChromeOptionsProducer getDefault(Path temporaryDirectory) {
-        return proxy -> {
+    static ChromeOptionsProducer withSwitcheroo(Path temporaryDirectory) {
+        return (proxy) -> {
+            ChromeOptions options = new ChromeOptions();
             File switcherooExtensionFile;
             URL resource = ModifiedSwitcheroo.getExtensionCrxResource();
             if ("file".equals(resource.getProtocol())) {
@@ -45,11 +61,8 @@ public interface ChromeOptionsProducer {
                 switcherooExtensionFile = File.createTempFile("modified-switcheroo", ".crx", temporaryDirectory.toFile());
                 Resources.asByteSource(resource).copyTo(Files.asByteSink(switcherooExtensionFile));
             }
-            ChromeOptions options = new ChromeOptions();
             options.addExtensions(switcherooExtensionFile);
-            options.addArguments("--proxy-server=" + proxy);
-            List<String> moreArgs = getAdditionalChromeArgs();
-            options.addArguments(moreArgs);
+            options.addArguments(populateArgsList(proxy));
             return options;
         };
     }

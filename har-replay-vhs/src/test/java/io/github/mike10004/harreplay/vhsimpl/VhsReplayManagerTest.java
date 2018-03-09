@@ -26,11 +26,10 @@ import static org.junit.Assert.*;
 
 public class VhsReplayManagerTest extends ReplayManagerTestBase {
 
-    private static final String SYSPROP_RESERVED_PORT = "har-replay.unit-tests.reservedPort";
+    static final String SYSPROP_RESERVED_PORT = "har-replay.unit-tests.reservedPort";
 
     @Override
     protected ReplayManagerTester createTester(Path tempDir, File harFile, ReplayServerConfig config) {
-        io.github.mike10004.vhs.harbridge.Hars.class.getName();
         return new VhsReplayManagerTester(tempDir, harFile, config);
     }
 
