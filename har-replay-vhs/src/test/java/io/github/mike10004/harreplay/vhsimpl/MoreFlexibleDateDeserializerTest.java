@@ -1,6 +1,5 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.gson.JsonElement;
@@ -13,7 +12,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.time.Instant;
@@ -41,7 +39,8 @@ public class MoreFlexibleDateDeserializerTest {
     public static List<TestCase> testCases() {
         return Arrays.asList(
                 TestCase.of("2018-03-12T10:44:05.37-04:00", "2018-03-12T10:44:05.37-04:00"),
-                TestCase.of("Feb 16, 2018 4:41:27 PM", "2018-02-16T16:41:27-05:00"),
+                TestCase.of("2018-03-12T10:44:05.37+09:00", "2018-03-12T10:44:05.37+09:00"),
+                TestCase.of("Feb 16, 2018 4:41:27 PM", DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault()).parse("2018-02-16T16:41:27")),
                 TestCase.of(new Date().getTime()),
                 new TestCase(JsonNull.INSTANCE, null, ex -> false),
                 TestCase.of("turtle", com.fasterxml.jackson.databind.exc.InvalidFormatException.class)
@@ -83,10 +82,14 @@ public class MoreFlexibleDateDeserializerTest {
             return new TestCase(new JsonPrimitive(input), date, ex -> false);
         }
 
-        public static TestCase of(String input, String iso8601Date) {
-            TemporalAccessor ta = DateTimeFormatter.ISO_DATE_TIME.parse(iso8601Date);
-            Instant instant = Instant.from(ta);
+        public static TestCase of(String input, TemporalAccessor temporal) {
+            Instant instant = Instant.from(temporal);
             return of(input, Date.from(instant));
+        }
+
+        public static TestCase of(String input, String iso8601Date) {
+            TemporalAccessor temporal = DateTimeFormatter.ISO_DATE_TIME.parse(iso8601Date);
+            return of(input, temporal);
         }
 
         public static TestCase of(long input) {
