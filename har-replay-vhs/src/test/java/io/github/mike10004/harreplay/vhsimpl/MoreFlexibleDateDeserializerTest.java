@@ -84,7 +84,7 @@ public class MoreFlexibleDateDeserializerTest {
         }
 
         public static TestCase of(String input, String iso8601Date) {
-            TemporalAccessor ta = DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("America/New_York")).parse(iso8601Date);
+            TemporalAccessor ta = DateTimeFormatter.ISO_DATE_TIME.parse(iso8601Date);
             Instant instant = Instant.from(ta);
             return of(input, Date.from(instant));
         }
