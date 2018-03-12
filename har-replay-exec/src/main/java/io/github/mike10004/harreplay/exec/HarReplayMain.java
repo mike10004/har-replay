@@ -3,7 +3,6 @@ package io.github.mike10004.harreplay.exec;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.io.CharSource;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -24,6 +23,7 @@ import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
 import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
 import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig;
+import io.github.mike10004.harreplay.vhsimpl.HarReaderFactory;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManager;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerConfig;
 import joptsimple.NonOptionArgumentSpec;
@@ -66,6 +66,8 @@ public class HarReplayMain {
     static final String OPT_REPLAY_CONFIG = "config";
     static final String OPT_SWITCHEROO = "switcheroo";
     static final String OPT_ECHO_BROWSER_OUTPUT = "echo-browser-output";
+    static final String OPT_HAR_READER_BEHAVIOR = "har-reader-behavior";
+    static final String OPT_HAR_READER_MODE = "har-reader-mode";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -79,6 +81,8 @@ public class HarReplayMain {
     private final OptionSpec<Void> echoServerSpec;
     private final OptionSpec<ReplayServerEngine> engineSpec;
     private final OptionSpec<File> replayConfigSpec;
+    private final OptionSpec<HarReaderBehavior> harReaderBehaviorSpec;
+    private final OptionSpec<HarReaderMode> harReaderModeSpec;
 
     public HarReplayMain() {
         this(new OptionParser());
@@ -114,12 +118,56 @@ public class HarReplayMain {
                 .withRequiredArg().ofType(File.class);
         parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
         parser.accepts(OPT_SWITCHEROO, "with --browser=chrome, use extension to change https URLs to http");
+        harReaderBehaviorSpec = parser.accepts(OPT_HAR_READER_BEHAVIOR, "set har reader behavior (EASIER or STOCK)")
+                .withRequiredArg().ofType(HarReaderBehavior.class).defaultsTo(HarReaderBehavior.DEFAULT);
+        harReaderModeSpec = parser.accepts(OPT_HAR_READER_MODE, "set har reader mode (STRICT or LAX)")
+                .withRequiredArg().ofType(HarReaderMode.class).defaultsTo(HarReaderMode.STRICT);
     }
 
-    protected List<HarEntry> readHarEntries(File harFile, Path scratchDir) throws IOException, HarReaderException {
-        CharSource cleanSource = SstoehrHarCleaningTransform.onDisk(scratchDir).transform(Files.asCharSource(harFile, StandardCharsets.UTF_8));
-        Har har = new HarReader().readFromString(cleanSource.read(), HarReaderMode.LAX);
+    protected Har readHarFile(OptionSet options, File harFile) throws IOException, HarReaderException {
+        HarReaderBehavior harReaderBehavior = harReaderBehaviorSpec.value(options);
+        HarReaderMode harReaderMode = harReaderModeSpec.value(options);
+        return readHarFile(harFile, harReaderBehavior, harReaderMode);
+    }
+
+    @SuppressWarnings("RedundantThrows")
+    protected static Har readHarFile(File harFile, HarReaderBehavior harReaderBehavior, HarReaderMode harReaderMode) throws IOException, HarReaderException {
+        HarReaderFactory harReaderFactory = harReaderBehavior.getFactory();
+        HarReader harReader = harReaderFactory.createReader();
+        return harReader.readFromFile(harFile, harReaderMode);
+    }
+
+    protected List<HarEntry> readHarEntries(OptionSet options, File harFile) throws IOException, HarReaderException {
+        Har har = readHarFile(options, harFile);
         return har.getLog().getEntries();
+    }
+
+    protected void runServer(OptionSet optionSet) throws IOException {
+        ReplayServerEngine engine = optionSet.valueOf(engineSpec);
+        ReplayManager manager = engine.createManager(this, optionSet);
+        try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
+            ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
+            HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
+            try (ReplaySessionControl ignore = manager.start(sessionConfig);
+                 ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
+                maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
+                HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
+                try {
+                    harDumpStyle.getDumper().dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
+                } catch (HarReaderException e) {
+                    System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
+                }
+                Browser browser = optionSet.valueOf(browserSpec);
+                if (browser != null) {
+                    //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
+                    ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
+                            .prepare(sessionConfig.scratchDir)
+                            .launch(replayServerAddress, processTracker);
+                }
+                sleepForever();
+            }
+        }
+
     }
 
     int main0(String[] args) throws IOException {
@@ -129,31 +177,7 @@ public class HarReplayMain {
                 parser.printHelpOn(System.out);
                 return 0;
             }
-            ReplayServerEngine engine = optionSet.valueOf(engineSpec);
-            ReplayManager manager = engine.createManager(this, optionSet);
-            try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
-                ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
-                HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
-                try (ReplaySessionControl ignore = manager.start(sessionConfig);
-                     ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
-                    maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
-                    HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
-                    try {
-                        harDumpStyle.getDumper().dump(readHarEntries(sessionConfig.harFile, sessionConfig.scratchDir), System.out);
-                    } catch (HarReaderException e) {
-                        System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
-                    }
-                    Browser browser = optionSet.valueOf(browserSpec);
-                    if (browser != null) {
-                        //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
-                        ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
-                                .prepare(sessionConfig.scratchDir)
-                                .launch(replayServerAddress, processTracker);
-                    }
-
-                    sleepForever();
-                }
-            }
+            runServer(optionSet);
         } catch (UsageException e) {
             System.err.format("har-replay: %s%n", e.getMessage());
             System.err.format("har-replay: use --help to print options");
@@ -296,7 +320,12 @@ public class HarReplayMain {
 
         @SuppressWarnings("unused") // no options to set when creating config instance yet
         protected VhsReplayManagerConfig createVhsReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
-            return VhsReplayManagerConfig.getDefault();
+            HarReaderBehavior behavior = (HarReaderBehavior) optionSet.valueOf(OPT_HAR_READER_BEHAVIOR);
+            HarReaderMode mode = (HarReaderMode) optionSet.valueOf(OPT_HAR_READER_MODE);
+            return VhsReplayManagerConfig.builder()
+                    .harReaderFactory(behavior.getFactory())
+                    .harReaderMode(mode)
+                    .build();
         }
 
         public ReplayManager createManager(HarReplayMain main, OptionSet optionSet) {
@@ -311,6 +340,25 @@ public class HarReplayMain {
                     throw new IllegalStateException("unhandled: " + this);
             }
         }
+    }
+
+    public enum HarReaderBehavior {
+        EASIER,
+        STOCK;
+
+        public static final HarReaderBehavior DEFAULT = EASIER;
+
+        public HarReaderFactory getFactory() {
+            switch (this) {
+                case EASIER:
+                    return HarReaderFactory.easier();
+                case STOCK:
+                    return HarReaderFactory.stock();
+                default:
+                    throw new IllegalStateException("unhandled: " + this);
+            }
+        }
+
     }
 
     public enum HarDumpStyle {

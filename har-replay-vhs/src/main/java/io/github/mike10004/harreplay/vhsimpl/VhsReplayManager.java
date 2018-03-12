@@ -1,6 +1,7 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.net.HostAndPort;
+import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.ReplayManager;
@@ -53,9 +54,10 @@ public class VhsReplayManager implements ReplayManager {
 
     @Override
     public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
+        HarReader harReader = config.harReaderFactory.createReader();
         List<HarEntry> entries;
         try {
-            entries = new de.sstoehr.harreader.HarReader().readFromFile(sessionConfig.harFile).getLog().getEntries();
+            entries = harReader.readFromFile(sessionConfig.harFile).getLog().getEntries();
         } catch (HarReaderException e) {
             throw new IOException(e);
         }

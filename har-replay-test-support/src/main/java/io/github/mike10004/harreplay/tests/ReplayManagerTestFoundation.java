@@ -42,7 +42,6 @@ import org.hamcrest.DiagnosingMatcher;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +51,6 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
