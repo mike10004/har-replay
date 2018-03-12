@@ -4,9 +4,12 @@ import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
@@ -46,7 +49,7 @@ public class NameValuePairList<T> {
         return pairs.stream()
                 .filter(p -> nameMatcher.test(name, nameGetter.apply(p)))
                 .map(valueGetter::apply)
-                .findFirst()
+                .map(Optional::ofNullable).findFirst().flatMap(Function.identity())
                 .orElse(null);
     }
 

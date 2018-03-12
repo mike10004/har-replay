@@ -2,6 +2,7 @@ package io.github.mike10004.harreplay.tests;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.net.HostAndPort;
 import de.sstoehr.harreader.HarReader;
@@ -250,7 +251,7 @@ public abstract class ReplayManagerTestFoundation {
                     }
                 }
             }
-            return result;
+            return ImmutableMultimap.copyOf(result);
         }
 
         private static String toString(HttpResponse response) throws IOException {

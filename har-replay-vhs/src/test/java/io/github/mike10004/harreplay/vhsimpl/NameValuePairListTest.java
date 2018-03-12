@@ -1,15 +1,19 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import io.github.mike10004.harreplay.vhsimpl.NameValuePairList.StringMapEntryList;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class NameValuePairListTest {
 
@@ -62,4 +66,18 @@ public class NameValuePairListTest {
         }
 
     }
+
+    @Test
+    public void useOptionalValues() {
+        Multimap<String, Optional<String>> mm = ImmutableMultimap.<String, Optional<String>>builder()
+                .put("x", Optional.empty())
+                .put("y", Optional.of("2"))
+                .put("x", Optional.of("1"))
+                .put("z", Optional.of("3"))
+                .build();
+        NameValuePairList list = NameValuePairList.caseSensitive(mm.entries(), Map.Entry::getKey, entry -> entry.getValue().orElse(null));
+        assertEquals("value for x", null, list.getFirstValue("x"));
+        assertEquals("value for 'y'", "2", list.getFirstValue("y"));
+    }
+
 }

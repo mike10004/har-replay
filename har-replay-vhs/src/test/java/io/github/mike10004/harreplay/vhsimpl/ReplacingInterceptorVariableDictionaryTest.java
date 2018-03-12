@@ -54,8 +54,9 @@ public class ReplacingInterceptorVariableDictionaryTest {
     @Parameters
     public static List<TestCase> testCases() {
         String sizeParamValue = "1200x800";
-        Multimap<String, String> query = ImmutableMultimap.<String, String>builder()
-                .put("size", sizeParamValue)
+        Multimap<String, Optional<String>> query = ImmutableMultimap.<String, Optional<String>>builder()
+                .put("size", Optional.of(sizeParamValue))
+                .put("valuelessParam", Optional.empty())
                 .build();
         String contentType = MediaType.JPEG.toString();
         Multimap<String, String> headers = ImmutableMultimap.<String, String>builder()
@@ -75,6 +76,7 @@ public class ReplacingInterceptorVariableDictionaryTest {
                 .add(TestCase.valid(request, "request.query.size", sizeParamValue))
                 .add(TestCase.valid(request, "request.query.Size", null))
                 .add(TestCase.valid(request, "request.query.legolas", null))
+                .add(TestCase.valid(request, "request.query.valuelessParam", null))
                 .build();
     }
 

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
@@ -76,11 +77,11 @@ public class CompositeEntryMatcherTest {
     private static ParsedRequest newRequest(HttpMethod method, String urlStr) {
         URI url = URI.create(urlStr);
         String query = url.getQuery();
-        Multimap<String, String> queryMap_ = null;
+        Multimap<String, Optional<String>> queryMap_ = null;
         if (query != null) {
-            Multimap<String, String> queryMap = ArrayListMultimap.create();
+            Multimap<String, Optional<String>> queryMap = ArrayListMultimap.create();
             URLEncodedUtils.parse(url, StandardCharsets.UTF_8).forEach(pair -> {
-                queryMap.put(pair.getKey(), pair.getValue());
+                queryMap.put(pair.getKey(), Optional.ofNullable(pair.getValue()));
             });
             queryMap_ = queryMap;
         }

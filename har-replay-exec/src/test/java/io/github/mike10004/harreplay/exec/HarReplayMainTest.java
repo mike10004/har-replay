@@ -2,16 +2,14 @@ package io.github.mike10004.harreplay.exec;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
 import io.github.mike10004.harreplay.exec.HarReplayMain.HarReaderBehavior;
+import io.github.mike10004.harreplay.tests.Fixtures;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -54,10 +52,7 @@ public class HarReplayMainTest {
     }
 
     private File getBrowsermobGeneratedHarFile() throws IOException {
-        URL harResource = getClass().getResource("/browsermob-generated.har");
-        File harFile = temporaryFolder.newFile();
-        Resources.asByteSource(harResource).copyTo(Files.asByteSink(harFile));
-        return harFile;
+        return Fixtures.copyBrowsermobGeneratedHarFile(temporaryFolder.getRoot().toPath());
     }
 
     private static class NonSleepingHarReplayMain extends HarReplayMain {

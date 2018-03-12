@@ -7,6 +7,7 @@ package io.github.mike10004.harreplay.tests;
 
 import com.google.common.base.Suppliers;
 import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
@@ -145,5 +146,12 @@ public class Fixtures {
         private JavascriptRedirectInfo() {}
 
 
+    }
+
+    public static File copyBrowsermobGeneratedHarFile(Path parent) throws IOException {
+        URL harResource = Fixtures.class.getResource("/browsermob-generated.har");
+        File harFile = File.createTempFile("browsermob-generated", ".har", parent.toFile());
+        Resources.asByteSource(harResource).copyTo(Files.asByteSink(harFile));
+        return harFile;
     }
 }

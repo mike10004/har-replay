@@ -1,12 +1,16 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Multimap;
 import io.github.mike10004.harreplay.VariableDictionary;
 import io.github.mike10004.harreplay.vhsimpl.NameValuePairList.StringMapEntryList;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -20,19 +24,28 @@ public class ReplacingInterceptorVariableDictionary implements VariableDictionar
     public static final String PREFIX_KEY_REQUEST_QUERY = "request.query.";
 
     private final ParsedRequest request;
-    private transient final Supplier<NameValuePairList.StringMapEntryList> headersList;
-    private transient final Supplier<NameValuePairList.StringMapEntryList> queryParamsList;
+    private transient final Supplier<NameValuePairList> headersList;
+    private transient final Supplier<NameValuePairList> queryParamsList;
 
     public ReplacingInterceptorVariableDictionary(ParsedRequest request) {
         this.request = requireNonNull(request);
         headersList = Suppliers.memoize(() -> StringMapEntryList.caseInsensitive(request.indexedHeaders.entries()));
         queryParamsList = Suppliers.memoize(() -> {
             if (request.query != null) {
-                return NameValuePairList.StringMapEntryList.caseSensitive(request.query.entries());
+                return caseSensitiveWithOptionalValues(request.query);
             } else {
                 return NameValuePairList.StringMapEntryList.empty();
             }
         });
+    }
+
+    @VisibleForTesting
+    static NameValuePairList caseSensitiveWithOptionalValues(Multimap<String, Optional<String>> q) {
+        return NameValuePairList.caseSensitive(q.entries(),
+                Map.Entry::getKey,
+                entry -> entry.getValue().orElse(null)
+        );
+
     }
 
     @Nullable
