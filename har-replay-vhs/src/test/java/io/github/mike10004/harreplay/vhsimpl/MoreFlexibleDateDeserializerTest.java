@@ -37,14 +37,16 @@ public class MoreFlexibleDateDeserializerTest {
 
     @Parameters
     public static List<TestCase> testCases() {
-        return Arrays.asList(
+        DateTimeFormatter localIsoFormat = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault());
+        //noinspection RedundantArrayCreation
+        return Arrays.asList(new TestCase[]{
                 TestCase.of("2018-03-12T10:44:05.37-04:00", "2018-03-12T10:44:05.37-04:00"),
                 TestCase.of("2018-03-12T10:44:05.37+09:00", "2018-03-12T10:44:05.37+09:00"),
-                TestCase.of("Feb 16, 2018 4:41:27 PM", DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault()).parse("2018-02-16T16:41:27")),
+                TestCase.of("Feb 16, 2018 4:41:27 PM", localIsoFormat.parse("2018-02-16T16:41:27")),
                 TestCase.of(new Date().getTime()),
                 new TestCase(JsonNull.INSTANCE, null, ex -> false),
-                TestCase.of("turtle", com.fasterxml.jackson.databind.exc.InvalidFormatException.class)
-        );
+                TestCase.of("turtle", com.fasterxml.jackson.databind.exc.InvalidFormatException.class),
+        });
     }
 
     @Test

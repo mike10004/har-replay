@@ -21,8 +21,8 @@ public class MoreFlexibleDateDeserializer extends StdDeserializer<Date> {
             Stream.of("yyyy-MM-dd'T'HH:mm:ss.SSSZ",
                     "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
                     "EEE, dd MMM yyyy HH:mm:ss zzz",
-                    "MMM dd, yyyy h:mm:ss a",         // Feb 16, 2018 4:41:27 PM
-                    "yyyy-MM-dd")
+                    "MMM dd, yyyy h:mm:ss a"         // Feb 16, 2018 4:41:27 PM
+                    )
             .map(SimpleDateFormat::new)
             .collect(ImmutableList.toImmutableList());
 
@@ -39,7 +39,7 @@ public class MoreFlexibleDateDeserializer extends StdDeserializer<Date> {
 
     protected Stream<DateFormat> streamSupportedFormats(DeserializationContext ctxt) {
         DateFormat contextFormat = ctxt.getConfig().getDateFormat();
-        return Stream.concat(Stream.of(contextFormat), alternativeFormats.stream());
+        return Stream.concat(alternativeFormats.stream(), Stream.of(contextFormat));
     }
 
     @Override
@@ -50,7 +50,8 @@ public class MoreFlexibleDateDeserializer extends StdDeserializer<Date> {
             @Nullable Date date = streamSupportedFormats(ctxt)
                     .map(dateFormat -> {
                         try {
-                            return dateFormat.parse(dateStr);
+                            Date result = dateFormat.parse(dateStr);
+                            return result;
                         } catch (ParseException ignore) {
                             return null;
                         }
