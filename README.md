@@ -5,38 +5,41 @@
 har-replay
 ==========
 
-Java library for serving recorded HTTP responses from a HAR file. The library
-uses a Node module called [har-replay-proxy] that acts as an HTTP proxy. The
-proxy intercepts each request and responds with a pre-recorded response from 
-a HAR.
+Java library and executable for serving recorded HTTP responses from a HAR 
+file. To use it, you construct a server from a HAR file and configure your 
+web browser to use the server as an HTTP proxy. The proxy intercepts each 
+request and responds with the corresponding pre-recorded response from the 
+HAR.
+
+Two implementations are available, one that is pure Java and one that uses
+a Node module called [har-replay-proxy].
 
 Quick Start
 -----------
+
+### Executable
+
+If you have a HAR file handy, build the `har-replay-exec` module and run the
+executable jar: 
+
+    java -jar har-replay-exec.jar --port 56789 /path/to/my.har
+
+That starts an HTTP proxy on port 56789 serving responses from `/path/to/my.har`.
+
+### Library
 
 Maven dependency:
 
     <dependency>
         <groupId>com.github.mike10004</groupId>
-        <artifactId>har-replay</artifactId>
+        <artifactId>har-replay-vhs</artifactId> <!-- or har-replay-node -->
         <version>0.11</version>
     </dependency>
 
 See Maven badge above for the actual latest version.
 
-If you have a HAR file handy, you can replay it as shown here:
-
-    public void execute(File harFile) throws IOException {
-        ReplayManagerConfig replayManagerConfig = ReplayManagerConfig.auto();
-        ReplayManager replayManager = new ReplayManager(replayManagerConfig);
-        ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
-                .build(harFile);
-        try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
-            doSomethingWithProxy("localhost", sessionConfig.port);
-        }
-    }
-
-The unit tests contain some examples of usage with an Apache HTTP client and a
-Chrome WebDriver client. 
+The unit tests contain some examples of using the library with an Apache HTTP 
+client and a Chrome WebDriver client. 
 
 Interrogatives
 --------------
