@@ -24,8 +24,12 @@ import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
 import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
 import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig;
 import io.github.mike10004.harreplay.vhsimpl.HarReaderFactory;
+import io.github.mike10004.harreplay.vhsimpl.ResponseManufacturerConfig;
+import io.github.mike10004.harreplay.vhsimpl.ResponseManufacturerProvider;
+import io.github.mike10004.harreplay.vhsimpl.SstoehrResponseManfacturerProvider;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManager;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerConfig;
+import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import joptsimple.NonOptionArgumentSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -319,14 +323,20 @@ public class HarReplayMain {
             return b.build();
         }
 
-        @SuppressWarnings("unused") // no options to set when creating config instance yet
+        @SuppressWarnings("unused")
         protected VhsReplayManagerConfig createVhsReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
+            return VhsReplayManagerConfig.builder()
+                    .responseManufacturerProvider(buildResponseManufacturerProvider(main, optionSet))
+                    .build();
+        }
+
+        protected ResponseManufacturerProvider buildResponseManufacturerProvider(HarReplayMain main, OptionSet optionSet) {
             HarReaderBehavior behavior = (HarReaderBehavior) optionSet.valueOf(OPT_HAR_READER_BEHAVIOR);
             HarReaderMode mode = (HarReaderMode) optionSet.valueOf(OPT_HAR_READER_MODE);
-            return VhsReplayManagerConfig.builder()
-                    .harReaderFactory(behavior.getFactory())
-                    .harReaderMode(mode)
-                    .build();
+            ResponseManufacturerConfig rmConfig = ResponseManufacturerConfig.getDefaultInstance();
+            BmpResponseListener rspListener = (x, y) -> {};
+            SstoehrResponseManfacturerProvider p = new SstoehrResponseManfacturerProvider(rmConfig, rspListener, behavior.getFactory(), mode);
+            return p;
         }
 
         public ReplayManager createManager(HarReplayMain main, OptionSet optionSet) {

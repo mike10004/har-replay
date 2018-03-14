@@ -33,18 +33,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 public class ReplacingInterceptor implements ResponseInterceptor {
 
-    @SuppressWarnings({"FieldCanBeLocal", "unused"}) // future: allow some configuration of replacement actions, such as ignoring content type
-    private final VhsReplayManagerConfig config;
     private final Replacement replacement;
 
-    public ReplacingInterceptor(VhsReplayManagerConfig config, Replacement replacement) {
-        this.config = requireNonNull(config, "config");
+    public ReplacingInterceptor(ResponseManufacturerConfig config, Replacement replacement) {
         this.replacement = requireNonNull(replacement, "replacement");
         requireNonNull(replacement.match, "replacement.match");
         requireNonNull(replacement.replace, "replacement.replace");

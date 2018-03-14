@@ -16,14 +16,11 @@ import static java.util.Objects.requireNonNull;
 
 public class HeaderTransformInterceptor implements ResponseInterceptor {
 
-    @SuppressWarnings({"FieldCanBeLocal", "unused"}) // future: support configuration of transform, such as case sensitivity
-    private final VhsReplayManagerConfig config;
     private final ResponseHeaderTransform headerTransform;
     private final Pattern nameMatchRegex;
     private final Pattern valueMatchRegex;
 
-    public HeaderTransformInterceptor(VhsReplayManagerConfig config, ResponseHeaderTransform headerTransform) {
-        this.config = requireNonNull(config, "config");
+    public HeaderTransformInterceptor(ResponseManufacturerConfig config, ResponseHeaderTransform headerTransform) {
         this.headerTransform = requireNonNull(headerTransform, "header transform");
         nameMatchRegex = headerTransform.getNameMatch().asRegex();
         valueMatchRegex = headerTransform.getValueMatch().asRegex();

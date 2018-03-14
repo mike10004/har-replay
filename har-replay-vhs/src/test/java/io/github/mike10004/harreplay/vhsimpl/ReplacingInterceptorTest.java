@@ -93,7 +93,7 @@ public class ReplacingInterceptorTest {
         Multimap<String, String> headers = ImmutableMultimap.of(HttpHeaders.CONTENT_TYPE, contentType.toString());
         ParsedRequest request = ParsedRequest.inMemory(HttpMethod.GET, URI.create("http://www.example.com/"), ImmutableMultimap.of(), ImmutableMultimap.of(), null);
         HttpRespondable response = HttpRespondable.inMemory(HttpStatus.SC_OK, headers, contentType, body);
-        ReplacingInterceptor interceptor = new ReplacingInterceptor(VhsReplayManagerConfig.getDefault(), replacement);
+        ReplacingInterceptor interceptor = new ReplacingInterceptor(ResponseManufacturerConfig.getDefaultInstance(), replacement);
         HttpRespondable intercepted = interceptor.intercept(request, response);
         return intercepted;
     }

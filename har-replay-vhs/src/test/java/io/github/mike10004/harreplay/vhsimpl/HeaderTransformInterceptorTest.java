@@ -34,7 +34,7 @@ public class HeaderTransformInterceptorTest {
 
     @Nullable
     private String testIntercept(Multimap<String, String> headersBefore, ResponseHeaderTransform headerTransform, String targetHeaderName) {
-        HeaderTransformInterceptor interceptor = new HeaderTransformInterceptor(VhsReplayManagerConfig.getDefault(), headerTransform);
+        HeaderTransformInterceptor interceptor = newInterceptor(headerTransform);
         ParsedRequest request = ParsedRequest.inMemory(HttpMethod.GET, URI.create("http://www.example.com/"), ImmutableMultimap.of(), ImmutableMultimap.of(), null);
         HttpRespondable response = HttpRespondable.inMemory(HttpStatus.SC_OK, headersBefore, MediaType.OCTET_STREAM, new byte[16]);
         HttpRespondable transformed = interceptor.intercept(request, response);
@@ -73,7 +73,7 @@ public class HeaderTransformInterceptorTest {
     }
 
     private static HeaderTransformInterceptor newInterceptor(ResponseHeaderTransform transform) {
-        return new HeaderTransformInterceptor(VhsReplayManagerConfig.getDefault(), transform);
+        return new HeaderTransformInterceptor(ResponseManufacturerConfig.getDefaultInstance(), transform);
     }
 
     private void testIsAnyTransformRequired(ResponseHeaderTransform transform, boolean expected, String...headerNamesAndValues) {
