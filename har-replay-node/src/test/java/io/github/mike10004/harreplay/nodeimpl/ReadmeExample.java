@@ -24,7 +24,7 @@ public class ReadmeExample {
         ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()
                 .build(harFile);
         try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
-            doSomethingWithProxy("localhost", sessionConfig.port);
+            doSomethingWithProxy("localhost", sessionControl.getListeningPort());
         }
     }
 

@@ -27,7 +27,8 @@ public class ReplaySessionConfig {
     /**
      * Port the proxy server should listen on.
      */
-    public final int port;
+    @Nullable
+    private final Integer port;
 
     /**
      * HAR file containing responses to be served.
@@ -100,13 +101,9 @@ public class ReplaySessionConfig {
      */
     public static final class Builder {
 
-        /**
-         * Default port the builder uses.
-         */
-        public static final int DEFAULT_PORT = 49877;
-
         private final Path scratchDir;
-        private int port = DEFAULT_PORT;
+        @Nullable
+        private Integer port;
         private File harFile;
         private ReplayServerConfig replayServerConfig = ReplayServerConfig.empty();
         private final List<ServerTerminationCallback> serverTerminationCallbacks = new ArrayList<>();
@@ -115,9 +112,9 @@ public class ReplaySessionConfig {
             this.scratchDir = checkNotNull(scratchDir);
         }
 
-        public Builder port(int val) {
+        public Builder port(int port) {
             checkArgument(port > 0 && port < 65536);
-            port = val;
+            this.port = port;
             return this;
         }
 
@@ -138,4 +135,8 @@ public class ReplaySessionConfig {
 
     }
 
+    @Nullable
+    Integer getPort() {
+        return port;
+    }
 }

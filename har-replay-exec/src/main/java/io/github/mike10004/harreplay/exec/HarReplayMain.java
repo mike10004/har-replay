@@ -147,10 +147,11 @@ public class HarReplayMain {
         ReplayManager manager = engine.createManager(this, optionSet);
         try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
             ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
-            HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
-            try (ReplaySessionControl ignore = manager.start(sessionConfig);
+            try (ReplaySessionControl sessionControl = manager.start(sessionConfig);
                  ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
-                maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
+                int port = sessionControl.getListeningPort();
+                HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", port);
+                maybeNotify(port, optionSet.valueOf(notifySpec));
                 HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
                 try {
                     harDumpStyle.getDumper().dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
@@ -190,9 +191,9 @@ public class HarReplayMain {
         Uninterruptibles.sleepUninterruptibly(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
     }
 
-    protected void maybeNotify(ReplaySessionConfig sessionConfig, @Nullable File notifyFile) throws IOException {
+    protected void maybeNotify(int port, @Nullable File notifyFile) throws IOException {
         if (notifyFile != null) {
-            Files.asCharSink(notifyFile, NOTIFY_FILE_CHARSET).write(String.valueOf(sessionConfig.port));
+            Files.asCharSink(notifyFile, NOTIFY_FILE_CHARSET).write(String.valueOf(port));
         }
     }
 

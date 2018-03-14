@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
+import io.github.mike10004.harreplay.ReplaySessions;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
@@ -114,8 +115,9 @@ public class NodeServerReplayManager implements ReplayManager {
     @Override
     public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
         ScopedProcessTracker processTracker = new ScopedProcessTracker();
-        ProcessMonitor<File, File> processMonitor = startAsyncWithTracker(processTracker, sessionConfig);
-        return new ScopedProcessTrackerSessionControl(processTracker, processMonitor, sessionConfig.port);
+        int port = ReplaySessions.getPortOrFindOpenPort(sessionConfig);
+        ProcessMonitor<File, File> processMonitor = startAsyncWithTracker(processTracker, sessionConfig, port);
+        return new ScopedProcessTrackerSessionControl(processTracker, processMonitor, port);
     }
 
     /**
@@ -125,7 +127,7 @@ public class NodeServerReplayManager implements ReplayManager {
      * @return a process monitor for the server process
      * @throws IOException if an I/O error occurs
      */
-    protected ProcessMonitor<File, File> startAsyncWithTracker(ProcessTracker processTracker, ReplaySessionConfig sessionConfig) throws IOException {
+    protected ProcessMonitor<File, File> startAsyncWithTracker(ProcessTracker processTracker, ReplaySessionConfig sessionConfig, int port) throws IOException {
         if (!sessionConfig.harFile.isFile()) {
             throw new FileNotFoundException(sessionConfig.harFile.getAbsolutePath());
         }
@@ -140,7 +142,7 @@ public class NodeServerReplayManager implements ReplayManager {
                 .from(sessionConfig.scratchDir.toFile())
                 .arg(cliJsFile.getAbsolutePath())
                 .args("--config", configJsonFile.getAbsolutePath())
-                .args("--port", String.valueOf(sessionConfig.port))
+                .args("--port", String.valueOf(port))
                 .arg("--debug")
                 .arg(sessionConfig.harFile.getAbsolutePath())
                 .build();

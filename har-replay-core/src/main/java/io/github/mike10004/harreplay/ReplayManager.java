@@ -14,4 +14,5 @@ public interface ReplayManager {
      * @throws IOException if starting fails due to I/O error
      */
     ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException;
+
 }

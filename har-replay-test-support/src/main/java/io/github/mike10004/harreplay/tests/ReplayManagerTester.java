@@ -1,14 +1,12 @@
 package io.github.mike10004.harreplay.tests;
 
+import com.google.common.base.Strings;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig.Builder;
 import io.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
 import io.github.mike10004.harreplay.ReplaySessionControl;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.net.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +55,6 @@ public abstract class ReplayManagerTester {
             rscb.port(httpPort);
         }
         ReplaySessionConfig sessionParams = rscb.build(harFile);
-        HostAndPort proxy = HostAndPort.fromParts("localhost", sessionParams.port);
-        System.out.format("exercise: proxy = %s%n", proxy);
         @SuppressWarnings("OptionalAssignedToNull")
         Optional<T> result = null;
         Exception exception = null;
@@ -99,9 +95,6 @@ public abstract class ReplayManagerTester {
         public boolean wasExecuted() {
             return latch.getCount() == 0;
         }
-
-        private static final int SIGKILL = 9, SIGINT = 15;
-        private static final ImmutableSet<Integer> normalExitCodes = ImmutableSet.of(128 + SIGINT, 128 + SIGKILL);
 
         @Override
         public void terminated(@Nullable Throwable cause) {

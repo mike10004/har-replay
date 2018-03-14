@@ -10,6 +10,7 @@ import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;
 import io.github.mike10004.harreplay.ReplayServerConfig.ResponseHeaderTransform;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
+import io.github.mike10004.harreplay.ReplaySessions;
 import io.github.mike10004.vhs.BasicHeuristic;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
@@ -68,7 +69,7 @@ public class VhsReplayManager implements ReplayManager {
         List<ResponseInterceptor> interceptors = new ArrayList<>();
         interceptors.addAll(buildInterceptorsForReplacements(sessionConfig.replayServerConfig.replacements));
         interceptors.addAll(buildInterceptorsForTransforms(sessionConfig.replayServerConfig.responseHeaderTransforms));
-        int port = sessionConfig.port;
+        int port = ReplaySessions.getPortOrFindOpenPort(sessionConfig);
         VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, compositeEntryMatcher, interceptors, config.bmpResponseListener);
         VirtualHarServerControl ctrl = vhs.start();
         Runnable stopListener = () -> {
