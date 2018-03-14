@@ -51,5 +51,4 @@ public class SstoehrResponseManfacturerProvider extends ResponseManufacturerProv
         return entryParser;
     }
 
-
 }
