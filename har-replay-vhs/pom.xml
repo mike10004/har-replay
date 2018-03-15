@@ -11,7 +11,7 @@
 
     <artifactId>har-replay-vhs</artifactId>
     <properties>
-        <vhs.version>0.11</vhs.version>
+        <vhs.version>0.12</vhs.version>
     </properties>
     <build>
         <pluginManagement>
