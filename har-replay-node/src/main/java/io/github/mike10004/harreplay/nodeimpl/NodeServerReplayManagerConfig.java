@@ -22,11 +22,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class NodeServerReplayManagerConfig {
 
@@ -107,7 +109,7 @@ public class NodeServerReplayManagerConfig {
     static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
         static final String ZIP_ROOT = "har-replay-proxy";
-        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy-0.0.1.zip";
+        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy-0.0.4.zip";
 
         public static ResourceDirectoryProvider getInstance() {
             return instance;
@@ -191,9 +193,10 @@ public class NodeServerReplayManagerConfig {
             return this;
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public Builder addOutputEchoes() {
-            addStdoutListener(config -> new PrintStreamTailerListener(System.out));
-            addStderrListener(config -> new PrintStreamTailerListener(System.err));
+            addStdoutListener(config -> new PrintStreamTailerListener(System.out, file -> {}));
+            addStderrListener(config -> new PrintStreamTailerListener(System.err, file -> {}));
             return this;
         }
 
@@ -202,23 +205,35 @@ public class NodeServerReplayManagerConfig {
         }
     }
 
-    private static class PrintStreamTailerListener extends TailerListenerAdapter {
+    static class PrintStreamTailerListener extends TailerListenerAdapter implements LogTailerListener {
 
         private final PrintStream destination;
+        private final Consumer<? super File> tailerStoppedCallback;
 
-        private PrintStreamTailerListener(PrintStream destination) {
-            this.destination = checkNotNull(destination);
+        private PrintStreamTailerListener(PrintStream destination, Consumer<? super File> tailerStoppedCallback) {
+            this.destination = requireNonNull(destination);
+            this.tailerStoppedCallback = requireNonNull(tailerStoppedCallback);
         }
 
         @Override
         public void handle(String line) {
             destination.println(line);
         }
+
+
+        @Override
+        public void tailerStopped(File file) {
+            tailerStoppedCallback.accept(file);
+        }
+    }
+
+    public interface LogTailerListener extends TailerListener {
+        void tailerStopped(File file);
     }
 
     public interface TailerFactory {
 
-        TailerListener createTailer(ReplaySessionConfig sessionConfig);
+        LogTailerListener createTailer(ReplaySessionConfig sessionConfig);
 
     }
 }

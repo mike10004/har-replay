@@ -1,10 +1,5 @@
 package io.github.mike10004.harreplay.nodeimpl;
 
-import io.github.mike10004.harreplay.ReplayManager;
-import io.github.mike10004.harreplay.ReplayServerConfig;
-import io.github.mike10004.harreplay.ReplaySessionConfig;
-import io.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
-import io.github.mike10004.harreplay.ReplaySessionControl;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.ProcessStillAliveException;
@@ -19,9 +14,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
+import io.github.mike10004.harreplay.ReplayManager;
+import io.github.mike10004.harreplay.ReplayServerConfig;
+import io.github.mike10004.harreplay.ReplaySessionConfig;
+import io.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
+import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.ReplaySessions;
+import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig.LogTailerListener;
 import org.apache.commons.io.input.Tailer;
-import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
 import javax.annotation.Nullable;
@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -164,10 +165,10 @@ public class NodeServerReplayManager implements ReplayManager {
                 }
             }
         }, replayManagerConfig.serverReadinessPollIntervalMillis, false); // false => tail from beginning of file
-        List<TailerListener> stdoutListeners = replayManagerConfig.stdoutListeners.stream()
+        List<LogTailerListener> stdoutListeners = replayManagerConfig.stdoutListeners.stream()
                 .map(factory -> factory.createTailer(sessionConfig))
                 .collect(Collectors.toList());
-        List<TailerListener> stderrListeners = replayManagerConfig.stderrListeners.stream()
+        List<LogTailerListener> stderrListeners = replayManagerConfig.stderrListeners.stream()
                 .map(factory -> factory.createTailer(sessionConfig))
                 .collect(Collectors.toList());
         addTailers(stdoutListeners, stdoutFile, future);
@@ -213,31 +214,38 @@ public class NodeServerReplayManager implements ReplayManager {
         }
     }
 
-    private void addTailers(Iterable<TailerListener> tailerListeners, File file, ListenableFuture<?> future) {
+    private void addTailers(Iterable<NodeServerReplayManagerConfig.LogTailerListener> tailerListeners, File file, ListenableFuture<?> future) {
         Executor directExecutor = MoreExecutors.directExecutor();
-        for (TailerListener tailerListener : tailerListeners) {
+        for (LogTailerListener tailerListener : tailerListeners) {
             Tailer tailer = org.apache.commons.io.input.Tailer.create(file, tailerListener);
-            Futures.addCallback(future, new TailerStopper(tailer), directExecutor);
+            Futures.addCallback(future, new TailerStopper(tailer, tailerListener::tailerStopped), directExecutor);
         }
     }
 
     private static class TailerStopper implements FutureCallback<Object> {
 
         private final Tailer tailer;
+        private final Consumer<? super File> stopCallback;
 
-        private TailerStopper(Tailer tailer) {
-            this.tailer = checkNotNull(tailer);
+        private TailerStopper(Tailer tailer, Consumer<? super File> stopCallback) {
+            this.tailer = requireNonNull(tailer);
+            this.stopCallback = requireNonNull(stopCallback);
+        }
+
+        private void always() {
+            tailer.stop();
+            stopCallback.accept(tailer.getFile());
         }
 
         @Override
         public void onSuccess(@Nullable Object result) {
-            tailer.stop();
+            always();
         }
 
         @SuppressWarnings("NullableProblems")
         @Override
         public void onFailure(Throwable t) {
-            tailer.stop();
+            always();
         }
     }
 
