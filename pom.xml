@@ -6,7 +6,7 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.15</version>
+    <version>0.16</version>
     <name>har-replay</name>
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <packaging>pom</packaging>
@@ -305,7 +305,7 @@
             <dependency>
                 <groupId>org.nanohttpd</groupId>
                 <artifactId>nanohttpd</artifactId>
-                <version>2.3.0</version>
+                <version>2.3.1</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
