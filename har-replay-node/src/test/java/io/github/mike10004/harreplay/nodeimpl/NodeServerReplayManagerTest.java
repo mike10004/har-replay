@@ -9,7 +9,6 @@ import io.github.mike10004.harreplay.tests.ImmutableHttpResponse;
 import io.github.mike10004.harreplay.tests.ReplayManagerTestBase;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
 import io.github.mike10004.harreplay.tests.Tests;
-import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 import org.junit.Test;
 
@@ -20,9 +19,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class NodeServerReplayManagerTest extends ReplayManagerTestBase {
 
@@ -56,6 +58,8 @@ public class NodeServerReplayManagerTest extends ReplayManagerTestBase {
             ImmutableHttpResponse rsp2 = Tests.fetch(proxyAddress, URI.create("http://www.somewhere-else.com/"));
             assertEquals("expect not found", 404, rsp2.status);
         }
+        boolean tailerStopped = listener.awaitStoppage(5, TimeUnit.SECONDS);
+        assertTrue("tailer stopped", tailerStopped);
         assertEquals("num tailed files", 1, listener.stoppedFiles.size());
         List<String> stdoutLines = Files.asCharSource(listener.stoppedFiles.iterator().next(), StandardCharsets.UTF_8).readLines();
         List<String> logLines = stdoutLines.stream().filter(line -> line.matches("^-?\\d{3}.*")).collect(Collectors.toList());
@@ -71,15 +75,22 @@ public class NodeServerReplayManagerTest extends ReplayManagerTestBase {
 
         public final List<String> lines;
         public final List<File> stoppedFiles;
+        private final CountDownLatch stoppageLatch;
 
         public MyLogTailerListener() {
             lines = Collections.synchronizedList(new ArrayList<>());
             stoppedFiles = Collections.synchronizedList(new ArrayList<>());
+            stoppageLatch = new CountDownLatch(1);
         }
 
         @Override
         public void tailerStopped(File file) {
             stoppedFiles.add(file);
+            stoppageLatch.countDown();
+        }
+
+        public boolean awaitStoppage(long timeout, TimeUnit unit) throws InterruptedException {
+            return stoppageLatch.await(timeout, unit);
         }
     }
 }

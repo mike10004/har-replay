@@ -9,25 +9,25 @@ public class InteractionLogParserTest {
 
     @Test
     public void parseInteraction_ok() {
-        String ok = "200 'GET' 'http://www.example.com/' 'text/html' 1270 'string' 'matchedentry'";
+        String ok = "200 'GET' 'http://www.example.com/' 'text/html' 1270 'matchedentry' 'abcdef'";
         Interaction interaction = new InteractionLogParser().parseInteraction(ok);
-        Interaction expected = new Interaction(200, "GET", "http://www.example.com/", "text/html", 1270, "string", "matchedentry");
+        Interaction expected = new Interaction(200, "GET", "http://www.example.com/", "text/html", 1270,  "matchedentry", "abcdef");
         assertEquals("parsed", expected, interaction);
     }
 
     @Test
     public void parseInteraction_notFound() {
-        String notFound = "404 'GET' 'http://www.somewhere-else.com/' 'text/plain' 13 'string' 'noentrymatch'";
+        String notFound = "404 'GET' 'http://www.somewhere-else.com/' 'text/plain' 13 'noentrymatch' 'abcdef'";
         Interaction interaction = new InteractionLogParser().parseInteraction(notFound);
-        Interaction expected = new Interaction(404, "GET", "http://www.somewhere-else.com/", "text/plain", 13, "string", "noentrymatch");
+        Interaction expected = new Interaction(404, "GET", "http://www.somewhere-else.com/", "text/plain", 13, "noentrymatch", "abcdef");
         assertEquals("parsed", expected, interaction);
     }
 
     @Test
     public void parseInteraction_contentTypeWithCharset() {
-        String ok = "200 'GET' 'http://www.example.com/' 'text/html; charset=UTF-8' 1270 'string' 'matchedentry'";
+        String ok = "200 'GET' 'http://www.example.com/' 'text/html; charset=UTF-8' 1270 'matchedentry' 'abcdef'";
         Interaction interaction = new InteractionLogParser().parseInteraction(ok);
-        Interaction expected = new Interaction(200, "GET", "http://www.example.com/", "text/html; charset=UTF-8", 1270, "string", "matchedentry");
+        Interaction expected = new Interaction(200, "GET", "http://www.example.com/", "text/html; charset=UTF-8", 1270, "matchedentry", "abcdef");
         assertEquals("parsed", expected, interaction);
     }
 }
