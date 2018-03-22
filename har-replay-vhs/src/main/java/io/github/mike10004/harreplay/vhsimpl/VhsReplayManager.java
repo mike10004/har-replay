@@ -7,6 +7,7 @@ import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.ReplaySessions;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
+import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.bmp.BmpResponseManufacturer;
 import io.github.mike10004.vhs.bmp.BrowsermobVhsConfig;
 import io.github.mike10004.vhs.bmp.BrowsermobVirtualHarServer;
@@ -38,7 +39,7 @@ public class VhsReplayManager implements ReplayManager {
         BmpResponseManufacturer responseManufacturer = config.responseManufacturerProvider.create(sessionConfig.harFile,
                 sessionConfig.replayServerConfig);
         int port = ReplaySessions.getPortOrFindOpenPort(sessionConfig);
-        VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, responseManufacturer);
+        VirtualHarServer vhs = createVirtualHarServer(port, sessionConfig.scratchDir, responseManufacturer, config.responseListener);
         VirtualHarServerControl ctrl = vhs.start();
         Runnable stopListener = () -> {
             sessionConfig.serverTerminationCallbacks.forEach(c -> {
@@ -48,11 +49,12 @@ public class VhsReplayManager implements ReplayManager {
         return new VhsReplaySessionControl(ctrl, true, stopListener);
     }
 
-    protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, BmpResponseManufacturer responseManufacturer) throws IOException {
+    protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, BmpResponseManufacturer responseManufacturer, BmpResponseListener responseListener) throws IOException {
         try {
             KeystoreData keystoreData = config.keystoreGenerator.generate("localhost");
             BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
                     .port(port)
+                    .responseListener(responseListener)
                     .tlsEndpointFactory(NanohttpdTlsEndpointFactory.create(keystoreData, null))
                     .scratchDirProvider(ScratchDirProvider.under(scratchParentDir));
             BrowsermobVhsConfig config = configBuilder.build();

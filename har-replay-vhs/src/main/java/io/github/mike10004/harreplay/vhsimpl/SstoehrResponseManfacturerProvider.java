@@ -6,7 +6,6 @@ import de.sstoehr.harreader.HarReaderMode;
 import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.vhs.EntryParser;
 import io.github.mike10004.vhs.HarBridgeEntryParser;
-import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
 
 import java.io.File;
@@ -21,19 +20,19 @@ public class SstoehrResponseManfacturerProvider extends ResponseManufacturerProv
     private final HarReaderMode harReaderMode;
     private final EntryParser<HarEntry> entryParser;
 
-    public SstoehrResponseManfacturerProvider(ResponseManufacturerConfig responseManufacturerConfig, BmpResponseListener responseListener, HarReaderFactory harReaderFactory, HarReaderMode harReaderMode) {
-        this(responseManufacturerConfig, responseListener, harReaderFactory, harReaderMode, new HarBridgeEntryParser<>(new SstoehrHarBridge()));
+    public SstoehrResponseManfacturerProvider(ResponseManufacturerConfig responseManufacturerConfig, HarReaderFactory harReaderFactory, HarReaderMode harReaderMode) {
+        this(responseManufacturerConfig, harReaderFactory, harReaderMode, HarBridgeEntryParser.withPlainEncoder(new SstoehrHarBridge()));
     }
 
-    public SstoehrResponseManfacturerProvider(ResponseManufacturerConfig responseManufacturerConfig, BmpResponseListener responseListener, HarReaderFactory harReaderFactory, HarReaderMode harReaderMode, EntryParser<HarEntry> entryParser) {
-        super(responseManufacturerConfig, responseListener);
+    public SstoehrResponseManfacturerProvider(ResponseManufacturerConfig responseManufacturerConfig, HarReaderFactory harReaderFactory, HarReaderMode harReaderMode, EntryParser<HarEntry> entryParser) {
+        super(responseManufacturerConfig);
         this.harReaderFactory = requireNonNull(harReaderFactory);
         this.entryParser = requireNonNull(entryParser);
         this.harReaderMode = requireNonNull(harReaderMode);
     }
 
     public static ResponseManufacturerProvider createDefault() {
-        return new SstoehrResponseManfacturerProvider(ResponseManufacturerConfig.getDefaultInstance(), (x, y) -> {}, HarReaderFactory.easier(), HarReaderMode.STRICT);
+        return new SstoehrResponseManfacturerProvider(ResponseManufacturerConfig.getDefaultInstance(), HarReaderFactory.easier(), HarReaderMode.STRICT);
     }
 
     @Override

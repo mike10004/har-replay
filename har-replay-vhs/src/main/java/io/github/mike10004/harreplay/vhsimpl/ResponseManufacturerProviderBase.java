@@ -7,7 +7,6 @@ import io.github.mike10004.vhs.EntryMatcherFactory;
 import io.github.mike10004.vhs.EntryParser;
 import io.github.mike10004.vhs.HeuristicEntryMatcher;
 import io.github.mike10004.vhs.ResponseInterceptor;
-import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.bmp.BmpResponseManufacturer;
 import io.github.mike10004.vhs.bmp.HarReplayManufacturer;
 
@@ -24,20 +23,14 @@ import static java.util.Objects.requireNonNull;
 public abstract class ResponseManufacturerProviderBase<H> implements ResponseManufacturerProvider {
 
     private final ResponseManufacturerConfig responseManufacturerConfig;
-    private final BmpResponseListener responseListener;
 
-    protected ResponseManufacturerProviderBase(ResponseManufacturerConfig responseManufacturerConfig, BmpResponseListener responseListener) {
+    protected ResponseManufacturerProviderBase(ResponseManufacturerConfig responseManufacturerConfig) {
         this.responseManufacturerConfig = requireNonNull(responseManufacturerConfig);
-        this.responseListener = requireNonNull(responseListener);
     }
 
     protected abstract List<H> readHarEntries(File harFile) throws IOException;
 
     protected abstract EntryParser<H> getHarEntryParser();
-
-    protected BmpResponseListener getResponseListener() {
-        return responseListener;
-    }
 
     protected ResponseManufacturerConfig getConfig() {
         return responseManufacturerConfig;
@@ -54,7 +47,7 @@ public abstract class ResponseManufacturerProviderBase<H> implements ResponseMan
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
         EntryMatcher harEntryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
         EntryMatcher compositeEntryMatcher = buildEntryMatcher(responseManufacturerConfig, harEntryMatcher, replayServerConfig);
-        return new HarReplayManufacturer(compositeEntryMatcher, responseInterceptors, getResponseListener());
+        return new HarReplayManufacturer(compositeEntryMatcher, responseInterceptors);
     }
 
     protected List<ResponseInterceptor> buildInterceptorsForReplacements(ResponseManufacturerConfig config, Collection<ReplayServerConfig.Replacement> replacements) {

@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
+import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.bmp.KeystoreGenerator;
 import io.github.mike10004.vhs.bmp.KeystoreType;
 
@@ -11,9 +12,11 @@ public class VhsReplayManagerConfig {
 
     public final KeystoreGenerator keystoreGenerator;
     public final ResponseManufacturerProvider responseManufacturerProvider;
+    public final BmpResponseListener responseListener;
 
     private VhsReplayManagerConfig(Builder builder) {
         keystoreGenerator = builder.keystoreGenerator;
+        responseListener = builder.responseListener;
         responseManufacturerProvider = builder.responseManufacturerProvider;
     }
 
@@ -30,10 +33,17 @@ public class VhsReplayManagerConfig {
 
         private KeystoreGenerator keystoreGenerator;
         private ResponseManufacturerProvider responseManufacturerProvider;
+        private BmpResponseListener responseListener;
 
         private Builder() {
             keystoreGenerator = KeystoreGenerator.createJreGenerator(KeystoreType.PKCS12);
             responseManufacturerProvider = SstoehrResponseManfacturerProvider.createDefault();
+            responseListener = (rq, rs) -> {};
+        }
+
+        public Builder responseListener(BmpResponseListener responseListener) {
+            this.responseListener = requireNonNull(responseListener);
+            return this;
         }
 
         public Builder keystoreGenerator(KeystoreGenerator val) {
