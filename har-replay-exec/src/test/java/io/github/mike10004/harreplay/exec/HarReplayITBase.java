@@ -4,11 +4,14 @@ import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import org.apache.commons.io.FileUtils;
+import org.junit.Assume;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+
+import static java.util.Objects.requireNonNull;
 
 public class HarReplayITBase {
 
@@ -26,9 +29,15 @@ public class HarReplayITBase {
                 FileUtils.listFiles(targetDir, null, false).forEach(System.out::println);
                 listedDirectoryAlready = true;
             }
+            skipTestIfSnapshot(jarFile, version);
             throw new FileNotFoundException(jarFile.getAbsolutePath());
         }
         return jarFile;
+    }
+
+    private static void skipTestIfSnapshot(File jarFile, String version) {
+        requireNonNull(version, "version");
+        Assume.assumeFalse(String.format("%s not found; use profile `fatjar` to build jar-with-dependencies", jarFile), version.endsWith("-SNAPSHOT"));
     }
 
     protected ProcessMonitor<String, String> execute(ProcessTracker processTracker, String...args) throws FileNotFoundException {

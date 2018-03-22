@@ -334,8 +334,7 @@ public class HarReplayMain {
             HarReaderBehavior behavior = (HarReaderBehavior) optionSet.valueOf(OPT_HAR_READER_BEHAVIOR);
             HarReaderMode mode = (HarReaderMode) optionSet.valueOf(OPT_HAR_READER_MODE);
             ResponseManufacturerConfig rmConfig = ResponseManufacturerConfig.getDefaultInstance();
-            BmpResponseListener rspListener = (x, y) -> {};
-            SstoehrResponseManfacturerProvider p = new SstoehrResponseManfacturerProvider(rmConfig, rspListener, behavior.getFactory(), mode);
+            SstoehrResponseManfacturerProvider p = new SstoehrResponseManfacturerProvider(rmConfig, behavior.getFactory(), mode);
             return p;
         }
 

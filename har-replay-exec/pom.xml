@@ -11,6 +11,19 @@
 
     <artifactId>har-replay-exec</artifactId>
 
+    <properties>
+        <jar-with-dependencies.build.skip>true</jar-with-dependencies.build.skip>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>fatjar</id>
+            <properties>
+                <jar-with-dependencies.build.skip>false</jar-with-dependencies.build.skip>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -35,6 +48,7 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <skipAssembly>${jar-with-dependencies.build.skip}</skipAssembly>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
