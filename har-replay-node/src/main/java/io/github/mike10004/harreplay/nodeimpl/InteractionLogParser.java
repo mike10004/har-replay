@@ -23,7 +23,7 @@ public class InteractionLogParser {
                 .build();
     }
 
-    // 200 'GET' 'http://www.example.com/' 'text/html' 1270 'string' 'matchedentry'
+    // 200 'GET' 'http://www.example.com/' 'text/html;charset=utf8' 1270 'matchedentry' '16aae9a53b5fe221e3dc7c212d977b80'
     public Interaction parseInteraction(String line) {
         try {
             String[] elements = csvParser.parseLine(line);
@@ -68,16 +68,16 @@ public class InteractionLogParser {
         public final int status;
         public final long contentLength;
         public final String contentType;
-        public final String lengthType;
         public final String origin;
+        public final String hash;
 
-        public Interaction(int status, String method, String url, String contentType, long contentLength, String lengthType, String origin) {
+        public Interaction(int status, String method, String url, String contentType, long contentLength, String origin, String hash) {
             this.method = method;
             this.url = url;
             this.status = status;
             this.contentLength = contentLength;
             this.contentType = contentType;
-            this.lengthType = lengthType;
+            this.hash = hash;
             this.origin = origin;
         }
 
@@ -89,7 +89,7 @@ public class InteractionLogParser {
                     ", status=" + status +
                     ", contentLength=" + contentLength +
                     ", contentType='" + contentType + '\'' +
-                    ", lengthType='" + lengthType + '\'' +
+                    ", hash='" + hash + '\'' +
                     ", origin='" + origin + '\'' +
                     '}';
         }
@@ -104,14 +104,13 @@ public class InteractionLogParser {
                     Objects.equals(method, that.method) &&
                     Objects.equals(url, that.url) &&
                     Objects.equals(contentType, that.contentType) &&
-                    Objects.equals(lengthType, that.lengthType) &&
+                    Objects.equals(hash, that.hash) &&
                     Objects.equals(origin, that.origin);
         }
 
         @Override
         public int hashCode() {
-
-            return Objects.hash(method, url, status, contentLength, contentType, lengthType, origin);
+            return Objects.hash(method, url, status, contentLength, contentType, hash, origin);
         }
     }
 

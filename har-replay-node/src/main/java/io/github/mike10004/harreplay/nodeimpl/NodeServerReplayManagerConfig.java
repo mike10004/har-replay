@@ -109,7 +109,7 @@ public class NodeServerReplayManagerConfig {
     static class EmbeddedClientDirProvider implements ResourceDirectoryProvider {
 
         static final String ZIP_ROOT = "har-replay-proxy";
-        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy-0.0.4.zip";
+        private static final String ZIP_RESOURCE_PATH = "/har-replay-proxy-0.0.5.zip";
 
         public static ResourceDirectoryProvider getInstance() {
             return instance;
