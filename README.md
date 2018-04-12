@@ -12,7 +12,7 @@ request and responds with the corresponding pre-recorded response from the
 HAR.
 
 Two implementations are available, one that is pure Java and one that uses
-a Node module called [har-replay-proxy].
+a Node module under the hood.
 
 Quick Start
 -----------
@@ -33,59 +33,51 @@ Maven dependency:
     <dependency>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay-vhs</artifactId> <!-- or har-replay-node -->
-        <version>0.11</version>
+        <version>0.12</version>
     </dependency>
 
 See Maven badge above for the actual latest version.
 
+    File harFile = new File("my-session.har");
+    ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir().build(harFile);
+    VhsReplayManagerConfig config = VhsReplayManagerConfig.getDefault();
+    ReplayManager replayManager = new VhsReplayManager(config);
+    try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
+        String proxySocketAddress = "localhost:" + sessionControl.getListeningPort();
+        URL url = new URL("http://www.example.com/");
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
+        try {
+            System.out.format("served from HAR: %s %s%n", conn.getResponseCode(), conn.getResponseMessage());
+            // do something with the connection...
+        } finally {
+            conn.disconnect();
+        }
+    }
+
 The unit tests contain some examples of using the library with an Apache HTTP 
 client and a Chrome WebDriver client. 
 
-Interrogatives
---------------
+FAQ
+---
 
 ### How do I create a HAR?
 
 You can use the DevTools in Chrome. See this unofficial tech support posting:
-[Generating a HAR file for troubleshooting][har-howto]. 
+[Generating a HAR file for troubleshooting][har-howto]. Another option is to
+use [browsermob-proxy](https://github.com/lightbody/browsermob-proxy) to 
+capture a HAR.
 
-### How does it handle HTTPS?
+### What's the difference between har-replay-vhs and har-replay-node?
 
-It doesn't, really, but there is an imperfect workaround. The server will match
-HTTP requests to HTTPS entries in the HAR (for better or worse), so you only have
-to make sure that on the client side you make HTTP requests instead of HTTPS 
-requests. The proxy does not support TLS connections, so HTTPS requests will not
-go through and will probably not even return an HTTP response, because they 
-won't even make it to the replay request handler. So you have to intercept HTTPS 
-requests and replace the protocol with `http://`.
+They are both implementations of a HAR replay manager, but **har-replay-vhs**
+(*vhs* stands for Virtual HAR Server) is a pure Java implementation based on
+[virtual-har-server] and **har-replay-node** is a JavaScript implementation 
+based on the [har-replay-proxy] Node module.
 
-If you're using Chrome, you can use the [Switcheroo extension][switcheroo].
-If you're using Chrome through a WebDriver and can't perform the manual 
-configuration required by that extension, you can use a modified version of
-the extension included with this library. Check out the ModifiedSwitcheroo
-class, which you can use to create a CRX file (Chrome extension file). You can
-configure a `ChromeOptions` instance with that CRX file and pass it to the
-`ChromeDriver` constructor, and your webdriver instance will be started with
-the extension, which intercepts requests to HTTPS URLs and modifies the URL to
-use HTTP instead. See the unit tests for an example of this.
-
-Note that the extension will not rewrite URLs that are visited as a result of
-redirects. To swap HTTPS for HTTP in those URLs, you have to add a response
-header transform to the `ReplaySessionConfig` object.
-
-Dependency on har-replay-proxy
--------------------------------
-
-The current **har-replay-proxy** version is 0.0.1. If an update is available, then
-the packaged zip in `src/main/resources` needs to be updated as well. To create
-a new packaged zip:
-
-* clone the **har-replay-proxy** repository, 
-* run `npm install` in that directory so that its `node_modules` subdirectory 
-  is populated,
-* delete the `.git` folder from that cloned repo directory, and
-* zip the folder so that the zip contains a `har-replay-proxy` directory at
-  its root. 
+It is likely that support for the **har-replay-node** implementation will be 
+discontinued in the future, so you should probably prefer the pure Java 
+implementation.   
 
 Debugging Travis Builds
 -----------------------
@@ -109,3 +101,4 @@ repo, and proceed manually from there.
 [switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
 [troubleshooting]: https://docs.travis-ci.com/user/common-build-problems/
+[virtual-har-server]: https://github.com/mike10004/virtual-har-server
