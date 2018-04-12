@@ -43,6 +43,63 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>stage-switcheroo-sources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/modified-switcheroo</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/modified-switcheroo</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>embed-switcheroo</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>modified-switcheroo.crx</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>crxtool-maven-plugin</artifactId>
+                <version>${crxtool.version}</version>
+                <executions>
+                    <execution>
+                        <id>crxtool-pack-extension-modified-switcheroo</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>pack-extension</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirectory>${project.build.directory}/modified-switcheroo</sourceDirectory>
+                            <outputFile>${project.build.directory}/modified-switcheroo.crx</outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <dependencies>

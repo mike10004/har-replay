@@ -1,6 +1,5 @@
 package io.github.mike10004.harreplay.nodeimpl;
 
-import io.github.mike10004.harreplay.ModifiedSwitcheroo;
 import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester.ReplayClient;

@@ -1,4 +1,4 @@
-package io.github.mike10004.harreplay;
+package io.github.mike10004.harreplay.nodeimpl;
 
 import org.junit.Test;
 

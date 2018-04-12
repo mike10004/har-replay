@@ -1,6 +1,6 @@
 package io.github.mike10004.harreplay.exec;
 
-import io.github.mike10004.harreplay.ModifiedSwitcheroo;
+import io.github.mike10004.harreplay.nodeimpl.ModifiedSwitcheroo;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;

@@ -1,6 +1,5 @@
 package io.github.mike10004.harreplay.nodeimpl;
 
-import io.github.mike10004.harreplay.tests.ModifiedSwitcherooTestBase;
 import io.github.mike10004.harreplay.tests.ReplayManagerTester;
 
 import java.io.File;

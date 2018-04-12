@@ -1,12 +1,10 @@
 package io.github.mike10004.harreplay.tests;
 
-import io.github.mike10004.harreplay.ModifiedSwitcheroo;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.google.common.net.HostAndPort;
-import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import javax.annotation.Nullable;
@@ -36,32 +34,6 @@ public interface ChromeOptionsProducer {
     static ChromeOptionsProducer standard() {
         return proxy -> {
             ChromeOptions options = new ChromeOptions();
-            options.addArguments(populateArgsList(proxy));
-            return options;
-        };
-    }
-
-    /**
-     * Gets a producer instance that configures Chrome to use the Switcheroo extension.
-     * @param temporaryDirectory the temp dir to copy the extension archive to
-     * @return the producer
-     */
-    static ChromeOptionsProducer withSwitcheroo(Path temporaryDirectory) {
-        return (proxy) -> {
-            ChromeOptions options = new ChromeOptions();
-            File switcherooExtensionFile;
-            URL resource = ModifiedSwitcheroo.getExtensionCrxResource();
-            if ("file".equals(resource.getProtocol())) {
-                try {
-                    switcherooExtensionFile = new File(resource.toURI());
-                } catch (URISyntaxException e) {
-                    throw new IOException(e);
-                }
-            } else {
-                switcherooExtensionFile = File.createTempFile("modified-switcheroo", ".crx", temporaryDirectory.toFile());
-                Resources.asByteSource(resource).copyTo(Files.asByteSink(switcherooExtensionFile));
-            }
-            options.addExtensions(switcherooExtensionFile);
             options.addArguments(populateArgsList(proxy));
             return options;
         };
