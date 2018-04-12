@@ -11,6 +11,7 @@ public class NodeServerReplayManagerTest extends ReplayManagerTestBase {
 
     static final String SYSPROP_NODE_EXECUTABLE = "har-replay.node.executable";
     static final String SYSPROP_SERVER_REPLAY_HTTP_PORT = "server-replay.port"; // see pom.xml build-helper-plugin
+    static final String SYSPROP_SERVER_READINESS_TIMEOUT_MILLIS = "hr.node.serverReadinessTimeoutMillis";
 
     @Override
     protected ReplayManagerTester createTester(Path tempDir, File harFile, ReplayServerConfig config) {

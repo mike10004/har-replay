@@ -6,4 +6,4 @@ build_script:
 
     mvn --version
 
-    mvn install --quiet --batch-mode
+    mvn install --quiet --batch-mode -Dhr.node.serverReadinessTimeoutMillis=10000

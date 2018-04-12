@@ -1,13 +1,16 @@
 package io.github.mike10004.harreplay.tests;
 
+import com.google.common.collect.Multimap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.CharSource;
 import com.google.common.net.HostAndPort;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse.Builder;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -101,5 +104,21 @@ public class Tests {
 
     public static String getRecommendedChromeDriverVersion() {
         return System.getProperty(SYSPROP_CHROMEDRIVER_VERSION, _RECOMMENDED_CHROME_DRIVER_VERSION);
+    }
+
+    public static void dump(Multimap<String, CharSource> sources, PrintStream out) {
+        sources.forEach((tag, source) -> {
+            out.format("%n================================================================================%n");
+            out.format("%n==== start %-16s ================================================%n", tag);
+            out.format("%n================================================================================%n");
+            try {
+                source.copyTo(out);
+            } catch (IOException e) {
+                System.err.println(e.toString());
+            }
+            out.format("%n================================================================================%n");
+            out.format("%n==== end   %-16s ================================================%n", tag);
+            out.format("%n================================================================================%n");
+        });
     }
 }

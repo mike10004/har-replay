@@ -1,14 +1,13 @@
 package io.github.mike10004.harreplay.tests;
 
+import com.google.common.base.Strings;
+import com.google.common.net.HostAndPort;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig.Builder;
 import io.github.mike10004.harreplay.ReplaySessionConfig.ServerTerminationCallback;
 import io.github.mike10004.harreplay.ReplaySessionControl;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.net.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +46,6 @@ public abstract class ReplayManagerTester {
     protected abstract ReplayManager createReplayManager();
 
     public <T> T exercise(ReplayClient<T> client, @Nullable Integer httpPort) throws Exception {
-
         ReplayManager replay = createReplayManager();
         AwaitableServerTerminationCallback infoCallback = new AwaitableServerTerminationCallback();
         Builder rscb = ReplaySessionConfig.builder(tempDir)
@@ -58,34 +56,38 @@ public abstract class ReplayManagerTester {
         }
         ReplaySessionConfig sessionParams = rscb.build(harFile);
         HostAndPort proxy = HostAndPort.fromParts("localhost", sessionParams.port);
-        System.out.format("exercise: proxy = %s%n", proxy);
+        System.out.format("ReplayManagerTester: exercise: proxy = %s%n", proxy);
         @SuppressWarnings("OptionalAssignedToNull")
         Optional<T> result = null;
         Exception exception = null;
         ReplaySessionControl sessionControlCopy = null;
         boolean infoCallbackAwaitSucceeded;
+        System.out.format("ReplayManagerTester: starting replay session%n");
         try (ReplaySessionControl sessionControl = replay.start(sessionParams)) {
+            System.out.format("ReplayManagerTester: replay session started on %s%n", sessionControl.getSocketAddress());
             sessionControlCopy = sessionControl;
             result = Optional.ofNullable(client.useReplayServer(tempDir, sessionControl));
         } catch (Exception e) {
-            System.err.format("exercise() aborting abnormally due to exception%n");
+            System.out.format("ReplayManagerTester: exercise() aborting abnormally due to exception%n");
             e.printStackTrace(System.err);
             exception = e;
+            exerciseAbortedAbnormally(e);
         } finally {
             if (sessionControlCopy != null) {
                 assertFalse("process still alive", sessionControlCopy.isAlive());
             }
-            System.out.println("awaiting execution of process callback");
+            System.out.println("ReplayManagerTester: awaiting execution of process callback");
             infoCallbackAwaitSucceeded = infoCallback.await(3, TimeUnit.SECONDS);
         }
+        assertNull("exception was thrown, probably from useReplayServer", exception);
         assertTrue("callback executed", infoCallback.wasExecuted());
         assertTrue("infoCallbackAwaitSucceeded", infoCallbackAwaitSucceeded);
-        if (exception != null) {
-            exception.printStackTrace(System.err);
-        }
-        assertNull("exception was thrown, probably from useReplayServer", exception);
         checkState(result != null, "result never set");
         return result.orElse(null);
+    }
+
+    protected void exerciseAbortedAbnormally(Exception e) {
+
     }
 
     private static class AwaitableServerTerminationCallback implements ServerTerminationCallback {
@@ -100,16 +102,13 @@ public abstract class ReplayManagerTester {
             return latch.getCount() == 0;
         }
 
-        private static final int SIGKILL = 9, SIGINT = 15;
-        private static final ImmutableSet<Integer> normalExitCodes = ImmutableSet.of(128 + SIGINT, 128 + SIGKILL);
-
         @Override
         public void terminated(@Nullable Throwable cause) {
-            try {
-                System.out.println("program finished: " + cause);
-            } finally {
-                latch.countDown();
+            System.out.println("AwaitableServerTerminationCallback: terminated");
+            if (cause != null) {
+                System.out.format("AwaitableServerTerminationCallback: program terminated with exception %s%n", cause);
             }
+            latch.countDown();
         }
 
     }

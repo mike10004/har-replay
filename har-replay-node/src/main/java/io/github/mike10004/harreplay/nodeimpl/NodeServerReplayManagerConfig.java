@@ -1,12 +1,12 @@
 package io.github.mike10004.harreplay.nodeimpl;
 
-import io.github.mike10004.harreplay.ReplaySessionConfig;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import io.github.mike10004.harreplay.ReplaySessionConfig;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.commons.lang3.StringUtils;
@@ -26,9 +26,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class NodeServerReplayManagerConfig {
+
+    public static final int DEFAULT_SERVER_READINESS_POLL_INTERVAL_MILLIS = 100;
+    public static final int DEFAULT_SERVER_READINESS_TIMEOUT_MILLIS = 3000;
 
     private static final NodeServerReplayManagerConfig AUTO_CONFIG_INSTANCE = NodeServerReplayManagerConfig.builder().build();
 
@@ -51,22 +54,31 @@ public class NodeServerReplayManagerConfig {
      * This parameter defines how long to wait between polls, in milliseconds.
      * This is not currently configurable.
      */
-    public final long serverReadinessPollIntervalMillis = 20;
+    public final long serverReadinessPollIntervalMillis;
 
     /**
      * Length of time to wait for the server to become ready, in milliseconds.
      * This is not currently configurable, but should be.
      */
-    public final int serverReadinessTimeoutMillis = 3000;
+    public final int serverReadinessTimeoutMillis;
 
     public final ImmutableList<TailerFactory> stdoutListeners;
     public final ImmutableList<TailerFactory> stderrListeners;
+
+    final ReadinessCheckEcho readinessCheckEcho;
 
     private NodeServerReplayManagerConfig(Builder builder) {
         nodeExecutable = builder.nodeExecutable;
         harReplayProxyDirProvider = builder.harReplayProxyDirProvider;
         stdoutListeners = ImmutableList.copyOf(builder.stdoutListeners);
         stderrListeners = ImmutableList.copyOf(builder.stderrListeners);
+        serverReadinessPollIntervalMillis = builder.serverReadinessPollIntervalMillis;
+        serverReadinessTimeoutMillis = builder.serverReadinessTimeoutMillis;
+        readinessCheckEcho = builder.readinessCheckEcho;
+    }
+
+    interface ReadinessCheckEcho {
+        void examinedLine(String line, boolean signalsReadiness);
     }
 
     /**
@@ -160,19 +172,34 @@ public class NodeServerReplayManagerConfig {
         private ResourceDirectoryProvider harReplayProxyDirProvider = EmbeddedClientDirProvider.getInstance();
         private final List<TailerFactory> stdoutListeners = new ArrayList<>();
         private final List<TailerFactory> stderrListeners = new ArrayList<>();
+        private long serverReadinessPollIntervalMillis = DEFAULT_SERVER_READINESS_POLL_INTERVAL_MILLIS;
+        private int serverReadinessTimeoutMillis = DEFAULT_SERVER_READINESS_TIMEOUT_MILLIS;
+        private ReadinessCheckEcho readinessCheckEcho = (line, result) -> {};
 
         private Builder() {
         }
 
+        Builder readinessCheckEcho(ReadinessCheckEcho readinessCheckEcho) {
+            this.readinessCheckEcho = requireNonNull(readinessCheckEcho);
+            return this;
+        }
+
+        public Builder serverReadinessPolling(int timeoutMillis, int pollIntervalMillis) {
+            checkArgument(pollIntervalMillis > 0, "pollIntervalMillis > 0 is required: %s", pollIntervalMillis);
+            this.serverReadinessTimeoutMillis = timeoutMillis;
+            this.serverReadinessPollIntervalMillis = pollIntervalMillis;
+            return this;
+        }
+
         @SuppressWarnings("UnusedReturnValue")
         public Builder addStdoutListener(TailerFactory val) {
-            stdoutListeners.add(val);
+            stdoutListeners.add(requireNonNull(val));
             return this;
         }
 
         @SuppressWarnings("UnusedReturnValue")
         public Builder addStderrListener(TailerFactory val) {
-            stderrListeners.add(val);
+            stderrListeners.add(requireNonNull(val));
             return this;
         }
 
@@ -187,7 +214,7 @@ public class NodeServerReplayManagerConfig {
 
         @SuppressWarnings("unused")
         public Builder harReplayProxyDirProvider(ResourceDirectoryProvider val) {
-            harReplayProxyDirProvider = checkNotNull(val);
+            harReplayProxyDirProvider = requireNonNull(val);
             return this;
         }
 
@@ -207,7 +234,7 @@ public class NodeServerReplayManagerConfig {
         private final PrintStream destination;
 
         private PrintStreamTailerListener(PrintStream destination) {
-            this.destination = checkNotNull(destination);
+            this.destination = requireNonNull(destination);
         }
 
         @Override

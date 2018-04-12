@@ -157,6 +157,7 @@ public class NodeServerReplayManager implements ReplayManager {
             @Override
             public void handle(String line) {
                 boolean listeningNotificationLine = isServerListeningNotificationLine(line);
+                replayManagerConfig.readinessCheckEcho.examinedLine(line, listeningNotificationLine);
                 if (listeningNotificationLine) {
                     listeningLatch.countDown();
                 }
@@ -173,7 +174,7 @@ public class NodeServerReplayManager implements ReplayManager {
         boolean foundListeningLine = Uninterruptibles.awaitUninterruptibly(listeningLatch, replayManagerConfig.serverReadinessTimeoutMillis, TimeUnit.MILLISECONDS);
         listeningWatch.stop();
         if (!foundListeningLine) {
-            throw new ServerFailedToStartException("timed out while waiting for server to start");
+            throw new ServerFailedToStartException("timed out while waiting for server to start", stdoutFile, stderrFile);
         }
         return monitor;
     }
@@ -193,22 +194,17 @@ public class NodeServerReplayManager implements ReplayManager {
     }
 
     @SuppressWarnings("unused")
-    private static class ServerFailedToStartException extends IOException {
+    public static class ServerFailedToStartException extends IOException {
 
-        public ServerFailedToStartException() {
-        }
+        final File stdoutFile;
+        final File stderrFile;
 
-        public ServerFailedToStartException(String message) {
+        public ServerFailedToStartException(String message, File stdoutFile, File stderrFile) {
             super(message);
+            this.stdoutFile = stdoutFile;
+            this.stderrFile = stderrFile;
         }
 
-        public ServerFailedToStartException(String message, Throwable cause) {
-            super(message, cause);
-        }
-
-        public ServerFailedToStartException(Throwable cause) {
-            super(cause);
-        }
     }
 
     private void addTailers(Iterable<TailerListener> tailerListeners, File file, ListenableFuture<?> future) {
