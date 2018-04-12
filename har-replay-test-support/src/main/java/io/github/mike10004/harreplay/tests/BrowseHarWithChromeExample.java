@@ -1,20 +1,15 @@
 /*
  *
  */
-package io.github.mike10004.harreplay.nodeimpl;
+package io.github.mike10004.harreplay.tests;
 
 import com.google.common.net.HostAndPort;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
-import io.github.mike10004.harreplay.tests.ChromeOptionsProducer;
-import io.github.mike10004.harreplay.tests.Tests;
 import org.apache.commons.io.FileUtils;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
@@ -22,34 +17,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("Duplicates")
-public class BrowseHarWithChromeExample extends ReadmeExample {
-
-    public static void main(String[] args) throws Exception {
-        File defaultFile = new File(ReadmeExample.class.getResource("/https.www.example.com.har").toURI());
-        File startDir = defaultFile.getParentFile();
-        AtomicReference<File> selectedFileHolder = new AtomicReference<>(defaultFile);
-        javax.swing.SwingUtilities.invokeAndWait(() -> {
-            JFileChooser chooser = new JFileChooser(startDir);
-            FileNameExtensionFilter filter = new FileNameExtensionFilter(
-                    "HAR files", "har");
-            chooser.setFileFilter(filter);
-            int returnVal = chooser.showOpenDialog(null);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = chooser.getSelectedFile();
-                selectedFileHolder.set(selectedFile);
-            }
-        });
-        File selectedFile = selectedFileHolder.get();
-        System.out.format("browsing har: %s%n", selectedFile);
-        new BrowseHarWithChromeExample().execute(selectedFile);
-    }
+public abstract class BrowseHarWithChromeExample extends ReadmeExample {
 
     private static final int CLOSED_POLL_INITIAL_DELAY_MS = 1000;
     private static final int CLOSED_POLL_INTERVAL_MS = 100;
     private final Object windowClosedSignal = new Object();
+
+    protected ChromeOptions createChromeOptions(Path tempDir, HostAndPort proxy) throws IOException {
+        return ChromeOptionsProducer.standard().produceOptions(proxy);
+    }
 
     @Override
     protected void doSomethingWithProxy(String host, int port) throws IOException {
@@ -57,7 +35,7 @@ public class BrowseHarWithChromeExample extends ReadmeExample {
         HostAndPort proxy = HostAndPort.fromParts(host, port);
         System.out.format("har replay proxy listening at %s%n", proxy);
         ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
-        ChromeOptions options = ModifiedSwitcherooTestBase.withSwitcheroo(tempDir).produceOptions(proxy);
+        ChromeOptions options = createChromeOptions(tempDir, proxy);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         ChromeDriver driver = new ChromeDriver(options);
         try {
