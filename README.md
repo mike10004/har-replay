@@ -1,4 +1,4 @@
-[![Travis build status](https://travis-ci.org/mike10004/chrome-cookie-implant.svg?branch=master)](https://travis-ci.org/mike10004/chrome-cookie-implant)
+[![Travis build status](https://travis-ci.org/mike10004/har-replay.svg?branch=master)](https://travis-ci.org/mike10004/har-replay)
 [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/tfhj96elsi8ytf82?svg=true)](https://ci.appveyor.com/project/mike10004/har-replay)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.mike10004/har-replay.svg)](https://repo1.maven.org/maven2/com/github/mike10004/har-replay/)
 
@@ -71,9 +71,9 @@ capture a HAR.
 ### What's the difference between har-replay-vhs and har-replay-node?
 
 They are both implementations of a HAR replay manager, but **har-replay-vhs**
-(*vhs* stands for Virtual HAR Server) is a pure Java implementation based on
-[virtual-har-server] and **har-replay-node** is a JavaScript implementation 
-based on the [har-replay-proxy] Node module.
+is a pure Java implementation powered by [virtual-har-server] and 
+**har-replay-node** is a JavaScript implementation powered by the 
+[har-replay-proxy] Node module.
 
 It is likely that support for the **har-replay-node** implementation will be 
 discontinued in the future, so you should probably prefer the pure Java 

@@ -15,6 +15,7 @@ import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
 import io.github.mike10004.vhs.EntryParser;
 import io.github.mike10004.vhs.HarBridgeEntryParser;
+import io.github.mike10004.vhs.HarResponseEncoderFactory;
 import io.github.mike10004.vhs.HeuristicEntryMatcher;
 import io.github.mike10004.vhs.ResponseInterceptor;
 import io.github.mike10004.vhs.VirtualHarServer;
@@ -61,7 +62,8 @@ public class VhsReplayManager implements ReplayManager {
         } catch (HarReaderException e) {
             throw new IOException(e);
         }
-        EntryParser<HarEntry> parser = new HarBridgeEntryParser<>(new SstoehrHarBridge());
+        HarResponseEncoderFactory<HarEntry> responseEncoderFactory = HarResponseEncoderFactory.alwaysIdentityEncoding();
+        EntryParser<HarEntry> parser = new HarBridgeEntryParser<>(new SstoehrHarBridge(), responseEncoderFactory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
         EntryMatcher harEntryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
         EntryMatcher compositeEntryMatcher = buildEntryMatcher(harEntryMatcher, sessionConfig.replayServerConfig);
@@ -82,9 +84,10 @@ public class VhsReplayManager implements ReplayManager {
     protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, EntryMatcher entryMatcher, Iterable<ResponseInterceptor> responseInterceptors, BmpResponseListener bmpResponseListener) throws IOException {
         try {
             KeystoreData keystoreData = config.keystoreGenerator.generate("localhost");
-            HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, responseInterceptors, bmpResponseListener);
+            HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, responseInterceptors);
             BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
                     .port(port)
+                    .responseListener(bmpResponseListener)
                     .tlsEndpointFactory(NanohttpdTlsEndpointFactory.create(keystoreData, null))
                     .scratchDirProvider(ScratchDirProvider.under(scratchParentDir));
             BrowsermobVhsConfig config = configBuilder.build();
