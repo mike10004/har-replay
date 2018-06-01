@@ -1,0 +1,146 @@
+{
+  "log": {
+    "version": "1.2",
+    "creator": {
+      "name": "BrowserMob Proxy",
+      "version": "2.1.5",
+      "comment": ""
+    },
+    "pages": [
+      {
+        "id": "Page 0",
+        "startedDateTime": "2018-03-21T18:05:45.593Z",
+        "title": "Page 0",
+        "pageTimings": {
+          "onLoad": 4004,
+          "comment": ""
+        },
+        "comment": ""
+      }
+    ],
+    "entries": [
+      {
+        "pageref": "Page 0",
+        "startedDateTime": "2018-03-21T18:05:46.900Z",
+        "request": {
+          "method": "GET",
+          "url": "http://httpbin.org/brotli",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "Host",
+              "value": "httpbin.org"
+            },
+            {
+              "name": "Proxy-Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            }
+          ],
+          "queryString": [],
+          "headersSize": 402,
+          "bodySize": 0,
+          "comment": ""
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Server",
+              "value": "meinheld/0.6.1"
+            },
+            {
+              "name": "Date",
+              "value": "Wed, 21 Mar 2018 18:05:45 GMT"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Length",
+              "value": "290"
+            },
+            {
+              "name": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "name": "Access-Control-Allow-Credentials",
+              "value": "true"
+            },
+            {
+              "name": "X-Powered-By",
+              "value": "Flask"
+            },
+            {
+              "name": "X-Processed-Time",
+              "value": "0"
+            },
+            {
+              "name": "Via",
+              "value": "1.1 vegur"
+            }
+          ],
+          "content": {
+            "size": 290,
+            "mimeType": "application/json",
+            "text": "G+gBAByH6QZ7VkL/7oahqXWlurNJR+ZXZDxIDSJC1rcVWJawTt28HtjGbEzN5qa2FmYZd2GqcyFAPOBS1oG68g2MnxcKx26uC8hj1ErMKaeMQPAgOzEpat2oPD9OTJ/qHu/oLoF1aA+uwJnMXVb8loT95Szo24whPME8DNhQJuuAhsacZGfRM2AJ364SLHsHYJG07Pdd0hZWDs5PCIcfnImRExYS9PN57sOincIseN+eFz77aM1isn5uSMcSkcGUjKxXGhLRba9eeJUTALoo2qvsh7uheZqCPxnd+ifhq5jrRNY5WQNoLEGLska3JKo6/L/HKa8pnJB+JEPiREMD7yANxkK1gLilCCNgUpttuJnQELQVnZNEkTuzFUHLPQ==",
+            "encoding": "base64",
+            "comment": ""
+          },
+          "redirectURL": "",
+          "headersSize": 311,
+          "bodySize": 290,
+          "comment": ""
+        },
+        "cache": {},
+        "timings": {
+          "comment": "",
+          "send": 2,
+          "wait": 22,
+          "receive": 13,
+          "ssl": -1,
+          "dns": 55,
+          "blocked": 0,
+          "connect": 10
+        },
+        "serverIPAddress": "50.19.252.69",
+        "comment": "",
+        "time": 103
+      }
+    ],
+    "comment": ""
+  }
+}

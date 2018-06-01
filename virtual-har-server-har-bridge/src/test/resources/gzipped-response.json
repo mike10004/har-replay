@@ -1,0 +1,66 @@
+{
+  "status": 200,
+  "statusText": "OK",
+  "httpVersion": "HTTP/1.1",
+  "headers": [
+    {
+      "name": "Date",
+      "value": "Fri, 10 Feb 2017 19:58:06 GMT"
+    },
+    {
+      "name": "Content-Encoding",
+      "value": "gzip"
+    },
+    {
+      "name": "Last-Modified",
+      "value": "Fri, 09 Aug 2013 23:54:35 GMT"
+    },
+    {
+      "name": "Server",
+      "value": "ECS (cpm/F9D5)"
+    },
+    {
+      "name": "Etag",
+      "value": "\"359670651+gzip\""
+    },
+    {
+      "name": "Vary",
+      "value": "Accept-Encoding"
+    },
+    {
+      "name": "X-Cache",
+      "value": "HIT"
+    },
+    {
+      "name": "Content-Type",
+      "value": "text/html"
+    },
+    {
+      "name": "Cache-Control",
+      "value": "max-age=604800"
+    },
+    {
+      "name": "Accept-Ranges",
+      "value": "bytes"
+    },
+    {
+      "name": "Content-Length",
+      "value": "606"
+    },
+    {
+      "name": "Expires",
+      "value": "Fri, 17 Feb 2017 19:58:06 GMT"
+    }
+  ],
+  "cookies": [],
+  "content": {
+    "size": 1270,
+    "mimeType": "text/html",
+    "compression": 664,
+    "text": "<!doctype html>\n<html>\n<head>\n    <title>ABCDEFG Domain</title>\n\n    <meta charset=\"utf-8\" />\n    <meta http-equiv=\"Content-type\" content=\"text/html; charset=utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <style type=\"text/css\">\n    body {\n        background-color: #f0f0f2;\n        margin: 0;\n        padding: 0;\n        font-family: \"Open Sans\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n        \n    }\n    div {\n        width: 600px;\n        margin: 5em auto;\n        padding: 50px;\n        background-color: #fff;\n        border-radius: 1em;\n    }\n    a:link, a:visited {\n        color: #38488f;\n        text-decoration: none;\n    }\n    @media (max-width: 700px) {\n        body {\n            background-color: #fff;\n        }\n        div {\n            width: auto;\n            margin: 0 auto;\n            border-radius: 0;\n            padding: 1em;\n        }\n    }\n    </style>    \n</head>\n\n<body>\n<div>\n    <h1>Example Domain</h1>\n    <p>This domain is established to be used for illustrative examples in documents. You may use this\n    domain in examples without prior coordination or asking for permission.</p>\n    <p><a href=\"http://www.iana.org/domains/example\">More information...</a></p>\n</div>\n</body>\n</html>\n"
+  },
+  "redirectURL": "",
+  "headersSize": 350,
+  "bodySize": 606,
+  "_transferSize": 956
+}

@@ -1,0 +1,193 @@
+{
+  "log": {
+    "version": "1.2",
+    "creator": {
+      "name": "WebInspector",
+      "version": "537.36"
+    },
+    "pages": [
+      {
+        "startedDateTime": "2018-03-21T18:41:46.062Z",
+        "id": "page_3",
+        "title": "https://httpbin.org/brotli",
+        "pageTimings": {
+          "onContentLoad": 244.08799999946496,
+          "onLoad": 251.80399999953806
+        }
+      }
+    ],
+    "entries": [
+      {
+        "startedDateTime": "2018-03-21T18:41:46.175Z",
+        "time": 155.9409999974596,
+        "request": {
+          "method": "GET",
+          "url": "https://httpbin.org/brotli",
+          "httpVersion": "HTTP/1.1",
+          "headers": [
+            {
+              "name": "Pragma",
+              "value": "no-cache"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
+            },
+            {
+              "name": "Host",
+              "value": "httpbin.org"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+            },
+            {
+              "name": "Referer",
+              "value": "https://httpbin.org/"
+            },
+            {
+              "name": "Cookie",
+              "value": "_gauges_unique_month=1; _gauges_unique_year=1; _gauges_unique=1; _gauges_unique_hour=1; _gauges_unique_day=1"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            }
+          ],
+          "queryString": [],
+          "cookies": [
+            {
+              "name": "_gauges_unique_month",
+              "value": "1",
+              "expires": null,
+              "httpOnly": false,
+              "secure": false
+            },
+            {
+              "name": "_gauges_unique_year",
+              "value": "1",
+              "expires": null,
+              "httpOnly": false,
+              "secure": false
+            },
+            {
+              "name": "_gauges_unique",
+              "value": "1",
+              "expires": null,
+              "httpOnly": false,
+              "secure": false
+            },
+            {
+              "name": "_gauges_unique_hour",
+              "value": "1",
+              "expires": null,
+              "httpOnly": false,
+              "secure": false
+            },
+            {
+              "name": "_gauges_unique_day",
+              "value": "1",
+              "expires": null,
+              "httpOnly": false,
+              "secure": false
+            }
+          ],
+          "headersSize": 570,
+          "bodySize": 0
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "httpVersion": "HTTP/1.1",
+          "headers": [
+            {
+              "name": "Date",
+              "value": "Wed, 21 Mar 2018 18:41:46 GMT"
+            },
+            {
+              "name": "Content-Encoding",
+              "value": "br"
+            },
+            {
+              "name": "Server",
+              "value": "meinheld/0.6.1"
+            },
+            {
+              "name": "X-Powered-By",
+              "value": "Flask"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "name": "Access-Control-Allow-Credentials",
+              "value": "true"
+            },
+            {
+              "name": "X-Processed-Time",
+              "value": "0"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Content-Length",
+              "value": "359"
+            },
+            {
+              "name": "Via",
+              "value": "1.1 vegur"
+            }
+          ],
+          "cookies": [],
+          "content": {
+            "size": 730,
+            "mimeType": "application/json",
+            "compression": 371,
+            "text": "{\n  \"brotli\": true, \n  \"headers\": {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8\", \n    \"Accept-Encoding\": \"gzip, deflate, br\", \n    \"Accept-Language\": \"en-US,en;q=0.9\", \n    \"Cache-Control\": \"no-cache\", \n    \"Connection\": \"close\", \n    \"Cookie\": \"_gauges_unique_month=1; _gauges_unique_year=1; _gauges_unique=1; _gauges_unique_hour=1; _gauges_unique_day=1\", \n    \"Host\": \"httpbin.org\", \n    \"Pragma\": \"no-cache\", \n    \"Referer\": \"https://httpbin.org/\", \n    \"Upgrade-Insecure-Requests\": \"1\", \n    \"User-Agent\": \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36\"\n  }, \n  \"method\": \"GET\", \n  \"origin\": \"47.211.7.40\"\n}\n"
+          },
+          "redirectURL": "",
+          "headersSize": 309,
+          "bodySize": 359,
+          "_transferSize": 668
+        },
+        "cache": {},
+        "timings": {
+          "blocked": 1.56299999819021,
+          "dns": 49.864000000525294,
+          "ssl": 22.304999998596003,
+          "connect": 81.9870000013907,
+          "send": 0.2069999973172969,
+          "wait": 22.320000000036117,
+          "receive": 0,
+          "_blocked_queueing": -1
+        },
+        "serverIPAddress": "50.19.252.69",
+        "connection": "76980",
+        "pageref": "page_3"
+      }
+    ]
+  }
+}

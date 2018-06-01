@@ -6,15 +6,19 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.20</version>
+    <version>0.21-SNAPSHOT</version>
     <name>har-replay</name>
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <packaging>pom</packaging>
     <modules>
+        <module>virtual-har-server-core</module>
+        <module>virtual-har-server-har-bridge</module>
+        <module>virtual-har-server-har-bridge-sstoehr</module>
+        <module>virtual-har-server-bmp</module>
+        <module>virtual-har-server-test-support</module>
         <module>har-replay-core</module>
         <module>har-replay-exec</module>
         <module>har-replay-test-support</module>
-        <module>har-replay-node</module>
         <module>har-replay-vhs</module>
     </modules>
     <url>https://github.com/mike10004/har-replay</url>
@@ -49,6 +53,9 @@
         <npm.log.level>error</npm.log.level>
         <chrome.executable>google-chrome</chrome.executable>
         <crxtool.version>0.8</crxtool.version>
+        <nanochamp.version>0.12</nanochamp.version>
+        <selenium.version>3.8.1</selenium.version>
+        <jackson.version>2.8.9</jackson.version>
     </properties>
     <profiles>
         <profile>
@@ -311,6 +318,71 @@
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>3.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>edu.umass.cs.benchlab</groupId>
+                <artifactId>harlib</artifactId>
+                <version>1.1.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>4.4.9</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>nanohttpd-server</artifactId>
+                <version>${nanochamp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.lightbody.bmp</groupId>
+                <artifactId>browsermob-core</artifactId>
+                <version>2.1.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.brotli</groupId>
+                <artifactId>dec</artifactId>
+                <version>0.1.2</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-validator</groupId>
+                <artifactId>commons-validator</artifactId>
+                <version>1.6</version>
+            </dependency>
+            <dependency>
+                <groupId>org.seleniumhq.selenium</groupId>
+                <artifactId>selenium-support</artifactId>
+                <version>${selenium.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.bonigarcia</groupId>
+                <artifactId>webdrivermanager</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.zeroturnaround</groupId>
+                <artifactId>zt-exec</artifactId>
+                <version>1.10</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

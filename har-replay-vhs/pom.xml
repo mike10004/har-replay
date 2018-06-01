@@ -5,13 +5,12 @@
     <parent>
         <artifactId>har-replay</artifactId>
         <groupId>com.github.mike10004</groupId>
-        <version>0.20</version>
+        <version>0.21-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>har-replay-vhs</artifactId>
     <properties>
-        <vhs.version>0.20</vhs.version>
     </properties>
     <build>
         <pluginManagement>
@@ -54,14 +53,14 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.mike10004</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>virtual-har-server-bmp</artifactId>
-            <version>${vhs.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.mike10004</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>virtual-har-server-har-bridge-sstoehr</artifactId>
-            <version>${vhs.version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>
