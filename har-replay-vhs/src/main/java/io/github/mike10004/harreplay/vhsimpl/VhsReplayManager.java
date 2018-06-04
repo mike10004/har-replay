@@ -21,6 +21,7 @@ import io.github.mike10004.vhs.ResponseInterceptor;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.BmpResponseListener;
+import io.github.mike10004.vhs.bmp.BmpResponseManufacturer;
 import io.github.mike10004.vhs.bmp.BrowsermobVhsConfig;
 import io.github.mike10004.vhs.bmp.BrowsermobVirtualHarServer;
 import io.github.mike10004.vhs.bmp.HarReplayManufacturer;
@@ -44,17 +45,27 @@ import static java.util.Objects.requireNonNull;
 public class VhsReplayManager implements ReplayManager {
 
     private VhsReplayManagerConfig config;
+    private final EntryMatcherFactory entryMatcherFactory;
 
     public VhsReplayManager() {
         this(VhsReplayManagerConfig.getDefault());
     }
 
     public VhsReplayManager(VhsReplayManagerConfig config) {
-        this.config = requireNonNull(config, "config");
+        this(config, HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE));
     }
 
-    @Override
-    public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
+    protected VhsReplayManager(VhsReplayManagerConfig config, EntryMatcherFactory entryMatcherFactory) {
+        this.config = requireNonNull(config, "config");
+        this.entryMatcherFactory = requireNonNull(entryMatcherFactory, "entryMatcherFactory");
+    }
+
+    protected EntryParser<HarEntry> createHarEntryParser() {
+        HarResponseEncoderFactory<HarEntry> responseEncoderFactory = HarResponseEncoderFactory.alwaysIdentityEncoding();
+        return new HarBridgeEntryParser<>(new SstoehrHarBridge(), responseEncoderFactory);
+    }
+
+    protected EntryMatcher buildHarEntryMatcher(ReplaySessionConfig sessionConfig) throws IOException {
         HarReader harReader = config.harReaderFactory.createReader();
         List<HarEntry> entries;
         try {
@@ -62,11 +73,15 @@ public class VhsReplayManager implements ReplayManager {
         } catch (HarReaderException e) {
             throw new IOException(e);
         }
-        HarResponseEncoderFactory<HarEntry> responseEncoderFactory = HarResponseEncoderFactory.alwaysIdentityEncoding();
-        EntryParser<HarEntry> parser = new HarBridgeEntryParser<>(new SstoehrHarBridge(), responseEncoderFactory);
-        EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
+        EntryParser<HarEntry> parser = createHarEntryParser();
         EntryMatcher harEntryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
-        EntryMatcher compositeEntryMatcher = buildEntryMatcher(harEntryMatcher, sessionConfig.replayServerConfig);
+        return harEntryMatcher;
+    }
+
+    @Override
+    public ReplaySessionControl start(ReplaySessionConfig sessionConfig) throws IOException {
+        EntryMatcher harEntryMatcher = buildHarEntryMatcher(sessionConfig);
+        EntryMatcher compositeEntryMatcher = enhanceEntryMatcherFromConfig(harEntryMatcher, sessionConfig.replayServerConfig);
         List<ResponseInterceptor> interceptors = new ArrayList<>();
         interceptors.addAll(buildInterceptorsForReplacements(sessionConfig.replayServerConfig.replacements));
         interceptors.addAll(buildInterceptorsForTransforms(sessionConfig.replayServerConfig.responseHeaderTransforms));
@@ -81,10 +96,14 @@ public class VhsReplayManager implements ReplayManager {
         return new VhsReplaySessionControl(ctrl, true, stopListener);
     }
 
+    protected BmpResponseManufacturer createResponseManufacturer(EntryMatcher entryMatcher, Iterable<ResponseInterceptor> responseInterceptors) {
+        return new HarReplayManufacturer(entryMatcher, responseInterceptors);
+    }
+
     protected VirtualHarServer createVirtualHarServer(int port, Path scratchParentDir, EntryMatcher entryMatcher, Iterable<ResponseInterceptor> responseInterceptors, BmpResponseListener bmpResponseListener) throws IOException {
         try {
             KeystoreData keystoreData = config.keystoreGenerator.generate("localhost");
-            HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, responseInterceptors);
+            BmpResponseManufacturer responseManufacturer = createResponseManufacturer(entryMatcher, responseInterceptors);
             BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
                     .port(port)
                     .responseListener(bmpResponseListener)
@@ -105,7 +124,7 @@ public class VhsReplayManager implements ReplayManager {
         return headerTransforms.stream().map(headerTransform -> new HeaderTransformInterceptor(config, headerTransform)).collect(Collectors.toList());
     }
 
-    protected EntryMatcher buildEntryMatcher(EntryMatcher harEntryMatcher, ReplayServerConfig serverConfig) {
+    protected EntryMatcher enhanceEntryMatcherFromConfig(EntryMatcher harEntryMatcher, ReplayServerConfig serverConfig) {
         MappingEntryMatcher mappingEntryMatcher = new MappingEntryMatcher(serverConfig.mappings, config.mappedFileResolutionRoot);
         return new CompositeEntryMatcher(Arrays.asList(mappingEntryMatcher, harEntryMatcher));
     }
