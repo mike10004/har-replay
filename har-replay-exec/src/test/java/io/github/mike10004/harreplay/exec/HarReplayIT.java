@@ -8,7 +8,6 @@ import com.github.mike10004.xvfbmanager.Poller.PollOutcome;
 import com.github.mike10004.xvfbmanager.Poller.StopReason;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
@@ -30,9 +29,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -166,6 +162,7 @@ public class HarReplayIT extends HarReplayITBase {
         return retVal;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String maybeRead(File file, Charset charset) {
         System.out.format("checking %s (length = %d)%n", file, file.length());
         try {

@@ -11,7 +11,7 @@
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <packaging>pom</packaging>
     <modules>
-        <module>virtual-har-server-bmp</module>
+        <module>virtual-har-server</module>
         <module>har-replay-core</module>
         <module>har-replay-exec</module>
         <module>har-replay-test-support</module>
