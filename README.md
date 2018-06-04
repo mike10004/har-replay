@@ -33,7 +33,7 @@ Maven dependency:
     <dependency>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay-vhs</artifactId> <!-- or har-replay-node -->
-        <version>0.12</version>
+        <version>0.21</version>
     </dependency>
 
 See Maven badge above for the actual latest version.
@@ -68,17 +68,6 @@ You can use the DevTools in Chrome. See this unofficial tech support posting:
 use [browsermob-proxy](https://github.com/lightbody/browsermob-proxy) to 
 capture a HAR.
 
-### What's the difference between har-replay-vhs and har-replay-node?
-
-They are both implementations of a HAR replay manager, but **har-replay-vhs**
-is a pure Java implementation powered by [virtual-har-server] and 
-**har-replay-node** is a JavaScript implementation powered by the 
-[har-replay-proxy] Node module.
-
-It is likely that support for the **har-replay-node** implementation will be 
-discontinued in the future, so you should probably prefer the pure Java 
-implementation.   
-
 Debugging Travis Builds
 -----------------------
 
@@ -98,7 +87,5 @@ This puts you inside the container, where you can `su -l travis`, clone the
 repo, and proceed manually from there.
 
 [har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
-[switcheroo]: https://chrome.google.com/webstore/detail/switcheroo-redirector/cnmciclhnghalnpfhhleggldniplelbg
 [har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
 [troubleshooting]: https://docs.travis-ci.com/user/common-build-problems/
-[virtual-har-server]: https://github.com/mike10004/virtual-har-server
