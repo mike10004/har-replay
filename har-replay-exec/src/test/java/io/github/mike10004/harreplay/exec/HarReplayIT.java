@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,7 +57,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-@RunWith(Parameterized.class)
 public class HarReplayIT extends HarReplayITBase {
 
     @ClassRule
@@ -67,17 +65,7 @@ public class HarReplayIT extends HarReplayITBase {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    @Nullable
-    private final HarReplayMain.ReplayServerEngine engine;
-
-    public HarReplayIT(@Nullable HarReplayMain.ReplayServerEngine engine) {
-        this.engine = engine;
-    }
-
-    @Parameters
-    public static List<HarReplayMain.ReplayServerEngine> engines() {
-        //noinspection ConstantConditions // Lists.asList accepts a null first arg
-        return Lists.asList(null, HarReplayMain.ReplayServerEngine.values());
+    public HarReplayIT() {
     }
 
     @Test
@@ -152,14 +140,10 @@ public class HarReplayIT extends HarReplayITBase {
     private List<String> buildArgs(List<String> firstArgs, File notifyFile, File harFile) {
         List<String> args = new ArrayList<>();
         Iterables.addAll(args, firstArgs);
-        if (engine != null) {
-            args.add("--" + HarReplayMain.OPT_ENGINE);
-            args.add(engine.name());
-        }
         args.addAll(Arrays.asList("--" + HarReplayMain.OPT_NOTIFY, notifyFile.getAbsolutePath()));
         args.addAll(Arrays.asList("--" + HarReplayMain.OPT_SCRATCH_DIR, temporaryFolder.getRoot().getAbsolutePath()));
         args.add(harFile.getAbsolutePath());
-        System.out.format("engine: %s; args = %s%n", engine, args);
+        System.out.format("args = %s%n", args);
         return args;
     }
 

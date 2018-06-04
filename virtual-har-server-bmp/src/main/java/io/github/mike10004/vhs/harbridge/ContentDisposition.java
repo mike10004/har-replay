@@ -91,6 +91,7 @@ public class ContentDisposition {
     /**
      * Return the disposition type, like for example {@literal inline}, {@literal attachment},
      * {@literal form-data}, or {@code null} if not defined.
+     * @return type
      */
     @Nullable
     public String getType() {
@@ -99,6 +100,7 @@ public class ContentDisposition {
 
     /**
      * Return the value of the {@literal name} parameter, or {@code null} if not defined.
+     * @return name
      */
     @Nullable
     public String getName() {
@@ -108,6 +110,7 @@ public class ContentDisposition {
     /**
      * Return the value of the {@literal filename} parameter (or the value of the
      * {@literal filename*} one decoded as defined in the RFC 5987), or {@code null} if not defined.
+     * @return filename
      */
     @Nullable
     public String getFilename() {
@@ -116,6 +119,7 @@ public class ContentDisposition {
 
     /**
      * Return the charset defined in {@literal filename*} parameter, or {@code null} if not defined.
+     * @return charset
      */
     @Nullable
     public Charset getCharset() {
@@ -124,6 +128,7 @@ public class ContentDisposition {
 
     /**
      * Return the value of the {@literal size} parameter, or {@code null} if not defined.
+     * @return size
      */
     @Nullable
     public Long getSize() {
@@ -132,6 +137,7 @@ public class ContentDisposition {
 
     /**
      * Return the value of the {@literal creation-date} parameter, or {@code null} if not defined.
+     * @return datetime
      */
     @Nullable
     public ZonedDateTime getCreationDate() {
@@ -140,6 +146,7 @@ public class ContentDisposition {
 
     /**
      * Return the value of the {@literal modification-date} parameter, or {@code null} if not defined.
+     * @return datetime
      */
     @Nullable
     public ZonedDateTime getModificationDate() {
@@ -148,12 +155,12 @@ public class ContentDisposition {
 
     /**
      * Return the value of the {@literal read-date} parameter, or {@code null} if not defined.
+     * @return datetime
      */
     @Nullable
     public ZonedDateTime getReadDate() {
         return this.readDate;
     }
-
 
     @Override
     public boolean equals(Object other) {
@@ -446,11 +453,15 @@ public class ContentDisposition {
 
         /**
          * Set the value of the {@literal name} parameter
+         * @param name name
+         * @return this instance
          */
         Builder name(String name);
 
         /**
          * Set the value of the {@literal filename} parameter
+         * @param filename filename
+         * @return this instance
          */
         Builder filename(String filename);
 
@@ -460,34 +471,42 @@ public class ContentDisposition {
          * charsets are supported.
          * <p><strong>Note:</strong> Do not use this for a
          * {@code "multipart/form-data"} requests as per
-         * <a link="https://tools.ietf.org/html/rfc7578#section-4.2">RFC 7578, Section 4.2</a>
+         * <a href="https://tools.ietf.org/html/rfc7578#section-4.2">RFC 7578, Section 4.2</a>
          * and also RFC 5987 itself mentions it does not apply to multipart
          * requests.
+         * @param filename filename
+         * @param charset charset
+         * @return this instance
          */
         Builder filename(String filename, Charset charset);
 
         /**
          * Set the value of the {@literal size} parameter
+         * @return this instance
          */
         Builder size(Long size);
 
         /**
          * Set the value of the {@literal creation-date} parameter.
+         * @return this instance
          */
         Builder creationDate(ZonedDateTime creationDate);
 
         /**
          * Set the value of the {@literal modification-date} parameter.
+         * @return this instance
          */
         Builder modificationDate(ZonedDateTime modificationDate);
 
         /**
          * Set the value of the {@literal read-date} parameter.
+         * @return this instance
          */
         Builder readDate(ZonedDateTime readDate);
 
         /**
          * Build the content disposition
+         * @return a new content disposition instance
          */
         ContentDisposition build();
     }

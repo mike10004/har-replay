@@ -26,9 +26,8 @@ public interface MultipartFormDataParser {
      * See https://www.iana.org/assignments/media-types/multipart/form-data.
      * @param contentType content type (must have boundary parameter, should probably be {@code multipart/form-data}
      * @param data the data
-     * @return
-     * @throws MultipartFormData.BadMultipartFormDataException
-     * @throws NanohttpdFormDataParser.RuntimeIOException
+     * @return the list of parts
+     * @throws BadMultipartFormDataException if the form data is bad
      */
     List<FormDataPart> decodeMultipartFormData(MediaType contentType, byte[] data) throws BadMultipartFormDataException;
 

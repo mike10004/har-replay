@@ -17,12 +17,9 @@ import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
 import io.github.mike10004.harreplay.exec.ChromeBrowserSupport.OutputDestination;
-import io.github.mike10004.harreplay.exec.ChromeBrowserSupport.SwitcherooMode;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
-import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManager;
-import io.github.mike10004.harreplay.nodeimpl.NodeServerReplayManagerConfig;
 import io.github.mike10004.harreplay.vhsimpl.HarReaderFactory;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManager;
 import io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerConfig;
@@ -61,7 +58,6 @@ public class HarReplayMain {
     static final String OPT_SCRATCH_DIR = "scratch-dir";
     static final String OPT_PORT = "port";
     static final String OPT_BROWSER = "browser";
-    static final String OPT_ECHO_SERVER = "echo-server";
     static final String OPT_ENGINE = "engine";
     static final String OPT_REPLAY_CONFIG = "config";
     static final String OPT_SWITCHEROO = "switcheroo";
@@ -78,8 +74,6 @@ public class HarReplayMain {
     private final OptionSpec<Void> helpSpec;
     private final OptionSpec<Browser> browserSpec;
     private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
-    private final OptionSpec<Void> echoServerSpec;
-    private final OptionSpec<ReplayServerEngine> engineSpec;
     private final OptionSpec<File> replayConfigSpec;
     private final OptionSpec<HarReaderBehavior> harReaderBehaviorSpec;
     private final OptionSpec<HarReaderMode> harReaderModeSpec;
@@ -109,11 +103,6 @@ public class HarReplayMain {
                 .withRequiredArg().ofType(HarDumpStyle.class)
                 .describedAs("STYLE")
                 .defaultsTo(HarDumpStyle.summary);
-        echoServerSpec = parser.acceptsAll(Collections.singletonList(OPT_ECHO_SERVER), "echo proxy server output");
-        engineSpec = parser.acceptsAll(Arrays.asList("e", OPT_ENGINE), "specify replay server engine; ENGINE must be one of " + ReplayServerEngine.describeChoices())
-                .withRequiredArg().ofType(ReplayServerEngine.class)
-                .describedAs("ENGINE")
-                .defaultsTo(ReplayServerEngine.vhs);
         replayConfigSpec = parser.acceptsAll(Arrays.asList("f", OPT_REPLAY_CONFIG), "specify replay config file")
                 .withRequiredArg().ofType(File.class);
         parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
@@ -122,6 +111,16 @@ public class HarReplayMain {
                 .withRequiredArg().ofType(HarReaderBehavior.class).defaultsTo(HarReaderBehavior.DEFAULT);
         harReaderModeSpec = parser.accepts(OPT_HAR_READER_MODE, "set har reader mode (STRICT or LAX)")
                 .withRequiredArg().ofType(HarReaderMode.class).defaultsTo(HarReaderMode.STRICT);
+    }
+
+    private ReplayManager createReplayManager(OptionSet optionSet) {
+        HarReaderBehavior behavior = (HarReaderBehavior) optionSet.valueOf(OPT_HAR_READER_BEHAVIOR);
+        HarReaderMode mode = (HarReaderMode) optionSet.valueOf(OPT_HAR_READER_MODE);
+        VhsReplayManagerConfig.Builder b = VhsReplayManagerConfig.builder()
+                .harReaderFactory(behavior.getFactory())
+                .harReaderMode(mode);
+        VhsReplayManagerConfig vhsConfig = b.build();
+        return new VhsReplayManager(vhsConfig);
     }
 
     protected Har readHarFile(OptionSet options, File harFile) throws IOException, HarReaderException {
@@ -143,8 +142,7 @@ public class HarReplayMain {
     }
 
     protected void runServer(OptionSet optionSet) throws IOException {
-        ReplayServerEngine engine = optionSet.valueOf(engineSpec);
-        ReplayManager manager = engine.createManager(this, optionSet);
+        ReplayManager manager = createReplayManager(optionSet);
         try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
             ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
             HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
@@ -295,50 +293,10 @@ public class HarReplayMain {
         BrowserSupport getSupport(OptionSet options) {
             switch (this) {
                 case chrome:
-                    return new ChromeBrowserSupport(options.has(OPT_SWITCHEROO) ? SwitcherooMode.ENABLED : SwitcherooMode.NOT_ADDED,
+                    return new ChromeBrowserSupport(
                             options.has(OPT_ECHO_BROWSER_OUTPUT) ? OutputDestination.CONSOLE : OutputDestination.FILES);
             }
             throw new IllegalStateException("not handled: " + this);
-        }
-    }
-
-    public enum ReplayServerEngine {
-        node,
-        vhs;
-
-        public static String describeChoices() {
-            return "{" + String.join(", ", Stream.of(values()).map(ReplayServerEngine::name).collect(Collectors.toSet())) + "}";
-        }
-
-        protected NodeServerReplayManagerConfig createNodeReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
-            NodeServerReplayManagerConfig.Builder b = NodeServerReplayManagerConfig.builder();
-            if (optionSet.has(main.echoServerSpec)) {
-                b.addOutputEchoes();
-            }
-            return b.build();
-        }
-
-        @SuppressWarnings("unused") // no options to set when creating config instance yet
-        protected VhsReplayManagerConfig createVhsReplayManagerConfig(HarReplayMain main, OptionSet optionSet) {
-            HarReaderBehavior behavior = (HarReaderBehavior) optionSet.valueOf(OPT_HAR_READER_BEHAVIOR);
-            HarReaderMode mode = (HarReaderMode) optionSet.valueOf(OPT_HAR_READER_MODE);
-            return VhsReplayManagerConfig.builder()
-                    .harReaderFactory(behavior.getFactory())
-                    .harReaderMode(mode)
-                    .build();
-        }
-
-        public ReplayManager createManager(HarReplayMain main, OptionSet optionSet) {
-            switch (this) {
-                case node:
-                    NodeServerReplayManagerConfig nodeConfig = createNodeReplayManagerConfig(main, optionSet);
-                    return new NodeServerReplayManager(nodeConfig);
-                case vhs:
-                    VhsReplayManagerConfig vhsConfig = createVhsReplayManagerConfig(main, optionSet);
-                    return new VhsReplayManager(vhsConfig);
-                default:
-                    throw new IllegalStateException("unhandled: " + this);
-            }
         }
     }
 

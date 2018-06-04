@@ -5,7 +5,7 @@
     <parent>
         <artifactId>har-replay</artifactId>
         <groupId>com.github.mike10004</groupId>
-        <version>0.21-SNAPSHOT</version>
+        <version>0.21</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -94,13 +94,12 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>har-replay-node</artifactId>
+            <artifactId>har-replay-vhs</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>har-replay-vhs</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>native-helper</artifactId>
         </dependency>
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
