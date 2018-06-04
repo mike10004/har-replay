@@ -11,10 +11,23 @@
 
     <artifactId>virtual-har-server-bmp</artifactId>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <configuration>
+                        <excludePackageNames>io.github.mike10004.vhs.repackaged.*</excludePackageNames>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>virtual-har-server-core</artifactId>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>virtual-har-server-har-bridge</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -24,18 +37,6 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>virtual-har-server-har-bridge-sstoehr</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>virtual-har-server-test-support</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -60,7 +61,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.mike10004</groupId>
@@ -119,6 +119,22 @@
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>4.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.sstoehr</groupId>
+            <artifactId>har-reader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.nanohttpd</groupId>
+            <artifactId>nanohttpd</artifactId>
+            <version>2.2.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.4.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

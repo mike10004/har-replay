@@ -32,6 +32,8 @@
  */
 package io.github.mike10004.vhs.harbridge;
 
+import javax.annotation.Nullable;
+
 @SuppressWarnings("unused")
 public enum HttpMethod {
     GET,
@@ -51,12 +53,18 @@ public enum HttpMethod {
     LOCK,
     UNLOCK;
 
+    /**
+     * Looks up the method constant matching a string.
+     * @param method method string
+     * @return method constant, or null if not found
+     */
+    @Nullable
     static HttpMethod lookup(String method) {
         if (method == null)
             return null;
 
         try {
-            return valueOf(method);
+            return valueOf(method.toUpperCase());
         } catch (IllegalArgumentException e) {
             // TODO: Log it?
             return null;

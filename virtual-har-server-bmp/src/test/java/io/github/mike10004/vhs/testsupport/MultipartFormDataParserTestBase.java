@@ -129,7 +129,7 @@ public abstract class MultipartFormDataParserTestBase {
         String getExpectedParamValue();
 
         static TestCase of(MediaType contentType, ByteSource data, String expectedParamValue, ByteSource expectedFileData) {
-            return new TestCase() {
+            return new MultipartFormDataParserTestBase.TestCase() {
                 @Override
                 public ByteSource getExpectedFileData() {
                     return expectedFileData;

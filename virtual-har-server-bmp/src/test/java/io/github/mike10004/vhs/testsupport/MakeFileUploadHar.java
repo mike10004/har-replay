@@ -46,6 +46,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import fi.iki.elonen.NanoHTTPD;
 import io.github.bonigarcia.wdm.ChromeDriverManager;
+import io.github.mike10004.vhs.bmp.MakeTestHar;
 import io.github.mike10004.vhs.harbridge.FormDataPart;
 import io.github.mike10004.vhs.harbridge.MultipartFormDataParser;
 import io.github.mike10004.vhs.harbridge.TypedContent;
@@ -115,9 +116,9 @@ public class MakeFileUploadHar {
                 "</html>";
         byte[] landingHtmlBytes = landingHtml.getBytes(StandardCharsets.UTF_8);
         Map<String, TypedContent> storage = Collections.synchronizedMap(new HashMap<>());
-        NanoHTTPD nano = new NanoHTTPD(port) {
+        fi.iki.elonen.NanoHTTPD nano = new fi.iki.elonen.NanoHTTPD(port) {
             @Override
-            public Response serve(IHTTPSession session) {
+            public fi.iki.elonen.NanoHTTPD.Response serve(fi.iki.elonen.NanoHTTPD.IHTTPSession session) {
                 System.out.format("%s http://localhost:%s%s%n", session.getMethod(), port, session.getUri());
                 URI uri = URI.create(session.getUri());
                 if ("/".equals(uri.getPath())) {
@@ -125,7 +126,7 @@ public class MakeFileUploadHar {
                 } else if ("/upload".equals(uri.getPath())) {
                     return processUpload(session, storage);
                 } else if ("/file".equals(uri.getPath())) {
-                    return serveFileById(storage, session.getParameters().get("id").stream().findFirst().orElse(null));
+                    return serveFileById(storage, session.getParms().get("id"));
                 } else {
                     return newFixedLengthResponse(NanoHTTPD.Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
                 }
@@ -314,7 +315,7 @@ public class MakeFileUploadHar {
                 formDataParts = new NanohttpdFormDataParser().decodeMultipartFormData(contentType, data);
             } catch (MultipartFormDataParser.BadMultipartFormDataException e) {
                 e.printStackTrace(System.err);
-                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.lookup(MultipartFormDataParser.BadMultipartFormDataException.STATUS_CODE), "text/plain", e.getMessage());
+                return NanoHTTPD.newFixedLengthResponse(MakeTestHar.lookup(MultipartFormDataParser.BadMultipartFormDataException.STATUS_CODE), "text/plain", e.getMessage());
             }
             System.out.format("%d parts parsed from request body%n", formDataParts.size());
             formDataParts.forEach(part -> {
