@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static java.util.Objects.requireNonNull;
+
 public class RunnageExample {
 
     public static void main(String[] args) throws Exception {
@@ -45,7 +47,7 @@ public class RunnageExample {
             });
             EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
             EntryParser<HarEntry> parser = HarBridgeEntryParser.withPlainEncoder(new SstoehrHarBridge());
-            EntryMatcher entryMatcher = new PrintingEntryMatcher(entryMatcherFactory.createEntryMatcher(entries, parser), System.out);
+            EntryMatcher entryMatcher = new PrintingEntryMatcher<>(entryMatcherFactory.createEntryMatcher(entries, parser), System.out);
             HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, Collections.emptyList());
             AtomicLong counter = new AtomicLong(0);
             BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
@@ -85,20 +87,20 @@ public class RunnageExample {
         }
     }
 
-    private static class PrintingEntryMatcher implements EntryMatcher {
+    private static class PrintingEntryMatcher<S> implements EntryMatcher<S> {
 
-        private EntryMatcher delegate;
+        private EntryMatcher<S> delegate;
         private PrintStream out;
 
-        PrintingEntryMatcher(EntryMatcher delegate, PrintStream out) {
-            this.delegate = delegate;
+        PrintingEntryMatcher(EntryMatcher<S> delegate, PrintStream out) {
+            this.delegate = requireNonNull(delegate);
             this.out = out;
         }
 
         @Nullable
         @Override
-        public HttpRespondable findTopEntry(ParsedRequest request) {
-            HttpRespondable entry = delegate.findTopEntry(request);
+        public HttpRespondable findTopEntry(S state, ParsedRequest request) {
+            HttpRespondable entry = delegate.findTopEntry(state, request);
             if (entry != null) {
                 out.format("%s %s -> %s %s%n", request.method, request.url, entry.getStatus(), entry.previewContentType());
             }

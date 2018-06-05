@@ -21,7 +21,7 @@ import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
-public class MappingEntryMatcher implements EntryMatcher {
+public class MappingEntryMatcher<S> implements EntryMatcher<S> {
 
     private static final Logger log = LoggerFactory.getLogger(MappingEntryMatcher.class);
 
@@ -35,7 +35,7 @@ public class MappingEntryMatcher implements EntryMatcher {
 
     @Nullable
     @Override
-    public HttpRespondable findTopEntry(ParsedRequest request) {
+    public HttpRespondable findTopEntry(S state, ParsedRequest request) {
         String urlStr = request.url.toString();
         for (Mapping mapping : mappings) {
             if (mapping.match.evaluateUrlMatch(urlStr)) {

@@ -1,6 +1,7 @@
 package io.github.mike10004.harreplay.exec;
 
 import com.google.common.base.Suppliers;
+import org.junit.Assume;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -35,5 +36,15 @@ public class ExecTests {
 
     public static String getTestProperty(String propertyName, String defaultValue) {
         return getTestProperties().getProperty(propertyName, defaultValue);
+    }
+
+    public static boolean isExecAssemblySkipped() {
+        return Boolean.parseBoolean(System.getProperty(SYSPROP_SKIP_EXEC_ASSEMBLY, "false"));
+    }
+
+    private static final String SYSPROP_SKIP_EXEC_ASSEMBLY = "exec.assembly.skip";
+
+    public static void assumeExecAssemblyNotSkipped() {
+        Assume.assumeFalse("system property " + SYSPROP_SKIP_EXEC_ASSEMBLY + " is true, so this will be skipped", isExecAssemblySkipped());
     }
 }

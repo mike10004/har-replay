@@ -25,6 +25,7 @@ import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jsoup.Jsoup;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,6 +63,11 @@ public class HarReplayIT extends HarReplayITBase {
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     public HarReplayIT() {
+    }
+
+    @BeforeClass
+    public static void checkAssemblyCreated() {
+        ExecTests.assumeExecAssemblyNotSkipped();
     }
 
     @Test

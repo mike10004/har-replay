@@ -53,7 +53,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
             TlsEndpoint httpsInterceptionServer = config.tlsEndpointFactory.produce(config, scratchPath);
             closeables.add(httpsInterceptionServer);
             TrustSource trustSource = httpsInterceptionServer.getTrustSource();
-            proxy = startProxy(config.bmpResponseManufacturer, httpsInterceptionServer.getSocketAddress(), certificateAndKeySource, trustSource);
+            proxy = startProxy(config.bmpResponseManufacturer.withFreshState(), httpsInterceptionServer.getSocketAddress(), certificateAndKeySource, trustSource);
         } catch (RuntimeException | IOException e) {
             closeAll(closeables, true);
             throw e;
@@ -71,7 +71,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         }
     }
 
-    public BrowserMobProxy startProxy(BmpResponseManufacturer responseManufacturer,
+    protected BrowserMobProxy startProxy(BmpResponseManufacturer.WithState<?> responseManufacturer,
                                       HostAndPort httpsHostRewriteDestination,
                                       CertificateAndKeySource certificateAndKeySource,
                                       TrustSource trustSource) throws IOException {
@@ -106,7 +106,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
     }
 
     protected void configureProxy(BrowserMobProxy bmp,
-                                  BmpResponseManufacturer responseManufacturer,
+                                  BmpResponseManufacturer.WithState<?> responseManufacturer,
                                   HostAndPort httpsHostRewriteDestination,
                                   CertificateAndKeySource certificateAndKeySource,
                                   BmpResponseListener bmpResponseListener,
@@ -117,7 +117,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         bmp.addFirstHttpFilterFactory(createFirstFiltersSource(responseManufacturer, hostRewriter, bmpResponseListener, createPassthruPredicate()));
     }
 
-    /* package */ ResponseManufacturingFiltersSource createFirstFiltersSource(BmpResponseManufacturer responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, PassthruPredicate passthruPredicate) {
+    /* package */ ResponseManufacturingFiltersSource createFirstFiltersSource(BmpResponseManufacturer.WithState<?> responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, PassthruPredicate passthruPredicate) {
         return new ResponseManufacturingFiltersSource(responseManufacturer, hostRewriter, bmpResponseListener, passthruPredicate);
     }
 

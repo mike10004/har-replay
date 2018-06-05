@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay</artifactId>
-        <version>0.21</version>
+        <version>0.22</version>
     </parent>
     <artifactId>har-replay-core</artifactId>
     <packaging>jar</packaging>

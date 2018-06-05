@@ -7,19 +7,19 @@ import io.github.mike10004.vhs.harbridge.ParsedRequest;
 
 import javax.annotation.Nullable;
 
-public class CompositeEntryMatcher implements EntryMatcher {
+public class CompositeEntryMatcher<S> implements EntryMatcher<S> {
 
-    private final ImmutableList<EntryMatcher> components;
+    private final ImmutableList<EntryMatcher<? super S>> components;
 
-    public CompositeEntryMatcher(Iterable<EntryMatcher> components) {
+    public CompositeEntryMatcher(Iterable<EntryMatcher<? super S>> components) {
         this.components = ImmutableList.copyOf(components);
     }
 
     @Nullable
     @Override
-    public HttpRespondable findTopEntry(ParsedRequest request) {
-        for (EntryMatcher component : components) {
-            HttpRespondable respondable = component.findTopEntry(request);
+    public HttpRespondable findTopEntry(S state, ParsedRequest request) {
+        for (EntryMatcher<? super S> component : components) {
+            HttpRespondable respondable = component.findTopEntry(state, request);
             if (respondable != null) {
                 return respondable;
             }

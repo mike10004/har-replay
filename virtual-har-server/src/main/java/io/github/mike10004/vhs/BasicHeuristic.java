@@ -62,7 +62,7 @@ public class BasicHeuristic implements Heuristic {
 
     public static final int DEFAULT_THRESHOLD_EXCLUSIVE = 0;
 
-    private static final int DEFAULT_INCREMENT = 100;
+    static final int DEFAULT_INCREMENT = 100;
     private final int increment;
     private final int halfIncrement;
     private final FormDataDecoder formDataDecoder;

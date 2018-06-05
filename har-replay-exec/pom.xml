@@ -5,11 +5,46 @@
     <parent>
         <artifactId>har-replay</artifactId>
         <groupId>com.github.mike10004</groupId>
-        <version>0.21</version>
+        <version>0.22</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>har-replay-exec</artifactId>
+
+    <properties>
+        <exec.assembly.skip>false</exec.assembly.skip>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>skip-exec-assembly</id>
+            <properties>
+                <exec.assembly.skip>true</exec.assembly.skip>
+            </properties>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <exec.assembly.skip>${exec.assembly.skip}</exec.assembly.skip>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                        <plugin>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <exec.assembly.skip>${exec.assembly.skip}</exec.assembly.skip>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+    </profiles>
 
     <build>
         <pluginManagement>
@@ -35,6 +70,7 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <skipAssembly>${exec.assembly.skip}</skipAssembly>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>

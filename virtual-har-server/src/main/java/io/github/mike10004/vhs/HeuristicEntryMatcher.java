@@ -9,38 +9,38 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 
-public class HeuristicEntryMatcher implements EntryMatcher {
+public class HeuristicEntryMatcher<S> implements EntryMatcher<S> {
 
     private static final Logger log = LoggerFactory.getLogger(HeuristicEntryMatcher.class);
 
-    private final ImmutableList<ParsedEntry> entries;
-    private final Heuristic heuristic;
+    protected final ImmutableList<ParsedEntry> entries;
+    protected final Heuristic heuristic;
     private final int thresholdExclusive;
     private final Predicate<RatedEntry> ratedEntryFilter;
 
-    HeuristicEntryMatcher(Heuristic heuristic, int thresholdExclusive, Collection<ParsedEntry> entries) {
+    protected HeuristicEntryMatcher(Heuristic heuristic, int thresholdExclusive, Collection<ParsedEntry> entries) {
         this.entries = ImmutableList.copyOf(entries);
         this.thresholdExclusive = thresholdExclusive;
         this.heuristic = requireNonNull(heuristic);
         ratedEntryFilter = new RatedEntryFilter();
     }
 
-    public static EntryMatcherFactory factory(Heuristic heuristic, int thresholdExclusive) {
-        return new Factory(heuristic, thresholdExclusive);
+    public static <T> EntryMatcherFactory<T> factory(Heuristic heuristic, int thresholdExclusive) {
+        return new Factory<>(heuristic, thresholdExclusive);
     }
 
     /**
      * Interface that maps a request to a response.
      */
-    interface HttpRespondableCreator {
+    protected interface HttpRespondableCreator {
         /**
          * Constructs and returns a respondable.
          * @param request the request
@@ -50,21 +50,19 @@ public class HeuristicEntryMatcher implements EntryMatcher {
         HttpRespondable createRespondable(ParsedRequest request) throws IOException;
     }
 
-    private static class Factory implements EntryMatcherFactory {
+    protected static class Factory<S> implements EntryMatcherFactory<S> {
 
         private static final Logger log = LoggerFactory.getLogger(Factory.class);
 
-        private final Heuristic heuristic;
-        private final int thresholdExclusive;
+        protected final Heuristic heuristic;
+        protected final int thresholdExclusive;
 
-        private Factory(Heuristic heuristic, int thresholdExclusive) {
+        protected Factory(Heuristic heuristic, int thresholdExclusive) {
             this.thresholdExclusive = thresholdExclusive;
-            this.heuristic = heuristic;
+            this.heuristic = requireNonNull(heuristic);
         }
 
-        @Override
-        public <E> EntryMatcher createEntryMatcher(List<E> entries, EntryParser<E> requestParser) throws IOException {
-            log.trace("constructing heuristic from {} har entries", entries.size());
+        protected <E> List<ParsedEntry> parseEntries(List<E> entries, EntryParser<E> requestParser) throws IOException {
             List<ParsedEntry> parsedEntries = new ArrayList<>(entries.size());
             for (E entry : entries) {
                 ParsedRequest request = requestParser.parseRequest(entry);
@@ -72,7 +70,15 @@ public class HeuristicEntryMatcher implements EntryMatcher {
                 ParsedEntry parsedEntry = new ParsedEntry(request, respondableCreator);
                 parsedEntries.add(parsedEntry);
             }
-            return new HeuristicEntryMatcher(heuristic, thresholdExclusive, parsedEntries);
+            return parsedEntries;
+        }
+
+
+        @Override
+        public <E> EntryMatcher<S> createEntryMatcher(List<E> entries, EntryParser<E> requestParser) throws IOException {
+            log.trace("constructing heuristic from {} har entries", entries.size());
+            List<ParsedEntry> parsedEntries = parseEntries(entries, requestParser);
+            return new HeuristicEntryMatcher<>(heuristic, thresholdExclusive, parsedEntries);
         }
     }
 
@@ -92,28 +98,35 @@ public class HeuristicEntryMatcher implements EntryMatcher {
         }
     }
 
-    private static class RatedEntry implements Comparable<RatedEntry> {
+    private static final Comparator<RatedEntry> RATED_ENTRY_COMPARATOR = new Comparator<RatedEntry>() {
+        @Override
+        public int compare(RatedEntry o1, RatedEntry o2) {
+            return o1.rating - o2.rating;
+        }
+    };
+
+    private Comparator<RatedEntry> getRatedEntryComparator() {
+        return RATED_ENTRY_COMPARATOR;
+    }
+
+    protected static class RatedEntry {
+
         public final ParsedEntry entry;
         public final int rating;
 
-        private RatedEntry(ParsedEntry entry, int rating) {
-            this.entry = entry;
+        public RatedEntry(ParsedEntry entry, int rating) {
+            this.entry = requireNonNull(entry);
             this.rating = rating;
         }
 
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public int compareTo(RatedEntry o) {
-            return this.rating - o.rating;
-        }
     }
 
-    private class EntryToRatingFunction implements java.util.function.Function<ParsedEntry, RatedEntry> {
+    private class DefaultEntryToRatingFunction implements java.util.function.Function<ParsedEntry, RatedEntry> {
 
         private final ParsedRequest request;
 
-        private EntryToRatingFunction(ParsedRequest request) {
-            this.request = request;
+        private DefaultEntryToRatingFunction(ParsedRequest request) {
+            this.request = requireNonNull(request);
         }
 
         @Override
@@ -121,6 +134,10 @@ public class HeuristicEntryMatcher implements EntryMatcher {
             int rating = heuristic.rate(requireNonNull(entry).request, request);
             return new RatedEntry(entry, rating);
         }
+    }
+
+    protected Predicate<? super RatedEntry> getRatedEntryFilter(S state) {
+        return ratedEntryFilter;
     }
 
     private class RatedEntryFilter implements Predicate<RatedEntry> {
@@ -131,15 +148,19 @@ public class HeuristicEntryMatcher implements EntryMatcher {
         }
     }
 
-    @Override
+    protected java.util.function.Function<ParsedEntry, RatedEntry> createEntryToRatingFunction(ParsedRequest request, S state) {
+        return new DefaultEntryToRatingFunction(request);
+    }
+
     @Nullable
-    public HttpRespondable findTopEntry(ParsedRequest request) {
+    @Override
+    public HttpRespondable findTopEntry(S state, ParsedRequest request) {
         List<RatedEntry> ratedEntryList = entries.stream()
-                .map(new EntryToRatingFunction(request))
+                .map(createEntryToRatingFunction(request, state))
                 .collect(Collectors.toList());
         Optional<RatedEntry> topRatedEntry = ratedEntryList.stream()
-                .filter(ratedEntryFilter)
-                .max(RatedEntry::compareTo);
+                .filter(getRatedEntryFilter(state))
+                .max(getRatedEntryComparator());
         if (topRatedEntry.isPresent()) {
             try {
                 return topRatedEntry.get().entry.responseCreator.createRespondable(request);
@@ -155,7 +176,7 @@ public class HeuristicEntryMatcher implements EntryMatcher {
      * Class that represents a HAR entry with a saved request and a method to produce
      * a response.
      */
-    static class ParsedEntry {
+    protected static class ParsedEntry {
 
         public final ParsedRequest request;
 

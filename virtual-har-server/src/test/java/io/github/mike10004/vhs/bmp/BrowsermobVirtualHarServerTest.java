@@ -25,6 +25,7 @@ import io.github.mike10004.vhs.EntryMatcherFactory;
 import io.github.mike10004.vhs.EntryParser;
 import io.github.mike10004.vhs.HarBridgeEntryParser;
 import io.github.mike10004.vhs.HeuristicEntryMatcher;
+import io.github.mike10004.vhs.ReplaySessionState;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.ResponseManufacturingFiltersSource.PassthruPredicate;
@@ -101,9 +102,9 @@ public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
         EntryMatcher entryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
         HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, Collections.emptyList()) {
             @Override
-            public ResponseCapture manufacture(RequestCapture capture) {
+            public ResponseCapture manufacture(ReplaySessionState state, RequestCapture capture) {
                 requests.add(String.format("%s %s", capture.request.method, capture.request.url));
-                return super.manufacture(capture);
+                return super.manufacture(state, capture);
             }
         };
         Path scratchParent = temporaryFolder.getRoot().toPath();

@@ -50,7 +50,7 @@ class ResponseManufacturingFilter extends HttpsAwareFiltersAdapter {
      */
     private final ClientRequestCaptureFilter requestCaptureFilter;
 
-    private final BmpResponseManufacturer responseManufacturer;
+    private final BmpResponseManufacturer.WithState<?> responseManufacturer;
 
     /**
      * Create a new instance.
@@ -58,7 +58,7 @@ class ResponseManufacturingFilter extends HttpsAwareFiltersAdapter {
      * @param ctx channel handler context
      * @throws IllegalArgumentException if request method is {@code CONNECT}
      */
-    public ResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer responseManufacturer, BmpResponseListener responseListener) {
+    public <S> ResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer.WithState<S> responseManufacturer, BmpResponseListener responseListener) {
         super(originalRequest, ctx);
         if (ProxyUtils.isCONNECT(originalRequest)) {
             throw new IllegalArgumentException("HTTP CONNECT requests not supported by these filters");
@@ -67,6 +67,20 @@ class ResponseManufacturingFilter extends HttpsAwareFiltersAdapter {
         requestCaptureFilter = new ClientRequestCaptureFilter(originalRequest);
         this.responseManufacturer = requireNonNull(responseManufacturer);
         this.responseListener = requireNonNull(responseListener);
+    }
+
+    private static class StateAndManufacturer<S> {
+        public final BmpResponseManufacturer<S> manufacturer;
+        public final S state;
+
+        private StateAndManufacturer(BmpResponseManufacturer<S> manufacturer, S state) {
+            this.manufacturer = manufacturer;
+            this.state = state;
+        }
+
+        public ResponseCapture invoke(RequestCapture request) {
+            return manufacturer.manufacture(state, request);
+        }
     }
 
     @Override
@@ -119,7 +133,7 @@ class ResponseManufacturingFilter extends HttpsAwareFiltersAdapter {
     }
 
     protected HttpResponse produceResponse(RequestCapture bmpRequest) {
-        ResponseCapture responseCapture = responseManufacturer.manufacture(bmpRequest);
+        ResponseCapture responseCapture = responseManufacturer.invoke(bmpRequest);
         responseListener.responding(bmpRequest, responseCapture);
         return responseCapture.response;
     }

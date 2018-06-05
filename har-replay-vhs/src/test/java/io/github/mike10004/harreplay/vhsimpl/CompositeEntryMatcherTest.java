@@ -28,41 +28,41 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 
 @RunWith(Parameterized.class)
-public class CompositeEntryMatcherTest {
+public class CompositeEntryMatcherTest<T> {
 
-    private final TestCase testCase;
+    private final TestCase<T> testCase;
 
-    public CompositeEntryMatcherTest(TestCase testCase) {
+    public CompositeEntryMatcherTest(TestCase<T> testCase) {
         this.testCase = testCase;
     }
 
     @Test
-    public void findTopEntry() {
-        CompositeEntryMatcher matcher = new CompositeEntryMatcher(testCase.components);
-        HttpRespondable response = matcher.findTopEntry(testCase.request);
+    public <S> void findTopEntry() {
+        CompositeEntryMatcher<T> matcher = new CompositeEntryMatcher<>(testCase.components);
+        HttpRespondable response = matcher.findTopEntry(testCase.state, testCase.request);
         assertEquals(testCase.describe(), testCase.expectedResponse, response);
     }
 
     @Parameters
-    public static List<TestCase> testCases() {
-        List<TestCase> testCases = new ArrayList<>();
+    public static List<TestCase<?>> testCases() {
+        List<TestCase<?>> testCases = new ArrayList<>();
         ParsedRequest getExample = newRequest(HttpMethod.GET, "https://www.example.com/");
         HttpRespondable response1 = newResponse(200);
         HttpRespondable response2 = newResponse(201);
-        testCases.add(new TestCase(getExample, response1, constant(response1)));
-        testCases.add(new TestCase(getExample, null, Collections.emptyList()));
-        testCases.add(new TestCase(getExample, response1, constant(null), constant(response1)));
-        testCases.add(new TestCase(getExample, response1, constant(response1), constant(response2)));
-        testCases.add(new TestCase(getExample, response2, constant(response2), constant(response1)));
-        testCases.add(new TestCase(getExample, response1, constant(null), constant(response1), constant(null)));
+        testCases.add(new TestCase<>(new Object(), getExample, response1, constant(response1)));
+        testCases.add(new TestCase<>(new Object(), getExample, null, Collections.emptyList()));
+        testCases.add(new TestCase<>(new Object(), getExample, response1, constant(null), constant(response1)));
+        testCases.add(new TestCase<>(new Object(), getExample, response1, constant(response1), constant(response2)));
+        testCases.add(new TestCase<>(new Object(), getExample, response2, constant(response2), constant(response1)));
+        testCases.add(new TestCase<>(new Object(), getExample, response1, constant(null), constant(response1), constant(null)));
         return testCases;
     }
 
-    private static EntryMatcher constant(@Nullable HttpRespondable response) {
-        return new EntryMatcher() {
+    private static <S> EntryMatcher<S> constant(@Nullable HttpRespondable response) {
+        return new EntryMatcher<S>() {
             @Nullable
             @Override
-            public HttpRespondable findTopEntry(ParsedRequest parsedRequest) {
+            public HttpRespondable findTopEntry(S state, ParsedRequest parsedRequest) {
                 return response;
             }
         };
@@ -89,20 +89,23 @@ public class CompositeEntryMatcherTest {
         return ParsedRequest.inMemory(method, url, queryMap_, headers, null);
     }
 
-    private static class TestCase {
+    private static class TestCase<S> {
+
         public final ParsedRequest request;
         @Nullable
         public final HttpRespondable expectedResponse;
-        public final Iterable<EntryMatcher> components;
+        public final Iterable<EntryMatcher<? super S>> components;
+        public final S state;
 
-        public TestCase(ParsedRequest request, @Nullable HttpRespondable expectedResponse, EntryMatcher...components) {
-            this(request, expectedResponse, Arrays.asList(components));
+        public TestCase(S state, ParsedRequest request, @Nullable HttpRespondable expectedResponse, EntryMatcher<? super S>...components) {
+            this(state, request, expectedResponse, Arrays.asList(components));
         }
 
-        public TestCase(ParsedRequest request, @Nullable HttpRespondable expectedResponse, Iterable<EntryMatcher> components) {
+        public TestCase(S state, ParsedRequest request, @Nullable HttpRespondable expectedResponse, Iterable<EntryMatcher<? super S>> components) {
             this.request = requireNonNull(request);
             this.expectedResponse = expectedResponse;
             this.components = requireNonNull(components);
+            this.state = state;
         }
 
         public String describe() {

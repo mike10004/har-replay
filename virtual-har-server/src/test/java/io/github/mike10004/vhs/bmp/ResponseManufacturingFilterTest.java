@@ -54,7 +54,7 @@ public class ResponseManufacturingFilterTest {
         DefaultFullHttpRequest littleRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, url, content);
         String contentType = MediaType.PLAIN_TEXT_UTF_8.withCharset(bodyCharset).toString();
         littleRequest.headers().set(HttpHeaders.CONTENT_TYPE, contentType);
-        ResponseManufacturingFilter filter = new ResponseManufacturingFilter(littleRequest, createChannelHandlerContext(false), EasyMock.createMock(BmpResponseManufacturer.class), EasyMock.createMock(BmpResponseListener.class));
+        ResponseManufacturingFilter filter = new ResponseManufacturingFilter(littleRequest, createChannelHandlerContext(false), EasyMock.createMock(BmpResponseManufacturer.WithState.class), EasyMock.createMock(BmpResponseListener.class));
         filter.captureRequest(littleRequest);
         RequestCapture bmpRequest = filter.freezeRequestCapture();
         ParsedRequest actual = bmpRequest.request;
@@ -142,7 +142,7 @@ public class ResponseManufacturingFilterTest {
             String fullUrl = testCase[0], hostHeader = testCase[1], expected = testCase[2];
             boolean https = "https".equalsIgnoreCase(URI.create(fullUrl).getScheme());
             HttpRequest mockRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "");
-            ResponseManufacturingFilter filter = new ResponseManufacturingFilter(mockRequest, createChannelHandlerContext(https), EasyMock.createMock(BmpResponseManufacturer.class), EasyMock.createMock(BmpResponseListener.class));
+            ResponseManufacturingFilter filter = new ResponseManufacturingFilter(mockRequest, createChannelHandlerContext(https), EasyMock.createMock(BmpResponseManufacturer.WithState.class), EasyMock.createMock(BmpResponseListener.class));
             String actual = filter.reconstructUrlFromFullUrlAndHostHeader(fullUrl, hostHeader);
             String msg = String.format("%s reconstructed from %s and Host: %s", actual, fullUrl, hostHeader);
             if (!Objects.equals(expected, actual)) {
@@ -160,10 +160,15 @@ public class ResponseManufacturingFilterTest {
         ImmutableHttpResponse alwaysResponse = ImmutableHttpResponse.builder(201)
                 .content(MediaType.PLAIN_TEXT_UTF_8, CharSource.wrap("not a real server").asByteSource(StandardCharsets.UTF_8))
                 .build();
-        BmpResponseManufacturer responseManufacturer = new BmpResponseManufacturer() {
+        BmpResponseManufacturer responseManufacturer = new BmpResponseManufacturer<Object>() {
             @Override
-            public ResponseCapture manufacture(RequestCapture capture) {
+            public ResponseCapture manufacture(Object state, RequestCapture capture) {
                 return ResponseCapture.matched(new BmpHttpAssistant().constructResponse(capture, alwaysResponse));
+            }
+
+            @Override
+            public Object createFreshState() {
+                return new Object();
             }
         };
         BrowsermobVhsConfig vhsConfig = BrowsermobVhsConfig.builder(responseManufacturer)
@@ -173,10 +178,10 @@ public class ResponseManufacturingFilterTest {
         List<RequestCapture> requests = Collections.synchronizedList(new ArrayList<>());
         BrowsermobVirtualHarServer server = new BrowsermobVirtualHarServer(vhsConfig) {
             @Override
-            ResponseManufacturingFiltersSource createFirstFiltersSource(BmpResponseManufacturer responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, ResponseManufacturingFiltersSource.PassthruPredicate passthruPredicate) {
+            ResponseManufacturingFiltersSource createFirstFiltersSource(BmpResponseManufacturer.WithState<?> responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, ResponseManufacturingFiltersSource.PassthruPredicate passthruPredicate) {
                 return new ResponseManufacturingFiltersSource(responseManufacturer, hostRewriter, bmpResponseListener, passthruPredicate) {
                     @Override
-                    ResponseManufacturingFilter createResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer responseManufacturer, BmpResponseListener bmpResponseListener) {
+                    ResponseManufacturingFilter createResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer.WithState<?> responseManufacturer, BmpResponseListener bmpResponseListener) {
                         return new ResponseManufacturingFilter(originalRequest, ctx, responseManufacturer, bmpResponseListener) {
                             @Override
                             RequestCapture freezeRequestCapture() {

@@ -8,7 +8,7 @@ import javax.annotation.Nullable;
  * Interface that defines a method to determine how to respond to
  * an HTTP request.
  */
-public interface EntryMatcher {
+public interface EntryMatcher<S> {
 
     /**
      * Finds the best response for a given HTTP request.
@@ -16,6 +16,6 @@ public interface EntryMatcher {
      * @return the response that matches best, or null if none matches well enough
      */
     @Nullable
-    HttpRespondable findTopEntry(ParsedRequest request);
+    HttpRespondable findTopEntry(S state, ParsedRequest request);
 
 }

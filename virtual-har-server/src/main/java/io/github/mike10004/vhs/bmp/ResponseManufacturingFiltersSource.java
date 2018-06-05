@@ -20,12 +20,12 @@ class ResponseManufacturingFiltersSource extends HttpFiltersSourceAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(ResponseManufacturingFiltersSource.class);
 
-    private final BmpResponseManufacturer responseManufacturer;
+    private final BmpResponseManufacturer.WithState<?> responseManufacturer;
     private final HostRewriter hostRewriter;
     private final BmpResponseListener bmpResponseListener;
     private final PassthruPredicate passthruPredicate;
 
-    public ResponseManufacturingFiltersSource(BmpResponseManufacturer responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, PassthruPredicate passthruPredicate) {
+    public ResponseManufacturingFiltersSource(BmpResponseManufacturer.WithState<?> responseManufacturer, HostRewriter hostRewriter, BmpResponseListener bmpResponseListener, PassthruPredicate passthruPredicate) {
         this.responseManufacturer = requireNonNull(responseManufacturer);
         this.hostRewriter = requireNonNull(hostRewriter);
         this.bmpResponseListener = requireNonNull(bmpResponseListener);
@@ -62,7 +62,7 @@ class ResponseManufacturingFiltersSource extends HttpFiltersSourceAdapter {
         return new HostRewriteFilter(originalRequest, ctx, hostRewriter);
     }
 
-    /* package */ ResponseManufacturingFilter createResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer responseManufacturer, BmpResponseListener bmpResponseListener) {
+    /* package */ ResponseManufacturingFilter createResponseManufacturingFilter(HttpRequest originalRequest, ChannelHandlerContext ctx, BmpResponseManufacturer.WithState<?> responseManufacturer, BmpResponseListener bmpResponseListener) {
         return new ResponseManufacturingFilter(originalRequest, ctx, responseManufacturer, bmpResponseListener);
     }
 

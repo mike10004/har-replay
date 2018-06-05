@@ -26,9 +26,10 @@ public class HeuristicEntryMatcherTest {
                 createEntry("GET", "http://example.com/favicon.ico", 404, MediaType.PLAIN_TEXT_UTF_8, "404 Not Found"),
                 createEntry("GET", "http://eviladagency.com/", 200, MediaType.JAVASCRIPT_UTF_8, "console.log('tracking you');\n"),
         };
-        HeuristicEntryMatcher matcher = new HeuristicEntryMatcher(heuristic, threshold, Arrays.asList(entries));
+        HeuristicEntryMatcher<Object> matcher = new HeuristicEntryMatcher<>(heuristic, threshold, Arrays.asList(entries));
         ParsedRequest request = Tests.createRequest("GET", correctUrl);
-        HttpRespondable response = matcher.findTopEntry(request);
+        Object state = new Object();
+        HttpRespondable response = matcher.findTopEntry(state, request);
         assertNotNull("response", response);
         assertEquals(200, response.getStatus());
         assertEquals(1, response.streamHeaders().count());
