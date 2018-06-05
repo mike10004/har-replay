@@ -31,7 +31,7 @@ import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.ResponseManufacturingFiltersSource.PassthruPredicate;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
-import io.github.mike10004.vhs.testsupport.Tests;
+import io.github.mike10004.vhs.testsupport.VhsTests;
 import io.github.mike10004.vhs.testsupport.VirtualHarServerTestBase;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequest;
@@ -195,7 +195,7 @@ public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
                     .loadTrustMaterial(keyStore, null)
                     .build();
             b.setSSLContext(customSslContext);
-            b.setSSLHostnameVerifier(Tests.blindHostnameVerifier());
+            b.setSSLHostnameVerifier(VhsTests.blindHostnameVerifier());
         }
     }
 
@@ -311,9 +311,9 @@ public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
         System.out.println("https_rejectUpstreamBadCertificate");
         System.out.println("expect some big exception stack traces in the logs for this one");
         Path temporaryDirectory = temporaryFolder.newFolder().toPath();
-        File harFile = Tests.getHttpsExampleHarFile(temporaryDirectory);
+        File harFile = VhsTests.getHttpsExampleHarFile(temporaryDirectory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
-        int port = Tests.findOpenPort();
+        int port = VhsTests.findOpenPort();
         TestContext context = new TestContext()
                 .put(KEY_TLS_MODE, TlsMode.SUPPORT_REQUIRED)
                 .put(KEY_CLIENT_SUPPLIER, BlindlyTrustingClient.supplier());

@@ -4,12 +4,18 @@ import io.github.bonigarcia.wdm.ChromeDriverManager;
 import org.junit.rules.ExternalResource;
 
 public class ChromeDriverSetupRule extends ExternalResource {
+
+    private static volatile boolean performed = false;
+
     @Override
     protected void before() {
-        doSetup();
+        if (!performed) {
+            doSetup();
+        }
     }
 
     public static void doSetup() {
         ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
+        performed = true;
     }
 }

@@ -16,7 +16,7 @@ import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.ScratchDirProvider.Scratch;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
-import io.github.mike10004.vhs.testsupport.Tests;
+import io.github.mike10004.vhs.testsupport.VhsTests;
 import org.apache.commons.io.FileUtils;
 
 import javax.annotation.Nullable;
@@ -39,7 +39,7 @@ public class RunnageExample {
         try (Scratch scratch = ScratchDirProvider.under(FileUtils.getTempDirectory().toPath()).createScratchDir()) {
             Path scratchDir = scratch.getRoot();
             File chromeUserDataDir = scratchDir.resolve("chrome-user-data").toFile();
-            File harFile = Tests.getHttpsExampleHarFile(scratchDir);
+            File harFile = VhsTests.getHttpsExampleHarFile(scratchDir);
             List<HarEntry> entries = new de.sstoehr.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
             System.out.println("requests contained in HAR:");
             entries.stream().map(HarEntry::getRequest).forEach(request -> {

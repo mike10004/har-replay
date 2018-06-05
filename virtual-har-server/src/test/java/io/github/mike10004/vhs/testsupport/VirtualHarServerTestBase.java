@@ -94,9 +94,9 @@ public abstract class VirtualHarServerTestBase {
 
     protected Multimap<URI, ResponseSummary> doBasicTest(Iterable<URI> uris) throws Exception {
         Path temporaryDirectory = temporaryFolder.newFolder().toPath();
-        File harFile = Tests.getReplayTest1HarFile(temporaryDirectory);
+        File harFile = VhsTests.getReplayTest1HarFile(temporaryDirectory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
-        int port = Tests.findOpenPort();
+        int port = VhsTests.findOpenPort();
         VirtualHarServer server = createServer(port, harFile, entryMatcherFactory, new TestContext().put(KEY_TLS_MODE, TlsMode.NO_SUPPORT_REQUIRED));
         try (VirtualHarServerControl ctrl = server.start()) {
             ApacheRecordingClient client = new ApacheRecordingClient(false);
@@ -114,9 +114,9 @@ public abstract class VirtualHarServerTestBase {
 
     protected void doHttpsTest(TestContext context) throws Exception {
         Path temporaryDirectory = temporaryFolder.newFolder().toPath();
-        File harFile = Tests.getHttpsExampleHarFile(temporaryDirectory);
+        File harFile = VhsTests.getHttpsExampleHarFile(temporaryDirectory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
-        int port = Tests.findOpenPort();
+        int port = VhsTests.findOpenPort();
         VirtualHarServer server = createServer(port, harFile, entryMatcherFactory, context);
         URI uri = URI.create("https://www.example.com/");
         Multimap<URI, ResponseSummary> responses;
@@ -237,7 +237,7 @@ public abstract class VirtualHarServerTestBase {
         protected void configureHttpClientBuilder(HttpClientBuilder b, HostAndPort proxy) throws Exception {
             super.configureHttpClientBuilder(b, proxy);
             try {
-                Tests.configureClientToTrustBlindly(b);
+                VhsTests.configureClientToTrustBlindly(b);
             } catch (GeneralSecurityException e) {
                 throw new RuntimeException(e);
             }

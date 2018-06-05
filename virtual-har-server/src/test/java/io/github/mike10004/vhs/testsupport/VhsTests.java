@@ -25,19 +25,19 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 
-public class Tests {
+public class VhsTests {
 
-    private Tests(){}
+    private VhsTests(){}
 
     public static File getHttpsExampleHarFile(Path temporaryDirectory) throws IOException {
-        ByteSource byteSource = Resources.asByteSource(Tests.class.getResource("/https.www.example.com.har"));
+        ByteSource byteSource = Resources.asByteSource(VhsTests.class.getResource("/https.www.example.com.har"));
         File harFile = File.createTempFile("https-example", ".har", temporaryDirectory.toFile());
         byteSource.copyTo(Files.asByteSink(harFile));
         return harFile;
     }
 
     public static File getReplayTest1HarFile(Path temporaryDirectory) throws IOException {
-        ByteSource byteSource = Resources.asByteSource(Tests.class.getResource("/replay-test-1.har"));
+        ByteSource byteSource = Resources.asByteSource(VhsTests.class.getResource("/replay-test-1.har"));
         File harFile = File.createTempFile("replay-test-1-", ".har", temporaryDirectory.toFile());
         byteSource.copyTo(Files.asByteSink(harFile));
         return harFile;
@@ -109,7 +109,7 @@ public class Tests {
 
     @SuppressWarnings("SameParameterValue")
     static File copyFileFromClasspath(String resourcePath, String prefix, String suffix, Path tempdir) throws IOException {
-        URL resource = Tests.class.getResource(resourcePath);
+        URL resource = VhsTests.class.getResource(resourcePath);
         if (resource == null) {
             throw new FileNotFoundException(resourcePath);
         }

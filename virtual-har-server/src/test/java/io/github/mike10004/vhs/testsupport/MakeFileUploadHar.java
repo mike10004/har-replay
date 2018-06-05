@@ -45,7 +45,7 @@ import com.google.common.primitives.Ints;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import fi.iki.elonen.NanoHTTPD;
-import io.github.bonigarcia.wdm.ChromeDriverManager;
+import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
 import io.github.mike10004.vhs.bmp.MakeTestHar;
 import io.github.mike10004.vhs.harbridge.FormDataPart;
 import io.github.mike10004.vhs.harbridge.MultipartFormDataParser;
@@ -100,7 +100,7 @@ public class MakeFileUploadHar {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public static net.lightbody.bmp.core.har.Har main(Charset harOutputCharset, File binaryFile) throws IOException, InterruptedException {
+    public static net.lightbody.bmp.core.har.Har main(Charset harOutputCharset, File binaryFile) throws IOException {
         File harFile = File.createTempFile("traffic-with-file-upload", ".har");
         int port = 49111;
         int proxyPort = 60999;
@@ -174,7 +174,7 @@ public class MakeFileUploadHar {
     private static WebDriver createWebDriver(int proxyPort) {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--proxy-server=localhost:" + proxyPort);
-        ChromeDriverManager.getInstance().setup();
+        ChromeDriverSetupRule.doSetup();
         WebDriver driver = new ChromeDriver(options);
         return driver;
     }

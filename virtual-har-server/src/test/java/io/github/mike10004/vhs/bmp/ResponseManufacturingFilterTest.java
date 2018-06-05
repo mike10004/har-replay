@@ -6,7 +6,7 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
-import io.github.mike10004.vhs.testsupport.Tests;
+import io.github.mike10004.vhs.testsupport.VhsTests;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -197,7 +197,7 @@ public class ResponseManufacturingFilterTest {
         URI requestUri = URI.create("https://www.example.com/foo");
         StatusLine responseStatus;
         try (VirtualHarServerControl ctrl = server.start()) {
-            try (CloseableHttpClient client = Tests.buildBlindlyTrustingHttpClient(ctrl.getSocketAddress())) {
+            try (CloseableHttpClient client = VhsTests.buildBlindlyTrustingHttpClient(ctrl.getSocketAddress())) {
                 HttpGet request = new HttpGet(requestUri);
                 try (CloseableHttpResponse response = client.execute(request)) {
                     responseStatus = response.getStatusLine();

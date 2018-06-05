@@ -1,6 +1,6 @@
 package io.github.mike10004.vhs.bmp;
 
-import io.github.bonigarcia.wdm.ChromeDriverManager;
+import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
 import net.lightbody.bmp.BrowserMobProxy;
 import net.lightbody.bmp.BrowserMobProxyServer;
 import net.lightbody.bmp.core.har.Har;
@@ -14,7 +14,7 @@ import java.util.EnumSet;
 public class CreateHarWithBadBrotliEntry {
 
     public static void main(String[] args) throws Exception {
-        ChromeDriverManager.getInstance().setup();
+        ChromeDriverSetupRule.doSetup();
         BrowserMobProxy proxy = new BrowserMobProxyServer();
         int port = 4411;
         proxy.enableHarCaptureTypes(EnumSet.allOf(CaptureType.class));

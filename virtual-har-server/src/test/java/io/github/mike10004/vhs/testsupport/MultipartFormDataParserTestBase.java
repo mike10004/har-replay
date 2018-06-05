@@ -79,7 +79,7 @@ public abstract class MultipartFormDataParserTestBase {
         assertFormDataPartEquals(filePart, Objects::nonNull, "f", "image-for-upload3965121338549146845.jpeg");
         assertNotNull(filePart.file);
         byte[] fileBytes = filePart.file.asByteSource().read();
-        File imageFile = Tests.copyImageForUpload(FileUtils.getTempDirectory().toPath());
+        File imageFile = VhsTests.copyImageForUpload(FileUtils.getTempDirectory().toPath());
         byte[] expectedFileBytes = java.nio.file.Files.readAllBytes(imageFile.toPath());
         if (DUMP_FILE_WITH_UNEXPECTED_CONTENT_FOR_DEBUGGING) {
             if (!Arrays.equals(expectedFileBytes, fileBytes)) {
@@ -166,7 +166,7 @@ public abstract class MultipartFormDataParserTestBase {
         System.out.format("String expectedParamValue = \"%s\"; // contains %s%n", StringEscapeUtils.escapeJava(expectedParamValue), gnarlyString);
         byte[] expectedParamValueBytes = expectedParamValue.getBytes(UTF_8);
         System.out.format("byte[] expectedParamValueBytes = {%s};%n", Joiner.on(", ").join(Bytes.asList(expectedParamValueBytes)));
-        File imageFile = Tests.copyImageForUpload(temporaryFolder.getRoot().toPath());
+        File imageFile = VhsTests.copyImageForUpload(temporaryFolder.getRoot().toPath());
         Charset TEXT_CHARSET = UTF_8;
         String boundary = "----WebKitFormBoundarykWXf2mC9KePVVkV6";
         MediaType contentType = MediaType.parse(CONTENT_TYPE_NO_BOUNDARY).withParameter("boundary", boundary);

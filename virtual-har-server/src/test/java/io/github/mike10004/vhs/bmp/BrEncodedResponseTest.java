@@ -13,12 +13,14 @@ import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarHeader;
 import de.sstoehr.harreader.model.HarResponse;
+import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
 import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -45,6 +47,9 @@ import static org.junit.Assert.assertEquals;
 
 public class BrEncodedResponseTest {
 
+    @ClassRule
+    public static ChromeDriverSetupRule chromedriverSetupRule = new ChromeDriverSetupRule();
+
     @Rule
     public XvfbRule xvfbRule = XvfbRule.builder().build();
 
@@ -57,7 +62,6 @@ public class BrEncodedResponseTest {
 
     @Test
     public void seeBrEncodedResponse_chrome() throws Exception {
-        BmpTests.configureJvmForChromedriver();
         seeBrEncodedResponse((proxyAddress, url) -> {
             Map<String, String> env = xvfbRule.getController().newEnvironment();
             ChromeDriverService service = new ChromeDriverService.Builder()

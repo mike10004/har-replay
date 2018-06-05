@@ -2,6 +2,7 @@ package io.github.mike10004.harreplay.tests;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.google.common.net.HostAndPort;
@@ -19,6 +20,7 @@ import java.util.List;
 public interface ChromeOptionsProducer {
 
     String SYSPROP_CHROME_ARGUMENTS = "har-replay.chromedriver.chrome.arguments";
+    String SYSPROP_CHROME_EXEC_PATH = "har-replay.chromedriver.chrome.executablePath";
 
     ChromeOptions produceOptions(HostAndPort proxy) throws IOException;
 
@@ -31,9 +33,18 @@ public interface ChromeOptionsProducer {
         return args;
     }
 
+    @Nullable
+    static String getBinaryPathOverride() {
+        return Strings.emptyToNull(System.getProperty(SYSPROP_CHROME_EXEC_PATH));
+    }
+
     static ChromeOptionsProducer standard() {
         return proxy -> {
             ChromeOptions options = new ChromeOptions();
+            String binaryPath = getBinaryPathOverride();
+            if (binaryPath != null) {
+                options.setBinary(binaryPath);
+            }
             options.addArguments(populateArgsList(proxy));
             return options;
         };

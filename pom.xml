@@ -81,7 +81,16 @@
                             <configuration>
                                 <systemPropertyVariables>
                                     <har-replay.chromedriver.chrome.arguments>--no-sandbox</har-replay.chromedriver.chrome.arguments>
-                                    <har-replay.node.executable>${project.basedir}/node/node</har-replay.node.executable>
+                                    <har-replay.chromedriver.chrome.executablePath>/usr/bin/chromium-browser</har-replay.chromedriver.chrome.executablePath>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                        <plugin>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <har-replay.chromedriver.chrome.arguments>--no-sandbox</har-replay.chromedriver.chrome.arguments>
+                                    <har-replay.chromedriver.chrome.executablePath>/usr/bin/chromium-browser</har-replay.chromedriver.chrome.executablePath>
                                 </systemPropertyVariables>
                             </configuration>
                         </plugin>

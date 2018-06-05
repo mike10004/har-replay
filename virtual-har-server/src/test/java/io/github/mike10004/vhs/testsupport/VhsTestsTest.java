@@ -8,17 +8,17 @@ import java.net.ServerSocket;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class TestsTest {
+public class VhsTestsTest {
 
     @Test
     public void test_isStillAlive() throws Exception {
         HostAndPort liveAddress;
         try (ServerSocket ctrl = new ServerSocket(0)) {
             liveAddress = HostAndPort.fromParts("localhost", ctrl.getLocalPort());
-            assertTrue("ctrl.getSocketAddress() alive", Tests.isStillAlive(liveAddress));
+            assertTrue("ctrl.getSocketAddress() alive", VhsTests.isStillAlive(liveAddress));
         }
-        assertFalse("after closed", Tests.isStillAlive(liveAddress));
-        int port = Tests.findOpenPort();
-        assertFalse("unused port still alive", Tests.isStillAlive(HostAndPort.fromParts("localhost", port)));
+        assertFalse("after closed", VhsTests.isStillAlive(liveAddress));
+        int port = VhsTests.findOpenPort();
+        assertFalse("unused port still alive", VhsTests.isStillAlive(HostAndPort.fromParts("localhost", port)));
     }
 }

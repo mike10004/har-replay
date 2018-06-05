@@ -5,6 +5,7 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
 import com.google.common.net.HostAndPort;
+import io.github.bonigarcia.wdm.ChromeDriverManager;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse.Builder;
 
 import javax.annotation.Nullable;
@@ -26,7 +27,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class Tests {
 
     public static final String SYSPROP_CHROMEDRIVER_VERSION = "har-replay.chromedriver.version";
-    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.35";
+
+    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.39";
 
     private Tests () {
 
@@ -121,4 +123,5 @@ public class Tests {
             out.format("%n================================================================================%n");
         });
     }
+
 }
