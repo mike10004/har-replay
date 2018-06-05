@@ -253,6 +253,7 @@ public class ContentDisposition {
 
     /**
      * Return an empty content disposition.
+     * @return a new empty instance
      */
     public static ContentDisposition empty() {
         return new ContentDisposition("", null, null, null, null, null, null, null);
@@ -482,6 +483,7 @@ public class ContentDisposition {
 
         /**
          * Set the value of the {@literal size} parameter
+         * @param size the size
          * @return this instance
          */
         Builder size(Long size);
