@@ -43,7 +43,7 @@ public class StatefulHeuristicEntryMatcher extends HeuristicEntryMatcher<ReplayS
             int boost = 0;
             if (rating > 0) {
                 int entrySequencePosition = entrySequencePositions.get(entry);
-                int requestSequencePosition = state.query(request) - 1; // minus one because the request was just registered, but we want what it was prior to that
+                int requestSequencePosition = state.query(request);
                 boost = entrySequencePosition == requestSequencePosition ? SEQUENCE_MATCH_BOOST : 0;
             }
             return new RatedEntry(entry, rating + boost);
@@ -56,7 +56,7 @@ public class StatefulHeuristicEntryMatcher extends HeuristicEntryMatcher<ReplayS
 
     protected static class MyFactory extends Factory<ReplaySessionState> {
 
-        private MyFactory(Heuristic heuristic, int thresholdExclusive) {
+        public MyFactory(Heuristic heuristic, int thresholdExclusive) {
             super(heuristic, thresholdExclusive);
         }
 

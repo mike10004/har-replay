@@ -40,7 +40,7 @@ public class HarReplayManufacturer implements BmpResponseManufacturer<ReplaySess
      * @param responseInterceptors a list of response interceptors
      */
     public HarReplayManufacturer(EntryMatcher<? super ReplaySessionState> entryMatcher, Iterable<ResponseInterceptor> responseInterceptors) {
-        this(entryMatcher, responseInterceptors, ReplaySessionState::stateless);
+        this(entryMatcher, responseInterceptors, ReplaySessionState::countingUrlMethodPairs);
     }
 
     public HarReplayManufacturer(EntryMatcher<? super ReplaySessionState> entryMatcher, Iterable<ResponseInterceptor> responseInterceptors, Supplier<? extends ReplaySessionState> sessionStateFactory) {
