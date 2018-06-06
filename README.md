@@ -6,13 +6,10 @@ har-replay
 ==========
 
 Java library and executable for serving recorded HTTP responses from a HAR 
-file. To use it, you construct a server from a HAR file and configure your 
-web browser to use the server as an HTTP proxy. The proxy intercepts each 
-request and responds with the corresponding pre-recorded response from the 
-HAR.
-
-Two implementations are available, one that is pure Java and one that uses
-a Node module under the hood.
+file. To use it, you provide a HAR file, the library instantiates an HTTP
+proxy server, and you configure your web browser to use the proxy server. 
+The proxy intercepts each request and responds with the corresponding 
+pre-recorded response from the HAR.
 
 Quick Start
 -----------
@@ -32,11 +29,12 @@ Maven dependency:
 
     <dependency>
         <groupId>com.github.mike10004</groupId>
-        <artifactId>har-replay-vhs</artifactId> <!-- or har-replay-node -->
-        <version>0.21</version>
+        <artifactId>har-replay-vhs</artifactId>
+        <version>0.23</version> <!-- use latest version -->
     </dependency>
 
-See Maven badge above for the actual latest version.
+See Maven badge above for the actual latest version. The example code below
+imports classes from the library and the `java.net` package.
 
     File harFile = new File("my-session.har");
     ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir().build(harFile);
@@ -56,17 +54,18 @@ See Maven badge above for the actual latest version.
     }
 
 The unit tests contain some examples of using the library with an Apache HTTP 
-client and a Chrome WebDriver client. 
+client and a Selenium Chrome WebDriver client. 
 
 FAQ
 ---
 
 ### How do I create a HAR?
 
-You can use the DevTools in Chrome. See this unofficial tech support posting:
-[Generating a HAR file for troubleshooting][har-howto]. Another option is to
-use [browsermob-proxy](https://github.com/lightbody/browsermob-proxy) to 
-capture a HAR.
+See https://toolbox.googleapps.com/apps/har_analyzer/ for instructions on using
+your web browser to create a HAR file. Another option is to use 
+[browsermob-proxy](https://github.com/lightbody/browsermob-proxy) to capture a
+HAR. The Browsermob method captures some requests the web browser hides from you
+(because they are trackers or fetch data for browser internals).
 
 Debugging Travis Builds
 -----------------------
@@ -77,15 +76,11 @@ but does not report a nonzero exit code, so it's not clear whether it's
 actually succeeding or something funky is going on. It should be useful for 
 debugging failures that happen earlier, though. If the failure you see on 
 Travis happens later on in `mvn verify`, you can follow the Travis
-[Troubleshooting in a local container][troubleshooting] instructions, which 
-say to execute:
+[Troubleshooting in a local container](https://docs.travis-ci.com/user/common-build-problems/)
+instructions, which say to execute:
 
     $ docker run --name travis-debug -dit $TRAVIS_IMAGE /sbin/init
     $ docker exec -it travis-debug bash -l 
 
 This puts you inside the container, where you can `su -l travis`, clone the 
 repo, and proceed manually from there.
-
-[har-replay-proxy]: https://github.com/mike10004/har-replay-proxy
-[har-howto]: https://support.zendesk.com/hc/en-us/articles/204410413-Generating-a-HAR-file-for-troubleshooting
-[troubleshooting]: https://docs.travis-ci.com/user/common-build-problems/
