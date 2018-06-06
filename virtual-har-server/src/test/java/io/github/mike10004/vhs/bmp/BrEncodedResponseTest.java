@@ -14,6 +14,7 @@ import de.sstoehr.harreader.model.Har;
 import de.sstoehr.harreader.model.HarHeader;
 import de.sstoehr.harreader.model.HarResponse;
 import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
+import io.github.mike10004.harreplay.tests.ChromeOptionsProducer;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.harbridge.HttpContentCodec;
@@ -68,8 +69,7 @@ public class BrEncodedResponseTest {
                     .usingAnyFreePort()
                     .withEnvironment(env)
                     .build();
-            ChromeOptions options = BmpTests.createDefaultChromeOptions();
-            options.addArguments("--proxy-server=" + proxyAddress);
+            ChromeOptions options = ChromeOptionsProducer.standard().produceOptions(proxyAddress);
             WebDriver driver = new ChromeDriver(service, options);
             try {
                 driver.get(url.toString());

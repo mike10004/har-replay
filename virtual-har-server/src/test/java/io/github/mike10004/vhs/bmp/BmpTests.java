@@ -11,7 +11,6 @@ import de.sstoehr.harreader.HarReaderMode;
 import de.sstoehr.harreader.jackson.ExceptionIgnoringIntegerDeserializer;
 import de.sstoehr.harreader.jackson.MapperFactory;
 import de.sstoehr.harreader.model.HarEntry;
-import io.github.mike10004.harreplay.tests.ChromeOptionsProducer;
 import io.github.mike10004.vhs.BasicHeuristic;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
@@ -21,7 +20,6 @@ import io.github.mike10004.vhs.HeuristicEntryMatcher;
 import io.github.mike10004.vhs.ReplaySessionState;
 import io.github.mike10004.vhs.ResponseInterceptor;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -41,11 +39,6 @@ public class BmpTests {
     private static final KeystoreDataCache keystoreDataCache =
             new KeystoreDataCache(new JreKeystoreGenerator(KeystoreType.PKCS12,
                     new Random(KeystoreDataCache.class.getName().hashCode())));
-
-    public static ChromeOptions createDefaultChromeOptions() throws IOException {
-        ChromeOptions options = ChromeOptionsProducer.standard().produceOptions(null);
-        return options;
-    }
 
     private static class KeystoreDataCache {
         private final KeystoreDataSerializer keystoreDataSerializer;
