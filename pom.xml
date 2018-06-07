@@ -6,7 +6,7 @@
 
     <groupId>com.github.mike10004</groupId>
     <artifactId>har-replay</artifactId>
-    <version>0.23</version>
+    <version>0.24-SNAPSHOT</version>
     <name>har-replay</name>
     <description>Library that manages a proxy server that replays traffic from a HAR</description>
     <packaging>pom</packaging>
