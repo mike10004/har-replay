@@ -8,12 +8,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-public class HarReplay_NonparamIT extends HarReplayITBase {
-
-    @BeforeClass
-    public static void checkAssemblyCreated() {
-        ExecTests.assumeExecAssemblyNotSkipped();
-    }
+public class HarReplay_NonparamTest extends HarReplayTestBase {
 
     @Test
     public void executeHelp() throws Exception {

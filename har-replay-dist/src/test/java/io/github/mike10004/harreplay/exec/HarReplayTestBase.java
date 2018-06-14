@@ -3,23 +3,29 @@ package io.github.mike10004.harreplay.exec;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
 import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import io.github.mike10004.harreplay.dist.DistTests;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
-public class HarReplayITBase {
+public class HarReplayTestBase {
 
     private static boolean listedDirectoryAlready = false;
 
-    protected File findJarFile() throws FileNotFoundException {
-        String artifactId = ExecTests.getTestProperty("project.artifactId");
-        String version = ExecTests.getTestProperty("project.version");
-        String filename = String.format("%s-%s-jar-with-dependencies.jar", artifactId, version);
-        File targetDir = new File(ExecTests.getTestProperty("project.build.directory"));
-        File jarFile = new File(targetDir, filename);
+    protected Subprocess.Builder buildSubprocess() throws FileNotFoundException {
+        String artifactId = "har-replay-exec";
+        String version = DistTests.getTestProperty("project.version");
+        String filename = String.format("%s-%s.jar", artifactId, version);
+        File targetDir = new File(DistTests.getTestProperty("project.build.directory"));
+        File libsDir = targetDir.toPath().resolve("deb/usr/share/har-replay/lib").toFile();
+        Collection<File> libFiles = FileUtils.listFiles(libsDir, new String[]{"jar"}, false);
+        String classpathArg = libFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+        File jarFile = new File(libsDir, filename);
         if (!jarFile.isFile()) {
             if (!listedDirectoryAlready) {
                 System.out.println("target: " + targetDir);
@@ -28,7 +34,9 @@ public class HarReplayITBase {
             }
             throw new FileNotFoundException(jarFile.getAbsolutePath());
         }
-        return jarFile;
+        return Subprocess.running("java")
+                .args("-classpath", classpathArg)
+                .arg(HarReplayMain.class.getName());
     }
 
     protected ProcessMonitor<String, String> execute(ProcessTracker processTracker, String...args) throws FileNotFoundException {
@@ -36,9 +44,7 @@ public class HarReplayITBase {
     }
 
     protected ProcessMonitor<String, String> execute(ProcessTracker processTracker, Iterable<String> args) throws FileNotFoundException {
-        File jarFile = findJarFile();
-        Subprocess subprocess = Subprocess.running("java")
-                .args("-jar", jarFile.getAbsolutePath())
+        Subprocess subprocess = buildSubprocess()
                 .args(args)
                 .build();
         return subprocess.launcher(processTracker)

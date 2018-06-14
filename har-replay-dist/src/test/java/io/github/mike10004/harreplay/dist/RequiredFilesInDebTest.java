@@ -19,7 +19,7 @@ public class RequiredFilesInDebTest {
     }
 
     private void checkFileExists(String relativePath) {
-        File file = Tests.getBuildDir().toPath().resolve("deb").resolve(relativePath).toFile();
+        File file = DistTests.getBuildDir().toPath().resolve("deb").resolve(relativePath).toFile();
         assertTrue("exists: " + file, file.isFile());
     }
 }

@@ -24,8 +24,6 @@
         <skip.verify-git>true</skip.verify-git>
         <package.revision>1</package.revision>
         <maven.phase.file>${project.build.directory}/maven-phase.txt</maven.phase.file>
-        <parsedVersion.majorVersion>0</parsedVersion.majorVersion>
-        <parsedVersion.minorVersion>0</parsedVersion.minorVersion>
     </properties>
     <profiles>
         <profile>
@@ -113,6 +111,7 @@
             <plugin>
                 <groupId>pl.project13.maven</groupId>
                 <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.1.15</version>
                 <executions>
                     <execution>
                         <goals>
@@ -277,6 +276,7 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
+                                    <!--suppress MavenModelInspection -->
                                     <file>${project.build.directory}/${package.name}_${parsedVersion.majorVersion}.${parsedVersion.minorVersion}+${maven.build.timestamp}-${package.revision}_all.deb</file>
                                     <type>deb</type>
                                 </artifact>
@@ -323,15 +323,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.tdomzal</groupId>
-            <artifactId>junit-docker-rule</artifactId>
-            <version>0.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-jdk14</artifactId>
-            <version>1.7.25</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>har-replay-test-support</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- END dependencies of tests -->

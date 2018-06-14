@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.dist;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Ordering;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -14,12 +15,31 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.Supplier;
 
-public class Tests {
+public final class DistTests {
 
-    private Tests() {
+    private DistTests() {
 
     }
+
+    public static String getTestProperty(String key) {
+        return getProperties().getProperty(key);
+    }
+
+    public static String getTestProperty(String key, String defaultVal) {
+        return getProperties().getProperty(key, defaultVal);
+    }
+
+    private static final Supplier<Properties> PROPS = Suppliers.memoize(() -> {
+        Properties p = new Properties();
+        try (InputStream in = DistTests.class.getResourceAsStream("/har-replay-dist/maven.properties")) {
+            p.load(in);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return p;
+    });
 
     public static File getDebFile() throws IOException {
         File buildDir = getBuildDir();
@@ -39,12 +59,6 @@ public class Tests {
     }
 
     public static Properties getProperties() {
-        Properties p = new Properties();
-        try (InputStream in = Tests.class.getResourceAsStream("/har-replay-dist/maven.properties")) {
-            p.load(in);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return p;
+        return PROPS.get();
     }
 }

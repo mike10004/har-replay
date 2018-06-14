@@ -25,7 +25,6 @@ import io.github.mike10004.vhs.harbridge.HttpContentCodecs;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jsoup.Jsoup;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,7 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class HarReplayIT extends HarReplayITBase {
+public class HarReplayTest extends HarReplayTestBase {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -62,12 +61,7 @@ public class HarReplayIT extends HarReplayITBase {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    public HarReplayIT() {
-    }
-
-    @BeforeClass
-    public static void checkAssemblyCreated() {
-        ExecTests.assumeExecAssemblyNotSkipped();
+    public HarReplayTest() {
     }
 
     @Test

@@ -10,7 +10,7 @@ public class ExecScriptIT {
 
     @Test
     public void checkDeb() throws Exception {
-        File debFile = Tests.getDebFile();
+        File debFile = DistTests.getDebFile();
         System.out.format("%s (%d bytes)%n", debFile, debFile.length());
         assertTrue(debFile.length() > 0);
     }
