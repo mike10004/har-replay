@@ -66,10 +66,11 @@ public class HarReplayMain {
     static final String OPT_ECHO_BROWSER_OUTPUT = "echo-browser-output";
     static final String OPT_HAR_READER_BEHAVIOR = "har-reader-behavior";
     static final String OPT_HAR_READER_MODE = "har-reader-mode";
-    static final String OPT_PRINT = "print-har";
+    static final String OPT_PRINT = "print";
     static final String OPT_VERSION = "version";
     static final String OPT_HELP = "help";
     static final String OPT_ONLY_PRINT = "only-print";
+    static final String OPT_PRINT_WITH_CONTENT = "content-dir";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -78,7 +79,7 @@ public class HarReplayMain {
     private final OptionSpec<Integer> portSpec;
     private final OptionSpec<File> scratchDirSpec;
     private final OptionSpec<Browser> browserSpec;
-    private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
+    private final OptionSpec<HarPrintStyle> harDumpStyleSpec;
     private final OptionSpec<File> replayConfigSpec;
     private final OptionSpec<HarReaderBehavior> harReaderBehaviorSpec;
     private final OptionSpec<HarReaderMode> harReaderModeSpec;
@@ -95,6 +96,8 @@ public class HarReplayMain {
         parser.acceptsAll(Arrays.asList("V", OPT_VERSION), "print version and exit");
         parser.acceptsAll(Arrays.asList("t", OPT_ONLY_PRINT), "only print content (do not start server)");
         parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
+        parser.accepts(OPT_PRINT_WITH_CONTENT, "with --print=csv, write request/response content to DIR")
+                .withRequiredArg().ofType(File.class).describedAs("DIR");
         harFileSpec = parser.nonOptions("har file").ofType(File.class).describedAs("FILE");
         notifySpec = parser.accepts(OPT_NOTIFY, "notify that server is up by printing listening port to file")
                 .withRequiredArg().ofType(File.class);
@@ -107,10 +110,10 @@ public class HarReplayMain {
         browserSpec = parser.acceptsAll(Arrays.asList("b", OPT_BROWSER), "launch browser configured for replay server; only 'chrome' is supported")
                 .withRequiredArg().ofType(Browser.class)
                 .describedAs("BROWSER");
-        harDumpStyleSpec = parser.acceptsAll(Collections.singletonList(OPT_PRINT), "print har content (choices: " + HarDumpStyle.describeChoices() + ")")
-                .withRequiredArg().ofType(HarDumpStyle.class)
+        harDumpStyleSpec = parser.acceptsAll(Collections.singletonList(OPT_PRINT), "print har content (choices: " + HarPrintStyle.describeChoices() + ")")
+                .withRequiredArg().ofType(HarPrintStyle.class)
                 .describedAs("STYLE")
-                .defaultsTo(HarDumpStyle.summary);
+                .defaultsTo(HarPrintStyle.summary);
         replayConfigSpec = parser.acceptsAll(Arrays.asList("f", OPT_REPLAY_CONFIG), "specify replay config file")
                 .withRequiredArg().ofType(File.class);
         harReaderBehaviorSpec = parser.accepts(OPT_HAR_READER_BEHAVIOR, "set har reader behavior (EASIER or STOCK)")
@@ -147,32 +150,36 @@ public class HarReplayMain {
         return har.getLog().getEntries();
     }
 
-    protected void runServer(OptionSet optionSet) throws IOException {
+    protected void runServer(OptionSet optionSet, ReplaySessionConfig sessionConfig) throws IOException {
+        HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
+        ReplayManager manager = createReplayManager(optionSet);
+        try (ReplaySessionControl ignore = manager.start(sessionConfig);
+             ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
+            maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
+            Browser browser = optionSet.valueOf(browserSpec);
+            if (browser != null) {
+                //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
+                ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
+                        .prepare(sessionConfig.scratchDir)
+                        .launch(replayServerAddress, processTracker);
+            }
+            sleepForever();
+        }
+    }
+
+    protected void operate(OptionSet optionSet) throws IOException {
         try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
             ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
-            HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
+            HarPrintStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
             try {
-                harDumpStyle.getDumper().dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
+                harDumpStyle.getDumper(optionSet).dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
             } catch (HarReaderException e) {
                 System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
             }
             if (optionSet.has(OPT_ONLY_PRINT)) {
                 return;
             }
-            HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
-            ReplayManager manager = createReplayManager(optionSet);
-            try (ReplaySessionControl ignore = manager.start(sessionConfig);
-                 ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
-                maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
-                Browser browser = optionSet.valueOf(browserSpec);
-                if (browser != null) {
-                    //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
-                    ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
-                            .prepare(sessionConfig.scratchDir)
-                            .launch(replayServerAddress, processTracker);
-                }
-                sleepForever();
-            }
+            runServer(optionSet, sessionConfig);
         }
 
     }
@@ -188,7 +195,7 @@ public class HarReplayMain {
                 printVersion(System.out);
                 return 0;
             }
-            runServer(optionSet);
+            operate(optionSet);
         } catch (UsageException | joptsimple.OptionException e) {
             System.err.format("har-replay: %s%n", e.getMessage());
             System.err.format("har-replay: use --help to print options%n");
@@ -358,18 +365,20 @@ public class HarReplayMain {
 
     }
 
-    public enum HarDumpStyle {
+    public enum HarPrintStyle {
         silent,
         terse,
         summary,
+        csv,
         verbose;
 
-        HarInfoDumper getDumper() {
+        HarInfoDumper getDumper(OptionSet optionSet) {
             switch (this) {
                 case silent: return HarInfoDumper.silent();
                 case terse: return new TerseDumper();
                 case summary: return new SummaryDumper();
                 case verbose: return new VerboseDumper();
+                case csv: return HarInfoDumper.CsvDumper.makeContentWritingInstance((File) optionSet.valueOf(OPT_PRINT_WITH_CONTENT));
             }
             throw new IllegalStateException("not handled: " + this);
         }

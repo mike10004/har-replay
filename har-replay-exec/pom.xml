@@ -187,5 +187,15 @@
             <groupId>de.sstoehr</groupId>
             <artifactId>har-reader</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>1.18</version>
+        </dependency>
     </dependencies>
 </project>

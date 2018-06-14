@@ -8,8 +8,11 @@ import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
 import io.github.mike10004.harreplay.tests.Fixtures;
 import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
+import org.apache.commons.io.FileUtils;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -17,6 +20,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -25,6 +29,9 @@ public class HarInfoDumperTest {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
+
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void summary() throws Exception {
@@ -44,6 +51,13 @@ public class HarInfoDumperTest {
         System.out.println(output);
     }
 
+    @Test
+    public void csvWithContent() throws Exception {
+        File destDir = temporaryFolder.getRoot();
+        dump(HarInfoDumper.CsvDumper.makeContentWritingInstance(destDir));
+        Collection<File> files = FileUtils.listFiles(destDir, null, false);
+        files.forEach(System.out::println);
+    }
 
     private String dump(HarInfoDumper dumper) throws UnsupportedEncodingException, HarReaderException {
         Charset charset = StandardCharsets.UTF_8;
