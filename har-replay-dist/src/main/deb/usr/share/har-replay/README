@@ -1,0 +1,2 @@
+HAR Replay is an application that starts a proxy server that intercepts
+requests and serves responses from a HAR file.

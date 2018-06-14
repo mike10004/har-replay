@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>har-replay</artifactId>
+        <groupId>com.github.mike10004</groupId>
+        <version>0.24-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>har-replay-dist</artifactId>
+
+    <packaging>pom</packaging>
+    <name>har-replay-dist</name>
+    <properties>
+        <app.name>${project.parent.name}</app.name>
+        <package.name>${app.name}</package.name>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.build.timestamp.format>yyyyMMddHHmmssZ</maven.build.timestamp.format>
+        <timestamp.clean>${maven.build.timestamp}</timestamp.clean> <!-- https://stackoverflow.com/a/13228882/2657036 -->
+        <dist.version>${project.version}-${maven.build.timestamp}</dist.version>
+        <skip.dist.tests>false</skip.dist.tests>
+        <skip.verify-git>true</skip.verify-git>
+        <package.revision>1</package.revision>
+        <maven.phase.file>${project.build.directory}/maven-phase.txt</maven.phase.file>
+    </properties>
+    <profiles>
+        <profile>
+            <id>release-profile</id>
+            <properties>
+                <dist.version>${project.version}</dist.version>
+                <skip.verify-git>false</skip.verify-git>
+            </properties>
+        </profile>
+        <profile>
+            <id>windows-build</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <skip.dist.tests>true</skip.dist.tests>
+            </properties>
+        </profile>
+    </profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <!-- avoid any attempt to generate a jar artifact by attaching this to a non-existent phase -->
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.5</version>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <!--suppress MavenModelInspection -->
+                        <phase>never</phase>
+                        <configuration>
+                            <finalName>unwanted</finalName>
+                            <classifier>unwanted</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
+                 this artifact has packaging=pom, which normally disables the compile,
+                 surefire, and failsafe plugins, so we explicitly enable them here
+            -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>force-test-compile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>force-surefire-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>failsafe-integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>failsafe-verify</id>
+                        <goals>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/../.git</dotGitDirectory>
+                    <dateFormat>yyyy-MM-dd'T'HH:mm:ss z</dateFormat>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${project.build.directory}/deb/usr/share/${package.name}/build.properties</generateGitPropertiesFilename>
+                    <!--this is true by default; You may want to set this to false, if the plugin should run inside a
+                        <packaging>pom</packaging> project. Most projects won't need to override this property.
+                        For a use-case for this kind of behaviour see: https://github.com/ktoso/maven-git-commit-id-plugin/issues/21 -->
+                    <skipPoms>false</skipPoms>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>stage-libraries</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/deb/usr/share/${package.name}/lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <executions>
+                    <execution>
+                        <id>write-classpath</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>python3</executable>
+                            <arguments>
+                                <argument>${project.basedir}/src/main/script/write_classpath.py</argument>
+                                <argument>${project.build.directory}/deb</argument>
+                                <argument>${project.build.directory}/deb/usr/share/${package.name}/lib</argument>
+                                <argument>${project.build.directory}/deb/usr/share/${package.name}/classpath-arg.txt</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-deb-sources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/deb</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/deb</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>force-test-resources</id>
+                        <goals>
+                            <goal>testResources</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!--
+                  This plugin's configuration must come *after* the Maven Resources
+                  Plugin, and *before* the Debian Maven Plugin.
+                -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>fix-permissions</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <chmod perm="0755" verbose="true">
+                                    <fileset dir="${project.build.directory}/deb">
+                                        <include name="**/bin/*"/>
+                                        <include name="**/sbin/*"/>
+                                        <include name="DEBIAN/post*"/>
+                                        <include name="DEBIAN/pre*"/>
+                                    </fileset>
+                                </chmod>
+                            </target>
+                        </configuration>
+                        <goals><goal>run</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>debian-maven-plugin</artifactId>
+                <version>1.0.9</version>
+                <executions>
+                    <execution>
+                        <id>build-deb</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <configuration>
+                            <packageName>${package.name}</packageName>
+                            <packageTitle>HAR Replay</packageTitle>
+                            <packageRevision>${package.revision}</packageRevision>
+                            <projectUrl>https://github.com/mike10004/har-replay</projectUrl>
+                            <projectOrganization>Unorganized Developers</projectOrganization>
+                            <maintainerName>Mike Chaberski</maintainerName>
+                            <maintainerEmail>mchaberski@gmail.com</maintainerEmail>
+                            <includeAttachedArtifacts>false</includeAttachedArtifacts>
+                            <excludeAllDependencies>true</excludeAllDependencies>
+                            <excludeAllArtifacts>true</excludeAllArtifacts>
+                            <snapshotRevision>+${maven.build.timestamp}</snapshotRevision>
+                            <packageDependencies>
+                                <package>default-jre-headless</package>
+                            </packageDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <excludes>
+                    <exclude>**/*.properties</exclude>
+                </excludes>
+                <filtering>false</filtering>
+            </testResource>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                </includes>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
+    </build>
+    <dependencyManagement>
+        <dependencies>
+        </dependencies>
+    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>har-replay-exec</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- START dependencies of tests -->
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tdomzal</groupId>
+            <artifactId>junit-docker-rule</artifactId>
+            <version>0.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>1.7.25</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- END dependencies of tests -->
+    </dependencies>
+
+</project>

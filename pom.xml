@@ -16,6 +16,7 @@
         <module>har-replay-exec</module>
         <module>har-replay-test-support</module>
         <module>har-replay-vhs</module>
+        <module>har-replay-dist</module>
     </modules>
     <url>https://github.com/mike10004/har-replay</url>
     <inceptionYear>2016</inceptionYear>

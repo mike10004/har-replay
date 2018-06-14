@@ -1,0 +1,18 @@
+#!/bin/bash
+
+PACKAGE=har-replay
+PROG=har-replay
+JAVA=${JAVA:-java}
+PREFIX=${PREFIX:-/usr/share}
+
+which "${JAVA}" > /dev/null
+if [ $? -ne 0 ] ; then
+  echo "${PROG}: no ${JAVA} on path" >&2
+  exit 2
+fi
+
+set -e
+
+MAIN_CLASS="io.github.mike10004.harreplay.exec.HarReplayMain"
+
+"${JAVA}" -classpath "$(cat ${PREFIX}/${PACKAGE}/classpath-arg.txt)" "${MAIN_CLASS}" $@
