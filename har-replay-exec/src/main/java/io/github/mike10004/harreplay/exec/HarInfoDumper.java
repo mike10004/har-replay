@@ -19,7 +19,6 @@ import de.sstoehr.harreader.model.HarRequest;
 import de.sstoehr.harreader.model.HarResponse;
 import de.sstoehr.harreader.model.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MimeType;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
@@ -181,7 +180,7 @@ interface HarInfoDumper {
             try {
                 CSVWriter csv = new CSVWriter(writer);
                 for (int i = 0; i < harEntries.size(); i++) {
-                    HarEntry entry = harEntries.get(0);
+                    HarEntry entry = harEntries.get(i);
                     if (!columnNamesRowPrinted) {
                         String[] columnNames = rowTransform.getColumnNames();
                         if (columnNames != null) {
@@ -225,12 +224,16 @@ interface HarInfoDumper {
 
         private static class ContentDumpingRowTransform extends DefaultRowTransform {
 
+            private static final String[] ADDITIONAL_HEADERS = {
+                    "requestContentType", "responseContent", "requestContent"
+            };
+
             private final File destinationDir;
-            private final Path cwd;
+            private final Path relativeRoot;
 
             private ContentDumpingRowTransform(File destinationDir) {
-                this.destinationDir = destinationDir;
-                cwd = new File(System.getProperty("user.dir")).toPath();
+                this.destinationDir = destinationDir.getAbsoluteFile();
+                relativeRoot = this.destinationDir.toPath();
             }
 
             protected File constructPathname(int entryIndex, String infix, String contentType) {
@@ -248,7 +251,7 @@ interface HarInfoDumper {
 
             @Override
             public String[] getColumnNames() {
-                return Stream.concat(Stream.of(super.getColumnNames()), Stream.of("responseContent", "requestContent"))
+                return Stream.concat(Stream.of(super.getColumnNames()), Stream.of(ADDITIONAL_HEADERS))
                         .toArray(String[]::new);
             }
 
@@ -265,6 +268,7 @@ interface HarInfoDumper {
             @Override
             public Object[] transform(HarEntry harEntry, int entryIndex) {
                 Object[] start = super.transform(harEntry, entryIndex);
+                String requestContentType = null;
                 Path responseContentPath = null, requestContentPath = null;
                 HarResponse response = harEntry.getResponse();
                 if (response != null) {
@@ -294,6 +298,10 @@ interface HarInfoDumper {
                                 String text = postData.getText();
                                 if (text != null) {
                                     bytes = toBytes(text, null);
+                                    requestContentType = postData.getMimeType();
+                                    if (requestContentType == null) {
+                                        requestContentType = getFirstHeaderValue(request.getHeaders(), HttpHeaders.CONTENT_TYPE);
+                                    }
                                     requestContentFile = constructPathname(entryIndex, "request", postData.getMimeType());
                                 }
                             }
@@ -303,7 +311,7 @@ interface HarInfoDumper {
                         }
                     }
                 }
-                return Stream.concat(Stream.of(start), Stream.of(responseContentPath, requestContentPath)).toArray();
+                return Stream.concat(Stream.of(start), Stream.of(requestContentType, responseContentPath, requestContentPath)).toArray();
             }
 
             @Nullable
@@ -311,7 +319,13 @@ interface HarInfoDumper {
                 try {
                     Files.createParentDirs(file);
                     Files.write(bytes, file);
-                    return file.toPath().relativize(cwd);
+                    Path path = file.getAbsoluteFile().toPath();
+                    try {
+                        return relativeRoot.relativize(path);
+                    } catch (IllegalArgumentException e) {
+                        LoggerFactory.getLogger(getClass()).error("failed to relativize {} against {}", path, relativeRoot);
+                        throw new IOException(e);
+                    }
                 } catch (IOException e) {
                     LoggerFactory.getLogger(getClass()).warn("failed to write file", e);
                 }

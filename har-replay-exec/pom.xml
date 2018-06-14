@@ -12,7 +12,7 @@
     <artifactId>har-replay-exec</artifactId>
 
     <properties>
-        <exec.assembly.skip>false</exec.assembly.skip>
+        <exec.assembly.skip>true</exec.assembly.skip>
     </properties>
 
     <profiles>
