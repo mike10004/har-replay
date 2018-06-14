@@ -48,7 +48,6 @@ public class ChromeBrowserSupport implements BrowserSupport {
         public ProcessMonitor<?, ?> launch(HostAndPort replayServerAddress, ProcessTracker processTracker) {
             Subprocess.Builder sb = runningChromeOrChromium()
                     .arg("--no-first-run")
-                    .arg("--ignore-certificate-errors")
                     .arg("--proxy-server=" + replayServerAddress.toString())
                     .arg("--user-data-dir=" + userDataDir.toFile().getAbsolutePath());
             sb.arg("data:,"); // start URL

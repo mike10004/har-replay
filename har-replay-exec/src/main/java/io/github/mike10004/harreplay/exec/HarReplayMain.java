@@ -35,8 +35,11 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.Reader;
 import java.net.ServerSocket;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -44,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,12 +62,14 @@ public class HarReplayMain {
     static final String OPT_SCRATCH_DIR = "scratch-dir";
     static final String OPT_PORT = "port";
     static final String OPT_BROWSER = "browser";
-    static final String OPT_ENGINE = "engine";
     static final String OPT_REPLAY_CONFIG = "config";
-    static final String OPT_SWITCHEROO = "switcheroo";
     static final String OPT_ECHO_BROWSER_OUTPUT = "echo-browser-output";
     static final String OPT_HAR_READER_BEHAVIOR = "har-reader-behavior";
     static final String OPT_HAR_READER_MODE = "har-reader-mode";
+    static final String OPT_PRINT = "print-har";
+    static final String OPT_VERSION = "version";
+    static final String OPT_HELP = "help";
+    static final String OPT_ONLY_PRINT = "only-print";
     static final Charset NOTIFY_FILE_CHARSET = StandardCharsets.US_ASCII;
 
     private final OptionParser parser;
@@ -71,7 +77,6 @@ public class HarReplayMain {
     private final NonOptionArgumentSpec<File> harFileSpec;
     private final OptionSpec<Integer> portSpec;
     private final OptionSpec<File> scratchDirSpec;
-    private final OptionSpec<Void> helpSpec;
     private final OptionSpec<Browser> browserSpec;
     private final OptionSpec<HarDumpStyle> harDumpStyleSpec;
     private final OptionSpec<File> replayConfigSpec;
@@ -86,11 +91,14 @@ public class HarReplayMain {
     HarReplayMain(OptionParser parser) throws UsageException {
         this.parser = requireNonNull(parser, "parser");
         parser.formatHelpWith(new CustomHelpFormatter());
-        helpSpec = parser.acceptsAll(Arrays.asList("h", "help"), "print help and exit").forHelp();
+        parser.acceptsAll(Arrays.asList("h", OPT_HELP), "print help and exit").forHelp();
+        parser.acceptsAll(Arrays.asList("V", OPT_VERSION), "print version and exit");
+        parser.acceptsAll(Arrays.asList("t", OPT_ONLY_PRINT), "only print content (do not start server)");
+        parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
         harFileSpec = parser.nonOptions("har file").ofType(File.class).describedAs("FILE");
         notifySpec = parser.accepts(OPT_NOTIFY, "notify that server is up by printing listening port to file")
                 .withRequiredArg().ofType(File.class);
-        portSpec = parser.acceptsAll(Arrays.asList("p", OPT_PORT), "port to listen on")
+        portSpec = parser.acceptsAll(Arrays.asList("p", "P", OPT_PORT), "port to listen on")
                 .withRequiredArg().ofType(Integer.class)
                 .describedAs("PORT");
         scratchDirSpec = parser.acceptsAll(Arrays.asList("d", OPT_SCRATCH_DIR), "scratch directory to use")
@@ -99,14 +107,12 @@ public class HarReplayMain {
         browserSpec = parser.acceptsAll(Arrays.asList("b", OPT_BROWSER), "launch browser configured for replay server; only 'chrome' is supported")
                 .withRequiredArg().ofType(Browser.class)
                 .describedAs("BROWSER");
-        harDumpStyleSpec = parser.acceptsAll(Collections.singletonList("dump-har"), "dump har (choices: " + HarDumpStyle.describeChoices() + ")")
+        harDumpStyleSpec = parser.acceptsAll(Collections.singletonList(OPT_PRINT), "print har content (choices: " + HarDumpStyle.describeChoices() + ")")
                 .withRequiredArg().ofType(HarDumpStyle.class)
                 .describedAs("STYLE")
                 .defaultsTo(HarDumpStyle.summary);
         replayConfigSpec = parser.acceptsAll(Arrays.asList("f", OPT_REPLAY_CONFIG), "specify replay config file")
                 .withRequiredArg().ofType(File.class);
-        parser.accepts(OPT_ECHO_BROWSER_OUTPUT, "with --browser, print browser output to console");
-        parser.accepts(OPT_SWITCHEROO, "with --browser=chrome, use extension to change https URLs to http");
         harReaderBehaviorSpec = parser.accepts(OPT_HAR_READER_BEHAVIOR, "set har reader behavior (EASIER or STOCK)")
                 .withRequiredArg().ofType(HarReaderBehavior.class).defaultsTo(HarReaderBehavior.DEFAULT);
         harReaderModeSpec = parser.accepts(OPT_HAR_READER_MODE, "set har reader mode (STRICT or LAX)")
@@ -142,19 +148,22 @@ public class HarReplayMain {
     }
 
     protected void runServer(OptionSet optionSet) throws IOException {
-        ReplayManager manager = createReplayManager(optionSet);
         try (CloseableWrapper<ReplaySessionConfig> sessionConfigWrapper = createReplaySessionConfig(optionSet)) {
             ReplaySessionConfig sessionConfig = sessionConfigWrapper.getWrapped();
+            HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
+            try {
+                harDumpStyle.getDumper().dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
+            } catch (HarReaderException e) {
+                System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
+            }
+            if (optionSet.has(OPT_ONLY_PRINT)) {
+                return;
+            }
             HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
+            ReplayManager manager = createReplayManager(optionSet);
             try (ReplaySessionControl ignore = manager.start(sessionConfig);
                  ScopedProcessTracker processTracker = new ProcessTrackerWithShutdownHook(Runtime.getRuntime())) {
                 maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
-                HarDumpStyle harDumpStyle = optionSet.valueOf(harDumpStyleSpec);
-                try {
-                    harDumpStyle.getDumper().dump(readHarEntries(optionSet, sessionConfig.harFile), System.out);
-                } catch (HarReaderException e) {
-                    System.err.format("har-replay: failed to read from har file: %s%n", e.getMessage());
-                }
                 Browser browser = optionSet.valueOf(browserSpec);
                 if (browser != null) {
                     //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
@@ -171,17 +180,47 @@ public class HarReplayMain {
     int main0(String[] args) throws IOException {
         try {
             OptionSet optionSet = parser.parse(args);
-            if (optionSet.has(helpSpec)) {
+            if (optionSet.has(OPT_HELP)) {
                 parser.printHelpOn(System.out);
                 return 0;
             }
+            if (optionSet.has(OPT_VERSION)) {
+                printVersion(System.out);
+                return 0;
+            }
             runServer(optionSet);
-        } catch (UsageException e) {
+        } catch (UsageException | joptsimple.OptionException e) {
             System.err.format("har-replay: %s%n", e.getMessage());
-            System.err.format("har-replay: use --help to print options");
+            System.err.format("har-replay: use --help to print options%n");
             return 1;
         }
         return 0;
+    }
+
+    static Properties loadMavenProperties() {
+        Properties p = new Properties();
+        URL resource = HarReplayMain.class.getResource("/har-replay-exec/maven.properties");
+        if (resource == null) {
+            log.info("maven.properties is not present on classpath");
+            return p;
+        }
+        try (InputStream in = resource.openStream()) {
+            p.load(in);
+        } catch (IOException e) {
+            log.warn("failed to read from " + resource, e);
+        }
+        return p;
+    }
+
+    static final String DEFAULT_VERSION = "version_unknown";
+
+    @SuppressWarnings("SameParameterValue")
+    protected void printVersion(PrintStream out) {
+        Properties p = loadMavenProperties();
+        String name = p.getProperty("project.parent.name", "har-replay");
+        String version = p.getProperty("project.version", DEFAULT_VERSION);
+        URL location = getClass().getProtectionDomain().getCodeSource().getLocation();
+        out.format("%s %s (in %s)%n", name, version, location);
     }
 
     protected void sleepForever() {

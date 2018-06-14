@@ -8,11 +8,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Properties;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -60,4 +66,26 @@ public class HarReplayMainTest {
         protected void sleepForever() {
         }
     }
+
+    @Test
+    public void printVersion() throws UnsupportedEncodingException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+        PrintStream ps = new PrintStream(baos, true);
+        new HarReplayMain().printVersion(ps);
+        ps.flush();
+        String actual = baos.toString(UTF_8.name());
+        System.out.print(actual);
+        assertFalse("actual version string", actual.contains(HarReplayMain.DEFAULT_VERSION));
+    }
+
+    @Test
+    public void loadMavenProperties() {
+        Properties p = HarReplayMain.loadMavenProperties();
+        p.stringPropertyNames().forEach(key -> {
+            String value = p.getProperty(key);
+            System.out.format("%s = %s%n", key, value);
+            assertFalse("expect filtered: " + value, value.startsWith("${"));
+        });
+    }
+
 }
