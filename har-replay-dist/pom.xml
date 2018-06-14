@@ -24,6 +24,8 @@
         <skip.verify-git>true</skip.verify-git>
         <package.revision>1</package.revision>
         <maven.phase.file>${project.build.directory}/maven-phase.txt</maven.phase.file>
+        <parsedVersion.majorVersion>0</parsedVersion.majorVersion>
+        <parsedVersion.minorVersion>0</parsedVersion.minorVersion>
     </properties>
     <profiles>
         <profile>
@@ -251,6 +253,34 @@
                             <packageDependencies>
                                 <package>default-jre-headless</package>
                             </packageDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>parse-version</id>
+                        <goals>
+                            <goal>parse-version</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.build.directory}/${package.name}_${parsedVersion.majorVersion}.${parsedVersion.minorVersion}+${maven.build.timestamp}-${package.revision}_all.deb</file>
+                                    <type>deb</type>
+                                </artifact>
+                            </artifacts>
                         </configuration>
                     </execution>
                 </executions>
