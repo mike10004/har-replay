@@ -1,7 +1,14 @@
 dist: trusty
 language: java
+addons:
+  apt:
+    packages:
+    - chromium-browser
+    - google-chrome-stable
 notifications:
   email: false
+before_install:
+  - dpkg-query -l chromium-browser google-chrome-stable
 install: true
 script:
   - mvn -B --settings travis-maven-settings.xml -Ptravis -Dhar-replay.chromedriver.version=$CHROMEDRIVER_VERSION install
