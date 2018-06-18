@@ -222,7 +222,39 @@ interface HarInfoDumper {
 
         }
 
-        private static class ContentDumpingRowTransform extends DefaultRowTransform {
+        static String getFilenameSuffixForMimeType(String contentType) {
+            if (contentType != null) {
+                try {
+                    MediaType mediaType = MediaType.parse(contentType);
+                    if (mediaType.is(MediaType.OCTET_STREAM)) {
+                        return "";
+                    }
+                    if (("application".equals(mediaType.type()) || "text".equals(mediaType.type())) && mediaType.subtype().contains("javascript")) {
+                        return ".js";
+                    }
+                    if (mediaType.is(MediaType.ANY_TEXT_TYPE)) {
+                        if (mediaType.is(MediaType.PLAIN_TEXT_UTF_8.withoutParameters())) {
+                            return ".txt";
+                        }
+                        return "." + mediaType.subtype();
+                    }
+                    if (mediaType.is(MediaType.JSON_UTF_8.withoutParameters())) {
+                        return ".json";
+                    }
+
+                } catch (IllegalArgumentException ignore) {
+                }
+                try {
+                    MimeTypes allTypes = MimeTypes.getDefaultMimeTypes();
+                    MimeType type = allTypes.forName(contentType);
+                    String ext = type.getExtension();
+                    return Strings.nullToEmpty(ext);
+                } catch (MimeTypeException | RuntimeException ignore) {}
+            }
+            return "";
+        }
+
+        static class ContentDumpingRowTransform extends DefaultRowTransform {
 
             private static final String[] ADDITIONAL_HEADERS = {
                     "requestContentType", "responseContent", "requestContent"
@@ -231,22 +263,15 @@ interface HarInfoDumper {
             private final File destinationDir;
             private final Path relativeRoot;
 
-            private ContentDumpingRowTransform(File destinationDir) {
+            public ContentDumpingRowTransform(File destinationDir) {
                 this.destinationDir = destinationDir.getAbsoluteFile();
                 relativeRoot = this.destinationDir.toPath();
             }
 
-            protected File constructPathname(int entryIndex, String infix, String contentType) {
-                String filename = String.format("%d-%s", entryIndex, infix);
-                try {
-                    MimeTypes allTypes = MimeTypes.getDefaultMimeTypes();
-                    MimeType type = allTypes.forName(contentType);
-                    String ext = type.getExtension();
-                    if (!Strings.isNullOrEmpty(ext)) {
-                        filename = String.format("%s%s", filename, ext);
-                    }
-                } catch (MimeTypeException | RuntimeException ignore) {}
-                return new File(destinationDir, filename);
+            protected File constructPathname(int entryIndex, String infix, @Nullable String contentType) {
+                String filenameStem = String.format("%d-%s", entryIndex, infix);
+                String suffix = getFilenameSuffixForMimeType(contentType);
+                return new File(destinationDir, filenameStem + suffix);
             }
 
             @Override
@@ -265,9 +290,22 @@ interface HarInfoDumper {
                 return bytes;
             }
 
-            @Override
-            public Object[] transform(HarEntry harEntry, int entryIndex) {
-                Object[] start = super.transform(harEntry, entryIndex);
+            protected static class Appendage {
+                public final Path responseContentPath, requestContentPath;
+                public final String requestContentType;
+
+                public Appendage(Path responseContentPath, Path requestContentPath, String requestContentType) {
+                    this.responseContentPath = responseContentPath;
+                    this.requestContentPath = requestContentPath;
+                    this.requestContentType = requestContentType;
+                }
+                
+                public Stream<Object> stream() {
+                    return Stream.of(requestContentType, responseContentPath, requestContentPath);
+                }
+            }
+            
+            protected Appendage createAppendage(HarEntry harEntry, int entryIndex, BasicData basic) {
                 String requestContentType = null;
                 Path responseContentPath = null, requestContentPath = null;
                 HarResponse response = harEntry.getResponse();
@@ -277,7 +315,7 @@ interface HarInfoDumper {
                         String text = content.getText();
                         if (text != null) {
                             byte[] bytes = toBytes(text, content.getEncoding());
-                            File responseContentFile = constructPathname(entryIndex, "response", (String) start[INDEX_CONTENT_TYPE]);
+                            File responseContentFile = constructPathname(entryIndex, "response", basic.contentType);
                             responseContentPath = writeAndReturnPath(bytes, responseContentFile);
                         }
                     }
@@ -311,7 +349,14 @@ interface HarInfoDumper {
                         }
                     }
                 }
-                return Stream.concat(Stream.of(start), Stream.of(requestContentType, responseContentPath, requestContentPath)).toArray();
+                return new Appendage(responseContentPath, requestContentPath, requestContentType);
+            }
+            
+            @Override
+            public Object[] transform(HarEntry harEntry, int entryIndex) {
+                BasicData basic = super.makeBasicData(harEntry, entryIndex);
+                Appendage a = createAppendage(harEntry, entryIndex, basic);
+                return Stream.concat(basic.stream(), a.stream()).toArray();
             }
 
             @Nullable
@@ -344,9 +389,7 @@ interface HarInfoDumper {
             }
         }
 
-        private static class DefaultRowTransform implements RowTransform {
-
-            protected static final int INDEX_CONTENT_TYPE = 3;
+        static class DefaultRowTransform implements RowTransform {
 
             private static final ImmutableList<String> DEFAULT_COLUMN_NAMES = ImmutableList.copyOf(new String[]{
                     "status",
@@ -357,6 +400,9 @@ interface HarInfoDumper {
                     "redirect",
             });
 
+            public DefaultRowTransform() {
+            }
+
             @Override
             public String[] getColumnNames() {
                 return DEFAULT_COLUMN_NAMES.toArray(new String[0]);
@@ -364,6 +410,31 @@ interface HarInfoDumper {
 
             @Override
             public Object[] transform(HarEntry harEntry, int entryIndex) {
+                return makeBasicData(harEntry, entryIndex).stream().toArray();
+            }
+            
+            protected static class BasicData {
+                String url;
+                Integer statusCode;
+                HttpMethod method;
+                Long contentSize;
+                String contentType;
+                String redirectLocation;
+
+                public BasicData(String url, Integer statusCode, HttpMethod method, Long contentSize, String contentType, String redirectLocation) {
+                    this.url = url;
+                    this.statusCode = statusCode;
+                    this.method = method;
+                    this.contentSize = contentSize;
+                    this.contentType = contentType;
+                    this.redirectLocation = redirectLocation;
+                }
+                public Stream<Object> stream() {
+                    return Stream.of(statusCode, method, url, contentType, contentSize, redirectLocation);
+                }
+            }
+            
+            protected BasicData makeBasicData(HarEntry harEntry, int entryIndex) {
                 String url = null;
                 Integer statusCode = null;
                 HttpMethod method = null;
@@ -389,7 +460,7 @@ interface HarInfoDumper {
                     url = request.getUrl();
                     method = request.getMethod();
                 }
-                return new Object[]{statusCode, method, url, contentType, contentSize, redirectLocation};
+                return new BasicData(url, statusCode, method, contentSize, contentType, redirectLocation);
             }
 
         }
