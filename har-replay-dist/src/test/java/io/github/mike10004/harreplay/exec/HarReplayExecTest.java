@@ -53,16 +53,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-public class HarReplayTest extends HarReplayTestBase {
+public class HarReplayExecTest extends HarReplayExecTestBase {
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    public HarReplayTest() {
-    }
 
     @Test
     public void execute_primaryPath() throws Exception {
@@ -121,7 +118,7 @@ public class HarReplayTest extends HarReplayTestBase {
         assertEquals("location header value scheme", "http", URI.create(locationHeaderValue).getScheme());
     }
 
-    private void decodeAndDump(byte[] bytes, String encoding, Charset contentTypeCharset) throws Exception {
+    private static void decodeAndDump(byte[] bytes, String encoding, Charset contentTypeCharset) throws Exception {
         HttpContentCodec codec = HttpContentCodecs.getCodec(encoding);
         assertNotNull("codec", codec);
         bytes = codec.decompress(bytes);
@@ -145,7 +142,6 @@ public class HarReplayTest extends HarReplayTestBase {
 
     private <T> T execute(File harFile, List<String> moreArgs, Visitor<T> visitor) throws IOException, InterruptedException, TimeoutException {
         File notifyFile = temporaryFolder.newFile();
-        notifyFile.deleteOnExit();
         List<String> args = buildArgs(moreArgs, notifyFile, harFile);
         T retVal;
         ProcessMonitor<String, String> monitor;

@@ -13,25 +13,29 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-public class HarReplayTestBase {
+public class HarReplayExecTestBase {
 
-    private static boolean listedDirectoryAlready = false;
+    private String buildClasspathArg(File libsDir) {
+        Collection<File> libFiles = FileUtils.listFiles(libsDir, new String[]{"jar"}, false);
+        String classpathArg = libFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
+        return classpathArg;
+    }
 
-    protected Subprocess.Builder buildSubprocess() throws FileNotFoundException {
+    private String constructFilename() {
         String artifactId = "har-replay-exec";
         String version = DistTests.getTestProperty("project.version");
         String filename = String.format("%s-%s.jar", artifactId, version);
+        return filename;
+    }
+
+    protected Subprocess.Builder buildSubprocess() throws FileNotFoundException {
         File targetDir = new File(DistTests.getTestProperty("project.build.directory"));
         File libsDir = targetDir.toPath().resolve("deb/usr/share/har-replay/lib").toFile();
-        Collection<File> libFiles = FileUtils.listFiles(libsDir, new String[]{"jar"}, false);
-        String classpathArg = libFiles.stream().map(File::getAbsolutePath).collect(Collectors.joining(File.pathSeparator));
-        File jarFile = new File(libsDir, filename);
+        String classpathArg = buildClasspathArg(libsDir);
+        File jarFile = new File(libsDir, constructFilename());
         if (!jarFile.isFile()) {
-            if (!listedDirectoryAlready) {
-                System.out.println("target: " + targetDir);
-                FileUtils.listFiles(targetDir, null, false).forEach(System.out::println);
-                listedDirectoryAlready = true;
-            }
+            System.out.format("target: %s%n", targetDir);
+            FileUtils.listFiles(targetDir, null, false).forEach(System.out::println);
             throw new FileNotFoundException(jarFile.getAbsolutePath());
         }
         return Subprocess.running("java")

@@ -6,7 +6,7 @@ import java.io.File;
 
 import static org.junit.Assert.assertTrue;
 
-public class RequiredFilesInDebTest {
+public class RequiredFilesInDebBuildDirTest {
 
     @Test
     public void checkBinScript() throws Exception {

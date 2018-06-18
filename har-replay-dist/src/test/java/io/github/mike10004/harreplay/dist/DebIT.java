@@ -6,7 +6,7 @@ import java.io.File;
 
 import static org.junit.Assert.assertTrue;
 
-public class ExecScriptIT {
+public class DebIT {
 
     @Test
     public void checkDeb() throws Exception {
