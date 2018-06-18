@@ -1,6 +1,8 @@
 package io.github.mike10004.harreplay.exec;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import com.google.common.net.MediaType;
 import com.opencsv.CSVReader;
 import de.sstoehr.harreader.HarReader;
@@ -8,6 +10,7 @@ import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.model.HarContent;
 import de.sstoehr.harreader.model.HarEntry;
 import de.sstoehr.harreader.model.HarPostData;
+import de.sstoehr.harreader.model.HarPostDataParam;
 import de.sstoehr.harreader.model.HarRequest;
 import de.sstoehr.harreader.model.HarResponse;
 import de.sstoehr.harreader.model.HttpMethod;
@@ -16,6 +19,7 @@ import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
 import io.github.mike10004.harreplay.tests.Fixtures;
 import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
+import io.github.mike10004.harreplay.vhsimpl.HarReaderFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.ClassRule;
@@ -27,15 +31,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -100,15 +103,25 @@ public class HarInfoDumperTest {
         public TemporaryFolder temp = new TemporaryFolder();
 
         @Test
-        public void createAppendage() throws Exception {
+        public void createAppendage_get() throws Exception {
             HarInfoDumper.CsvDumper.ContentDumpingRowTransform xform = new HarInfoDumper.CsvDumper.ContentDumpingRowTransform(temp.getRoot());
             HarInfoDumper.CsvDumper.DefaultRowTransform.BasicData basic = new HarInfoDumper.CsvDumper.DefaultRowTransform.BasicData("https://www.blah.com/some?thing=weird", 200, HttpMethod.GET, 5213L, "application/x-javascript; charset=utf-8", null);
-            HarEntry entry = makeEntry(HttpMethod.GET, null, null, basic.contentType, "console.log(\"hello\");");
+            HarEntry entry = makeEntry(HttpMethod.GET, null, null, "console.log(\"hello\");", MediaType.parse(basic.contentType));
             HarInfoDumper.CsvDumper.ContentDumpingRowTransform.Appendage a = xform.createAppendage(entry, 0, basic);
             assertEquals("responseContentPath", "0-response.js", a.responseContentPath.toString());
         }
 
-        private static HarEntry makeEntry(HttpMethod method, @Nullable String postText, @Nullable String postMimeType, String rspContentType, String rspText) {
+        private static HarEntry makeEntry(HttpMethod method, @Nullable String postText, @Nullable MediaType postMimeType, String rspText, MediaType rspContentType) {
+            HarPostData postData = null;
+            if (postText != null) {
+                postData = new HarPostData();
+                postData.setText(postText);
+                postData.setMimeType(postMimeType == null ? null : postMimeType.toString());
+            }
+            return makeEntry(method, postData, rspText, rspContentType);
+        }
+
+        private static HarEntry makeEntry(HttpMethod method, @Nullable HarPostData postData, String rspText, MediaType rspContentType) {
             HarEntry entry = new HarEntry();
             HarResponse response =new HarResponse();
             HarRequest request = new HarRequest();
@@ -116,15 +129,10 @@ public class HarInfoDumperTest {
             entry.setRequest(request);
             request.setUrl("http://www.example.com/post");
             request.setMethod(method);
-            if (postText != null) {
-                HarPostData postData = new HarPostData();
-                postData.setText(postText);
-                postData.setMimeType(postMimeType);
-                request.setPostData(postData);
-            }
+            request.setPostData(postData);
             HarContent rspContent = new HarContent();
             rspContent.setText(rspText);
-            rspContent.setMimeType(rspContentType);
+            rspContent.setMimeType(rspContentType.toString());
             rspContent.setSize((long) rspText.length());
             response.setContent(rspContent);
             return entry;
@@ -132,9 +140,9 @@ public class HarInfoDumperTest {
 
         @Test
         public void advanced() throws Exception {
-            HarInfoDumper dumper = HarInfoDumper.CsvDumper.makeContentWritingInstance(temp.getRoot());
+            HarInfoDumper.CsvDumper dumper = (HarInfoDumper.CsvDumper) HarInfoDumper.CsvDumper.makeContentWritingInstance(temp.getRoot());
             ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-            HarEntry entry = makeEntry(HttpMethod.POST, "This is the post content", "text/plain", "This is the response text", "text/plain");
+            HarEntry entry = makeEntry(HttpMethod.POST, "This is the post content", MediaType.PLAIN_TEXT_UTF_8.withoutParameters(), "This is the response text", MediaType.PLAIN_TEXT_UTF_8.withoutParameters());
             try (PrintStream out = new PrintStream(baos, true, StandardCharsets.UTF_8.name())) {
                 dumper.dump(Collections.singletonList(entry), out);
             }
@@ -145,9 +153,36 @@ public class HarInfoDumperTest {
             assertEquals("num rows", 2, rows.size());
             String[] actual = rows.get(1);
             String[] expected = {
-                    "0","POST","http://www.example.com/post","text/plain","20","","text/plain","0-response.plain","0-request.plain"
+                    "0","POST","http://www.example.com/post","text/plain","25","","text/plain","0-response.txt","0-request.txt"
             };
             assertArrayEquals("row", expected, actual);
+        }
+
+        @Test
+        public void createAppendage_postDataWithParams() throws Exception {
+            HarPostData postData = new HarPostData();
+            HarPostDataParam param = new HarPostDataParam();
+            param.setName("foo");
+            param.setValue("bar");
+            String requestMimeType = "application/x-www-form-urlencoded";
+            postData.setParams(Collections.singletonList(param));
+            postData.setMimeType(requestMimeType);
+            HarEntry entry = makeEntry(HttpMethod.POST, postData, "OK", MediaType.JSON_UTF_8);
+            HarInfoDumper.CsvDumper.ContentDumpingRowTransform xform = new HarInfoDumper.CsvDumper.ContentDumpingRowTransform(temp.getRoot());
+            HarInfoDumper.CsvDumper.DefaultRowTransform.BasicData basicData = xform.makeBasicData(entry, 0);
+            HarInfoDumper.CsvDumper.ContentDumpingRowTransform.Appendage a = xform.createAppendage(entry, 0, basicData);
+            assertEquals("filename", "0-request.json", a.requestContentPath.toString());
+            assertEquals("request content type", requestMimeType, a.requestContentType);
+        }
+
+        @Test
+        public void createAppendage_postDataWithText() throws Exception {
+            HarEntry entry = makeEntry(HttpMethod.POST, "{\"foo\": \"bar\"}", MediaType.JSON_UTF_8.withoutParameters(), "OK", MediaType.PLAIN_TEXT_UTF_8.withoutParameters());
+            HarInfoDumper.CsvDumper.ContentDumpingRowTransform xform = new HarInfoDumper.CsvDumper.ContentDumpingRowTransform(temp.getRoot());
+            HarInfoDumper.CsvDumper.DefaultRowTransform.BasicData basicData = xform.makeBasicData(entry, 0);
+            HarInfoDumper.CsvDumper.ContentDumpingRowTransform.Appendage a = xform.createAppendage(entry, 0, basicData);
+            assertEquals("filename", "0-request.json", a.requestContentPath.toString());
+            assertEquals("request content type", MediaType.JSON_UTF_8.withoutParameters().toString(), a.requestContentType);
         }
     }
 

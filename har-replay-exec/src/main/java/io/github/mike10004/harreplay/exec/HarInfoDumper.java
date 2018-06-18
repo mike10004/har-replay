@@ -325,6 +325,10 @@ interface HarInfoDumper {
                     if (mightContainBody(request.getMethod())) {
                         HarPostData postData = request.getPostData();
                         if (postData != null) {
+                            requestContentType = postData.getMimeType();
+                            if (requestContentType == null) {
+                                requestContentType = getFirstHeaderValue(request.getHeaders(), HttpHeaders.CONTENT_TYPE);
+                            }
                             List<HarPostDataParam> params = postData.getParams();
                             File requestContentFile = null;
                             byte[] bytes = null;
@@ -336,10 +340,6 @@ interface HarInfoDumper {
                                 String text = postData.getText();
                                 if (text != null) {
                                     bytes = toBytes(text, null);
-                                    requestContentType = postData.getMimeType();
-                                    if (requestContentType == null) {
-                                        requestContentType = getFirstHeaderValue(request.getHeaders(), HttpHeaders.CONTENT_TYPE);
-                                    }
                                     requestContentFile = constructPathname(entryIndex, "request", postData.getMimeType());
                                 }
                             }
@@ -391,21 +391,12 @@ interface HarInfoDumper {
 
         static class DefaultRowTransform implements RowTransform {
 
-            private static final ImmutableList<String> DEFAULT_COLUMN_NAMES = ImmutableList.copyOf(new String[]{
-                    "status",
-                    "method",
-                    "url",
-                    "contentType",
-                    "contentSize",
-                    "redirect",
-            });
-
             public DefaultRowTransform() {
             }
 
             @Override
             public String[] getColumnNames() {
-                return DEFAULT_COLUMN_NAMES.toArray(new String[0]);
+                return BasicData.COLUMN_NAMES.toArray(new String[0]);
             }
 
             @Override
@@ -429,9 +420,20 @@ interface HarInfoDumper {
                     this.contentType = contentType;
                     this.redirectLocation = redirectLocation;
                 }
+
                 public Stream<Object> stream() {
                     return Stream.of(statusCode, method, url, contentType, contentSize, redirectLocation);
                 }
+
+                private static final ImmutableList<String> COLUMN_NAMES = ImmutableList.copyOf(new String[]{
+                        "status",
+                        "method",
+                        "url",
+                        "contentType",
+                        "contentSize",
+                        "redirect",
+                });
+
             }
             
             protected BasicData makeBasicData(HarEntry harEntry, int entryIndex) {

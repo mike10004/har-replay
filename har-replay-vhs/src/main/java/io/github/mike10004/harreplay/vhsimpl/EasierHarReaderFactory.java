@@ -10,6 +10,7 @@ import de.sstoehr.harreader.jackson.MapperFactory;
 import java.util.Date;
 
 public class EasierHarReaderFactory implements HarReaderFactory {
+
     @Override
     public HarReader createReader() {
         return new HarReader(createMapperFactory());

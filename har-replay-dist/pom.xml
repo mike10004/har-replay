@@ -224,6 +224,20 @@
                         </configuration>
                         <goals><goal>run</goal></goals>
                     </execution>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <!--suppress MavenModelInspection -->
+                                <echo>project.isSnapshotBuild=${project.isSnapshotBuild}</echo>
+                                <!--suppress MavenModelInspection -->
+                                <echo>project.isReleaseBuild=${project.isReleaseBuild}</echo>
+                            </tasks>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -262,18 +276,66 @@
                 <version>1.8</version>
                 <executions>
                     <execution>
+                        <id>check-is-snapshot-build</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>regex-property</goal>
+                        </goals>
+                        <configuration>
+                            <name>project.isSnapshotBuild</name>
+                            <regex>.*-SNAPSHOT</regex>
+                            <value>${project.version}</value>
+                            <replacement>true</replacement>
+                            <failIfNoMatch>false</failIfNoMatch>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>check-is-release-build</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>regex-property</goal>
+                        </goals>
+                        <configuration>
+                            <name>project.isReleaseBuild</name>
+                            <regex>^((?!SNAPSHOT).)*$</regex>
+                            <value>${project.version}</value>
+                            <replacement>true</replacement>
+                            <failIfNoMatch>false</failIfNoMatch>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>parse-version</id>
                         <goals>
                             <goal>parse-version</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>attach-artifacts</id>
+                        <id>attach-artifacts-release</id>
                         <phase>package</phase>
                         <goals>
                             <goal>attach-artifact</goal>
                         </goals>
                         <configuration>
+                            <!--suppress MavenModelInspection -->
+                            <skipAttach>${project.isSnapshotBuild}</skipAttach>
+                            <artifacts>
+                                <artifact>
+                                    <!--suppress MavenModelInspection -->
+                                    <file>${project.build.directory}/${package.name}_${parsedVersion.majorVersion}.${parsedVersion.minorVersion}-${package.revision}_all.deb</file>
+                                    <type>deb</type>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach-artifacts-snapshot</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <!--suppress MavenModelInspection -->
+                            <skipAttach>${project.isReleaseBuild}</skipAttach>
                             <artifacts>
                                 <artifact>
                                     <!--suppress MavenModelInspection -->
