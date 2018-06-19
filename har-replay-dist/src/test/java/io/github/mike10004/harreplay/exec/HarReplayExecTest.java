@@ -3,13 +3,11 @@ package io.github.mike10004.harreplay.exec;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ProcessResult;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.xvfbmanager.Poller;
-import com.github.mike10004.xvfbmanager.Poller.PollOutcome;
-import com.github.mike10004.xvfbmanager.Poller.StopReason;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
+import com.google.common.math.LongMath;
 import com.google.common.net.HostAndPort;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
@@ -31,6 +29,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -40,20 +39,30 @@ import java.net.Proxy;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 public class HarReplayExecTest extends HarReplayExecTestBase {
+
+    private static final Duration SERVER_WAIT_DURATION = Duration.ofSeconds(120);
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
@@ -63,6 +72,7 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
 
     @Test
     public void execute_primaryPath() throws Exception {
+        System.out.println("execute_primaryPath");
         Fixture fixture = fixturesRule.getFixtures().http();
         URI url = fixture.startUrl();
         List<String> args = Collections.emptyList();
@@ -88,6 +98,7 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
 
     @Test
     public void execute_headerTransform() throws Exception {
+        System.out.println("execute_headerTransform");
         Fixture fixture = fixturesRule.getFixtures().httpsRedirect();
         URI uri = new URIBuilder(fixture.startUrl()).setScheme("http").build();
         System.out.format("starting at %s%n", uri);
@@ -95,7 +106,7 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
         ReplayServerConfig config = ReplayServerConfig.builder()
                 .transformResponse(ReplayManagerTestBase.createLocationHttpsToHttpTransform())
                 .build();
-        Charset charset = StandardCharsets.UTF_8;
+        Charset charset = UTF_8;
         try (Writer out = new OutputStreamWriter(new FileOutputStream(configFile), charset)) {
             HarReplayMain.createDefaultReplayServerConfigGson().toJson(config, out);
         }
@@ -147,7 +158,8 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
         ProcessMonitor<String, String> monitor;
         try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
             monitor = execute(processTracker, args);
-            HostAndPort serverAddress = pollUntilNotified(notifyFile);
+            int port = waitUntilFileNonempty(notifyFile, SERVER_WAIT_DURATION, Integer::parseInt);
+            HostAndPort serverAddress = HostAndPort.fromParts("localhost", port);
             System.out.format("listening on %s%n", serverAddress);
             retVal = visitor.visit(serverAddress);
             // try an orderly termination
@@ -156,32 +168,6 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
         ProcessResult<String, String> result = monitor.await(0, TimeUnit.MILLISECONDS);
         System.out.println(result.content().stdout());
         return retVal;
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private String maybeRead(File file, Charset charset) {
-        System.out.format("checking %s (length = %d)%n", file, file.length());
-        try {
-            return Files.asCharSource(file, charset).read();
-        } catch (IOException ignore) {
-            return "";
-        }
-    }
-
-    private HostAndPort pollUntilNotified(File notifyFile) throws InterruptedException {
-        PollOutcome<Integer> outcome = new Poller<Integer>() {
-            @Override
-            protected PollAnswer<Integer> check(int pollAttemptsSoFar) {
-                 String contents = maybeRead(notifyFile, HarReplayMain.NOTIFY_FILE_CHARSET);
-                 if (!contents.trim().isEmpty()) {
-                     return resolve(Integer.parseInt(contents));
-                 }
-                 return continuePolling();
-            }
-        }.poll(100, 50);
-        checkState(outcome.reason == StopReason.RESOLVED, "not resolved: %s", outcome);
-        checkNotNull(outcome.content, "resolved, so content should be non-null");
-        return HostAndPort.fromParts("localhost", outcome.content);
     }
 
     private Multimap<URI, ImmutableHttpResponse> visitSite(HostAndPort replayServerAddress, Iterable<URI> urls) throws IOException {
@@ -193,4 +179,52 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
         return responses;
     }
 
+    @SuppressWarnings("SameParameterValue")
+    private String maybeRead(File file, Charset charset) {
+        System.out.format("checking %s (length = %d)%n", file, file.length());
+        try {
+            return Files.asCharSource(file, charset).read();
+        } catch (FileNotFoundException ignore) {
+            return "";
+        } catch (IOException e) {
+            System.err.format("failed to read from existing file %s: %s%n", file, e.toString());
+            return "";
+        }
+    }
+
+    // https://stackoverflow.com/a/16251508/2657036
+    @SuppressWarnings("SameParameterValue")
+    private <T> T waitUntilFileNonempty(File file, Duration waitDuration, Function<? super String, T> transform) throws IOException, InterruptedException, TimeoutException {
+        System.out.format("waiting until file becomes nonempty: %s%n", file);
+        file = file.getAbsoluteFile();
+        checkState(file.isFile(), "file is not yet created: %s", file);
+        final Path targetFileAbsolutePath = file.toPath().toAbsolutePath();
+        final Path parentDirectory = file.getParentFile().toPath();
+        System.out.println(parentDirectory);
+        try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+            parentDirectory.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            long millisRemaining = waitDuration.toMillis();
+            long millisStart = System.currentTimeMillis();
+            while (millisRemaining > 0) {
+                final WatchKey wk = watchService.poll(millisRemaining, TimeUnit.MILLISECONDS);
+                if (wk != null) {
+                    for (WatchEvent<?> event : wk.pollEvents()) {
+                        //we only register "ENTRY_MODIFY" so the context is always a Path.
+                        final Path changed = parentDirectory.resolve((Path) event.context());
+                        if (targetFileAbsolutePath.equals(changed.toAbsolutePath())) {
+                            String contents = maybeRead(file, UTF_8);
+                            if (!contents.trim().isEmpty()) {
+                                return transform.apply(contents);
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+                long millisWaited = LongMath.checkedSubtract(System.currentTimeMillis(), millisStart);
+                millisRemaining = LongMath.checkedSubtract(waitDuration.toMillis(), millisWaited);
+            }
+        }
+        throw new TimeoutException("timed out before watch service returned a poll event");
+    }
 }
