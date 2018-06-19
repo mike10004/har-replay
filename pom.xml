@@ -51,7 +51,7 @@
         <chrome.executable>google-chrome</chrome.executable>
         <crxtool.version>0.8</crxtool.version>
         <nanochamp.version>0.14</nanochamp.version>
-        <native-helper.version>8.0.5</native-helper.version>
+        <common-helper.version>8.0.5</common-helper.version>
         <jackson.version>2.8.9</jackson.version>
     </properties>
     <profiles>
@@ -392,7 +392,12 @@
             <dependency>
                 <groupId>com.github.mike10004</groupId>
                 <artifactId>native-helper</artifactId>
-                <version>${native-helper.version}</version>
+                <version>${common-helper.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>imnetio-helper</artifactId>
+                <version>${common-helper.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
