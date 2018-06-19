@@ -41,7 +41,7 @@
         <url>https://github.com/mike10004/har-replay</url>
     </scm>
     <properties>
-        <xvfb-manager.version>0.16</xvfb-manager.version>
+        <xvfb-manager.version>0.17</xvfb-manager.version>
         <selenium.version>3.11.0</selenium.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -50,7 +50,7 @@
         <npm.log.level>error</npm.log.level>
         <chrome.executable>google-chrome</chrome.executable>
         <crxtool.version>0.8</crxtool.version>
-        <nanochamp.version>0.12</nanochamp.version>
+        <nanochamp.version>0.14</nanochamp.version>
         <native-helper.version>8.0.5</native-helper.version>
         <jackson.version>2.8.9</jackson.version>
     </properties>
