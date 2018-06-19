@@ -209,6 +209,9 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
                 final WatchKey wk = watchService.poll(millisRemaining, TimeUnit.MILLISECONDS);
                 if (wk != null) {
                     for (WatchEvent<?> event : wk.pollEvents()) {
+                        if (StandardWatchEventKinds.OVERFLOW.equals(event.kind())) {
+                            continue;
+                        }
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         final Path changed = parentDirectory.resolve((Path) event.context());
                         if (targetFileAbsolutePath.equals(changed.toAbsolutePath())) {
