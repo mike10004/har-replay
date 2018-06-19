@@ -4,11 +4,11 @@ addons:
   apt:
     packages:
     - chromium-browser
-    - google-chrome-stable
+    - fakeroot
 notifications:
   email: false
 before_install:
-  - dpkg-query -l chromium-browser google-chrome-stable
+  - dpkg-query -l chromium-browser
 install: true
 script:
   - mvn -B --settings travis-maven-settings.xml -Ptravis -Dhar-replay.chromedriver.version=$CHROMEDRIVER_VERSION install
