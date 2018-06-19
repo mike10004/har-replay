@@ -14,14 +14,21 @@ pre-recorded response from the HAR.
 Quick Start
 -----------
 
-### Executable
+### Package
 
-If you have a HAR file handy, build the `har-replay-exec` module and run the
-executable jar: 
+Look in https://repo1.maven.org/maven2/com/github/mike10004/har-replay-dist 
+for the latest `.deb` file or build the parent project to produce one. Execute
 
-    java -jar har-replay-exec.jar --port 56789 /path/to/my.har
+    $ sudo dpkg --install /path/to/har-replay-deb  
 
-That starts an HTTP proxy on port 56789 serving responses from `/path/to/my.har`.
+to install the package. (Replace the filename with the downloaded file or the 
+build product.) 
+
+Execute
+
+    $ har-replay --port 56789 /path/to/my.har
+
+to start an HTTP proxy on port 56789 serving responses from `/path/to/my.har`.
 
 ### Library
 
@@ -30,7 +37,7 @@ Maven dependency:
     <dependency>
         <groupId>com.github.mike10004</groupId>
         <artifactId>har-replay-vhs</artifactId>
-        <version>0.23</version> <!-- use latest version -->
+        <version>0.26</version> <!-- use latest version -->
     </dependency>
 
 See Maven badge above for the actual latest version. The example code below
