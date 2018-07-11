@@ -12,6 +12,8 @@ build_script:
 
     python --version
 
+    echo "environment: PYTHON=%PYTHON%"
+
     echo "environment: GITHUB_TOKEN_NAME=%GITHUB_TOKEN_NAME%"
 
     echo "environment: CHROMEDRIVER_VERSION=%CHROMEDRIVER_VERSION%"

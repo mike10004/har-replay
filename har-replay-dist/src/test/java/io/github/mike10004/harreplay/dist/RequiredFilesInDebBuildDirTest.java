@@ -1,22 +1,22 @@
 package io.github.mike10004.harreplay.dist;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.io.ByteStreams;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.io.CharSource;
 import com.google.common.io.Files;
+import io.github.mike10004.harreplay.tests.Tests;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.tika.io.FilenameUtils;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +24,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class RequiredFilesInDebBuildDirTest {
+
+    private static final char WRITE_CLASSPATH_DELIMITER = ':';
 
     @Test
     public void checkBinScript() throws Exception {
@@ -46,7 +48,9 @@ public class RequiredFilesInDebBuildDirTest {
         File cpArgFile = debDir.resolve("usr/share/har-replay/classpath-arg.txt").toFile();
         Path libDir = debDir.resolve("usr/share/har-replay/lib");
         String argTxt = Files.asCharSource(cpArgFile, UTF_8).read();
-        List<String> libfiles = Splitter.on(File.pathSeparator).trimResults().omitEmptyStrings().splitToList(argTxt);
+        Tests.dump(ImmutableMultimap.of(cpArgFile.getAbsolutePath(), CharSource.wrap(argTxt)), System.out);
+        List<String> libfiles = Splitter.on(WRITE_CLASSPATH_DELIMITER).trimResults().omitEmptyStrings().splitToList(argTxt);
+        System.out.format("split into:%n%n%s%n%n", Joiner.on(System.lineSeparator()).join(libfiles));
         assertFalse("classpath arg empty", libfiles.isEmpty());
         List<IOFileFilter> uniqueFilters = Arrays.asList(
                 new WildcardFileFilter("har-replay-core-*.jar"),
@@ -67,7 +71,8 @@ public class RequiredFilesInDebBuildDirTest {
                 return filter.accept(file.getParentFile(), file.getName());
             }).collect(Collectors.toList());
             if (matching.size() != 1) {
-                fail("incorrect number of matching lib files: " + matching.stream().map(File::getName).collect(Collectors.toList()));
+                List<String> matchingNames = matching.stream().map(File::getName).collect(Collectors.toList());
+                fail(matchingNames.size() + " is incorrect number of matching lib files: " + matchingNames);
             }
         });
 

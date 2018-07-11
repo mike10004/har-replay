@@ -18,6 +18,7 @@ def main(args):
       jar = os.path.join(root, filename)
       if jar.startswith(root_dir):
         jar = jar[len(root_dir):]
+      jar = jar.replace('\\', '/') # necessary if building on Windows
       jars.append(jar)
       print("classpath: {}".format(jar))
   classpath_arg = args.delimiter.join(jars)
