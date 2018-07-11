@@ -3,10 +3,12 @@ package io.github.mike10004.harreplay.exec;
 import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
 import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
+import com.opencsv.CSVReader;
 import de.sstoehr.harreader.HarReader;
 import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.HarReaderMode;
@@ -38,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -62,6 +65,7 @@ public class HarReplayMain {
     static final String OPT_SCRATCH_DIR = "scratch-dir";
     static final String OPT_PORT = "port";
     static final String OPT_BROWSER = "browser";
+    static final String OPT_BROWSER_ARGS = "browser-args";
     static final String OPT_REPLAY_CONFIG = "config";
     static final String OPT_ECHO_BROWSER_OUTPUT = "echo-browser-output";
     static final String OPT_HAR_READER_BEHAVIOR = "har-reader-behavior";
@@ -79,6 +83,7 @@ public class HarReplayMain {
     private final OptionSpec<Integer> portSpec;
     private final OptionSpec<File> scratchDirSpec;
     private final OptionSpec<Browser> browserSpec;
+    private final OptionSpec<String> browserArgsSpec;
     private final OptionSpec<HarPrintStyle> harDumpStyleSpec;
     private final OptionSpec<File> replayConfigSpec;
     private final OptionSpec<HarReaderBehavior> harReaderBehaviorSpec;
@@ -110,6 +115,9 @@ public class HarReplayMain {
         browserSpec = parser.acceptsAll(Arrays.asList("b", OPT_BROWSER), "launch browser configured for replay server; only 'chrome' is supported")
                 .withRequiredArg().ofType(Browser.class)
                 .describedAs("BROWSER");
+        browserArgsSpec = parser.acceptsAll(Arrays.asList("a", OPT_BROWSER_ARGS), "with --browser, add more arguments to browser command line; use CSV syntax for multiple args")
+                .withRequiredArg().ofType(String.class)
+                .describedAs("ARGS");
         harDumpStyleSpec = parser.acceptsAll(Collections.singletonList(OPT_PRINT), "print har content (choices: " + HarPrintStyle.describeChoices() + ")")
                 .withRequiredArg().ofType(HarPrintStyle.class)
                 .describedAs("STYLE")
@@ -150,6 +158,20 @@ public class HarReplayMain {
         return har.getLog().getEntries();
     }
 
+    protected Iterable<String> tokenize(@Nullable String value) {
+        if (value == null) {
+            return ImmutableList.of();
+        }
+        List<String> args = new ArrayList<>();
+        try (CSVReader reader = new CSVReader(new StringReader(value))) {
+            List<String[]> rows = reader.readAll();
+            rows.forEach(row -> args.addAll(Arrays.asList(row)));
+        } catch (IOException e) {
+            log.warn("failed to tokenize arguments from " + value, e);
+        }
+        return args;
+    }
+
     protected void runServer(OptionSet optionSet, ReplaySessionConfig sessionConfig) throws IOException {
         HostAndPort replayServerAddress = HostAndPort.fromParts("localhost", sessionConfig.port);
         ReplayManager manager = createReplayManager(optionSet);
@@ -158,10 +180,11 @@ public class HarReplayMain {
             maybeNotify(sessionConfig, optionSet.valueOf(notifySpec));
             Browser browser = optionSet.valueOf(browserSpec);
             if (browser != null) {
+                Iterable<String> browserArgs = tokenize(optionSet.valueOf(browserArgsSpec));
                 //noinspection unused // TODO: provide an alternate method to initate orderly shutdown using this monitor
                 ProcessMonitor<?, ?> monitor = browser.getSupport(optionSet)
                         .prepare(sessionConfig.scratchDir)
-                        .launch(replayServerAddress, processTracker);
+                        .launch(replayServerAddress, browserArgs, processTracker);
             }
             sleepForever();
         }

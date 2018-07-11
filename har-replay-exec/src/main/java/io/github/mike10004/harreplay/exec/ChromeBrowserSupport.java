@@ -45,12 +45,14 @@ public class ChromeBrowserSupport implements BrowserSupport {
         }
 
         @Override
-        public ProcessMonitor<?, ?> launch(HostAndPort replayServerAddress, ProcessTracker processTracker) {
+        public ProcessMonitor<?, ?> launch(HostAndPort replayServerAddress, Iterable<String> moreArguments, ProcessTracker processTracker) {
             Subprocess.Builder sb = runningChromeOrChromium()
                     .arg("--no-first-run")
+                    .arg("--ignore-certificate-errors")
                     .arg("--proxy-server=" + replayServerAddress.toString())
                     .arg("--user-data-dir=" + userDataDir.toFile().getAbsolutePath());
             sb.arg("data:,"); // start URL
+            sb.args(moreArguments);
             Subprocess subprocess = sb.build();
             Subprocess.Launcher<?, ?> launcher = subprocess.launcher(processTracker);
             if (outputDir != null) {
@@ -68,5 +70,10 @@ public class ChromeBrowserSupport implements BrowserSupport {
         }
     }
 
-
+    @Override
+    public String toString() {
+        return "ChromeBrowserSupport{" +
+                "outputDestination=" + outputDestination +
+                '}';
+    }
 }
