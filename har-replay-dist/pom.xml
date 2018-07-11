@@ -24,6 +24,7 @@
         <skip.verify-git>true</skip.verify-git>
         <package.revision>1</package.revision>
         <maven.phase.file>${project.build.directory}/maven-phase.txt</maven.phase.file>
+        <python.executable>python3</python.executable>
     </properties>
     <profiles>
         <profile>
@@ -42,6 +43,7 @@
             </activation>
             <properties>
                 <skip.dist.tests>true</skip.dist.tests>
+                <python.executable>python</python.executable>
             </properties>
         </profile>
     </profiles>
@@ -160,7 +162,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>python3</executable>
+                            <executable>${python.executable}</executable>
                             <arguments>
                                 <argument>${project.basedir}/src/main/script/write_classpath.py</argument>
                                 <argument>${project.build.directory}/deb</argument>

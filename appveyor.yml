@@ -6,6 +6,8 @@ build_script:
 
     mvn --version
 
+    python --version
+
     echo "environment: GITHUB_TOKEN_NAME=%GITHUB_TOKEN_NAME%"
 
     echo "environment: CHROMEDRIVER_VERSION=%CHROMEDRIVER_VERSION%"
