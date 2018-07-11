@@ -6,4 +6,8 @@ build_script:
 
     mvn --version
 
-    mvn install --quiet --batch-mode -Dhr.node.serverReadinessTimeoutMillis=10000
+    echo "environment: GITHUB_TOKEN_NAME=%GITHUB_TOKEN_NAME%"
+
+    echo "environment: CHROMEDRIVER_VERSION=%CHROMEDRIVER_VERSION%"
+
+    mvn install --quiet --batch-mode -Dhar-replay.chromedriver.version=%CHROMEDRIVER_VERSION% -Dwdm.gitHubTokenName=%GITHUB_TOKEN_NAME% -Dwdm.gitHubTokenSecret=%GITHUB_TOKEN_SECRET%

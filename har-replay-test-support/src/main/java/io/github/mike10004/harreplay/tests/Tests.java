@@ -1,12 +1,13 @@
 package io.github.mike10004.harreplay.tests;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
 import com.google.common.net.HostAndPort;
-import io.github.bonigarcia.wdm.ChromeDriverManager;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse.Builder;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -105,7 +106,11 @@ public class Tests {
     }
 
     public static String getRecommendedChromeDriverVersion() {
-        return System.getProperty(SYSPROP_CHROMEDRIVER_VERSION, _RECOMMENDED_CHROME_DRIVER_VERSION);
+        String val = System.getProperty(SYSPROP_CHROMEDRIVER_VERSION);
+        if (Strings.isNullOrEmpty(StringUtils.trim(val))) {
+            val = _RECOMMENDED_CHROME_DRIVER_VERSION;
+        }
+        return val;
     }
 
     public static void dump(Multimap<String, CharSource> sources, PrintStream out) {
