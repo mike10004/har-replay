@@ -14,6 +14,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
 
@@ -43,6 +44,9 @@ public final class DistTests {
 
     public static File getDebFile() throws IOException {
         File buildDir = getBuildDir();
+        if (!buildDir.isDirectory()) {
+            throw new IOException("not a directory: " + buildDir);
+        }
         Collection<File> debs = FileUtils.listFiles(buildDir, new String[]{"deb"}, false);
         List<Pair<File, FileTime>> filesWithTimes = new ArrayList<>();
         for (File debFile : debs) {
@@ -50,8 +54,15 @@ public final class DistTests {
             FileTime lastModified = view.readAttributes().lastModifiedTime();
             filesWithTimes.add(Pair.of(debFile, lastModified));
         }
-        File debFile = filesWithTimes.stream().max(Ordering.natural().onResultOf(Pair::getRight)).map(Pair::getLeft).orElseThrow(() -> new FileNotFoundException("no deb files present in " + buildDir));
-        return debFile;
+        Optional<File> debFile = filesWithTimes.stream()
+                .max(Ordering.natural().onResultOf(Pair::getRight)).map(Pair::getLeft);
+        if (!debFile.isPresent()) {
+            Collection<File> allFilesInBuildDir = FileUtils.listFiles(buildDir, null, true);
+            System.out.format("all files in %s:%n", buildDir.getAbsolutePath());
+            allFilesInBuildDir.forEach(f -> System.out.format("  %s%n", f));
+            throw new FileNotFoundException("no deb files present in " + buildDir);
+        }
+        return debFile.get();
     }
 
     public static File getBuildDir() {
