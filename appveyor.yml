@@ -18,4 +18,6 @@ build_script:
 
     echo "environment: CHROMEDRIVER_VERSION=%CHROMEDRIVER_VERSION%"
 
-    mvn install --quiet --batch-mode -Dhar-replay.chromedriver.version=%CHROMEDRIVER_VERSION% -Dwdm.gitHubTokenName=%GITHUB_TOKEN_NAME% -Dwdm.gitHubTokenSecret=%GITHUB_TOKEN_SECRET%
+    echo "environment: MAVEN_OPTIONS=%MAVEN_OPTIONS%"
+
+    mvn install %MAVEN_OPTIONS% --batch-mode -Dwdm.chromeDriverVersion=%CHROMEDRIVER_VERSION% -Dwdm.gitHubTokenName=%GITHUB_TOKEN_NAME% -Dwdm.gitHubTokenSecret=%GITHUB_TOKEN_SECRET%

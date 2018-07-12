@@ -15,7 +15,7 @@ public class ChromeDriverSetupRule extends ExternalResource {
     }
 
     public static void doSetup() {
-        ChromeDriverManager.getInstance().version(Tests.getRecommendedChromeDriverVersion()).setup();
+        ChromeDriverManager.getInstance().setup();
         performed = true;
     }
 }

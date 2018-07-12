@@ -11,4 +11,4 @@ before_install:
   - dpkg-query -l chromium-browser
 install: true
 script:
-  - mvn -B --settings travis-maven-settings.xml -Ptravis -Dhar-replay.chromedriver.version=$CHROMEDRIVER_VERSION install
+  - mvn -B --settings travis-maven-settings.xml -Ptravis -Dwdm.chromeDriverVersion=$CHROMEDRIVER_VERSION install

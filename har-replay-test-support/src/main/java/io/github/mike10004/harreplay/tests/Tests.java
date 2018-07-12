@@ -27,9 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class Tests {
 
-    public static final String SYSPROP_CHROMEDRIVER_VERSION = "har-replay.chromedriver.version";
-
-    private static final String _RECOMMENDED_CHROME_DRIVER_VERSION = "2.39";
+    public static final String SYSPROP_CHROMEDRIVER_VERSION = "wdm.chromeDriverVersion";
 
     private Tests () {
 
@@ -103,14 +101,6 @@ public class Tests {
         return mapEntries.filter(entry -> key.equalsIgnoreCase(entry.getKey()))
                 .map(Entry::getValue)
                 .findFirst().orElse(null);
-    }
-
-    public static String getRecommendedChromeDriverVersion() {
-        String val = System.getProperty(SYSPROP_CHROMEDRIVER_VERSION);
-        if (Strings.isNullOrEmpty(StringUtils.trim(val))) {
-            val = _RECOMMENDED_CHROME_DRIVER_VERSION;
-        }
-        return val;
     }
 
     public static void dump(Multimap<String, CharSource> sources, PrintStream out) {
