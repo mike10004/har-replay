@@ -20,4 +20,4 @@ build_script:
 
     echo "environment: MAVEN_OPTIONS=%MAVEN_OPTIONS%"
 
-    mvn install %MAVEN_OPTIONS% --batch-mode -Dwdm.chromeDriverVersion=%CHROMEDRIVER_VERSION% -Dwdm.gitHubTokenName=%GITHUB_TOKEN_NAME% -Dwdm.gitHubTokenSecret=%GITHUB_TOKEN_SECRET%
+    mvn install %MAVEN_OPTIONS% --batch-mode -Dwdm.chromeDriverVersion=%CHROMEDRIVER_VERSION% -Dwdm.gitHubTokenName=%GITHUB_TOKEN_NAME% -Dwdm.gitHubTokenSecret=%GITHUB_TOKEN_SECRET% -Dbuildhelper.skipAttach=true
