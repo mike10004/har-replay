@@ -40,25 +40,25 @@ Maven dependency:
         <version>0.26</version> <!-- use latest version -->
     </dependency>
 
-See Maven badge above for the actual latest version. The example code below
-imports classes from the library and the `java.net` package.
+See Maven badge above for the actual latest version. Example code:
 
     File harFile = new File("my-session.har");
     ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir().build(harFile);
     VhsReplayManagerConfig config = VhsReplayManagerConfig.getDefault();
     ReplayManager replayManager = new VhsReplayManager(config);
     try (ReplaySessionControl sessionControl = replayManager.start(sessionConfig)) {
-        String proxySocketAddress = "localhost:" + sessionControl.getListeningPort();
         URL url = new URL("http://www.example.com/");
-        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("localhost", sessionControl.getListeningPort()));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection(proxy);
         try {
-            System.out.format("served from HAR: %s %s%n", conn.getResponseCode(), conn.getResponseMessage());
+            System.out.format("served from HAR: %s %s %s%n", conn.getResponseCode(), conn.getResponseMessage(), url);
             // do something with the connection...
         } finally {
             conn.disconnect();
         }
     }
+
+(Imports are from the library and the `java.net` package.)
 
 The unit tests contain some examples of using the library with an Apache HTTP 
 client and a Selenium Chrome WebDriver client. 

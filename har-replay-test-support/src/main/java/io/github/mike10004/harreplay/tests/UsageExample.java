@@ -4,11 +4,6 @@ import com.google.common.io.ByteStreams;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplaySessionConfig;
 import io.github.mike10004.harreplay.ReplaySessionControl;
-import org.apache.http.HttpHost;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,13 +12,9 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
-import java.net.URLConnection;
 
-/**
- * Example code for the readme.
- */
 @SuppressWarnings({"unused", "SameParameterValue"})
-public abstract class ReadmeExample {
+public abstract class UsageExample {
 
     public void execute(File harFile) throws IOException {
         ReplaySessionConfig sessionConfig = ReplaySessionConfig.usingTempDir()

@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("Duplicates")
-public abstract class BrowseHarWithChromeExample extends ReadmeExample {
+public abstract class BrowseHarWithChromeExample extends UsageExample {
 
     private static final int CLOSED_POLL_INITIAL_DELAY_MS = 1000;
     private static final int CLOSED_POLL_INTERVAL_MS = 100;
