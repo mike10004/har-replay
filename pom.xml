@@ -52,7 +52,7 @@
         <crxtool.version>0.8</crxtool.version>
         <nanochamp.version>0.14</nanochamp.version>
         <common-helper.version>8.0.5</common-helper.version>
-        <jackson.version>2.8.9</jackson.version>
+        <jackson.version>2.9.7</jackson.version>
     </properties>
     <profiles>
         <profile>
