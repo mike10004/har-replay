@@ -1,5 +1,5 @@
-dist: trusty
 language: java
+jdk: openjdk11
 addons:
   apt:
     packages:
@@ -8,7 +8,13 @@ addons:
 notifications:
   email: false
 before_install:
-  - dpkg-query -l chromium-browser
-install: true
+  - dpkg-query -l chromium-browser google-chrome-stable || test
+  - which firefox
+  - firefox --version
+  - which chromium-browser
+  - chromium-browser --version
+install:
+  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis compile test-compile
 script:
-  - mvn --batch-mode $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis -Dwdm.chromeDriverVersion=$CHROMEDRIVER_VERSION install
+  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis -Dwdm.chromeDriverVersion=$CHROMEDRIVER_VERSION install
+  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis javadoc:javadoc
