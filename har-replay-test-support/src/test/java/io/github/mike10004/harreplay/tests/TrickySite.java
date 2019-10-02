@@ -1,8 +1,8 @@
 package io.github.mike10004.harreplay.tests;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import io.github.mike10004.subprocess.ProcessResult;
+import io.github.mike10004.subprocess.ScopedProcessTracker;
+import io.github.mike10004.subprocess.Subprocess;
 import com.github.mike10004.seleniumhelp.AutoCertificateAndKeySource;
 import com.github.mike10004.seleniumhelp.ChromeWebDriverFactory;
 import com.github.mike10004.seleniumhelp.TrafficCollector;
@@ -104,7 +104,7 @@ public class TrickySite {
         byte[] keystoreBytes;
         try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
             ProcessResult<?, ?> result = proc.launcher(processTracker)
-                    .outputStrings(Charset.defaultCharset(), ByteSource.empty())
+                    .outputStrings(Charset.defaultCharset())
                     .launch().await(5, TimeUnit.SECONDS);
             if (result.exitCode() != 0) {
                 throw new IllegalStateException("nonzero exit code " + result.exitCode());

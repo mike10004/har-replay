@@ -1,7 +1,7 @@
 package io.github.mike10004.vhs.bmp;
 
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import io.github.mike10004.subprocess.ScopedProcessTracker;
+import io.github.mike10004.subprocess.Subprocess;
 import com.google.common.net.HostAndPort;
 import de.sstoehr.harreader.model.HarEntry;
 import io.github.mike10004.vhs.BasicHeuristic;

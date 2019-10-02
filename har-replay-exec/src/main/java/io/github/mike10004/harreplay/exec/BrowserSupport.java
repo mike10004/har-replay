@@ -1,7 +1,7 @@
 package io.github.mike10004.harreplay.exec;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
+import io.github.mike10004.subprocess.ProcessMonitor;
+import io.github.mike10004.subprocess.ProcessTracker;
 import com.google.common.net.HostAndPort;
 
 import java.io.IOException;

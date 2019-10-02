@@ -1,8 +1,8 @@
 package io.github.mike10004.harreplay.exec;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
+import io.github.mike10004.subprocess.ProcessMonitor;
+import io.github.mike10004.subprocess.ProcessTracker;
+import io.github.mike10004.subprocess.Subprocess;
 import io.github.mike10004.harreplay.dist.DistTests;
 import org.apache.commons.io.FileUtils;
 

@@ -82,17 +82,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.machinepublishers</groupId>
-            <artifactId>jbrowserdriver</artifactId>
-            <version>1.0.0-RC1</version>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>subprocess</artifactId>
             <scope>test</scope>
-            <exclusions>
-                <!-- jbrowserdriver frequently uses an older version of Selenium -->
-                <exclusion>
-                    <groupId>org.seleniumhq.selenium</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -108,7 +100,7 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>xvfb-testing</artifactId>
-            <version>0.16</version>
+            <version>${xvfb-manager.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -1,8 +1,8 @@
 package io.github.mike10004.harreplay.exec;
 
-import com.github.mike10004.nativehelper.subprocess.ProcessMonitor;
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
+import io.github.mike10004.subprocess.ProcessMonitor;
+import io.github.mike10004.subprocess.ProcessResult;
+import io.github.mike10004.subprocess.ScopedProcessTracker;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -163,7 +163,7 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
             System.out.format("listening on %s%n", serverAddress);
             retVal = visitor.visit(serverAddress);
             // try an orderly termination
-            monitor.destructor().sendTermSignal().timeout(100, TimeUnit.MILLISECONDS);
+            monitor.destructor().sendTermSignal().await(100, TimeUnit.MILLISECONDS);
         }
         ProcessResult<String, String> result = monitor.await(0, TimeUnit.MILLISECONDS);
         System.out.println(result.content().stdout());

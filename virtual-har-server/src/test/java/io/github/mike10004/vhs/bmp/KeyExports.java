@@ -1,12 +1,12 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.github.mike10004.nativehelper.Whicher;
-import com.github.mike10004.nativehelper.subprocess.ProcessException;
-import com.github.mike10004.nativehelper.subprocess.ProcessResult;
-import com.github.mike10004.nativehelper.subprocess.ScopedProcessTracker;
-import com.github.mike10004.nativehelper.subprocess.Subprocess;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
+import io.github.mike10004.subprocess.ProcessResult;
+import io.github.mike10004.subprocess.ScopedProcessTracker;
+import io.github.mike10004.subprocess.StreamInput;
+import io.github.mike10004.subprocess.Subprocess;
 import io.github.mike10004.vhs.bmp.LazyCertificateAndKeySource.CertificateGenerationException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -122,11 +122,12 @@ public class KeyExports {
 
         private Subprocesses() {}
 
-        public static ProcessResult<String, String> executeAndWait(Subprocess subprocess, Charset charset, @Nullable ByteSource stdin) throws InterruptedException, ProcessException {
+        public static ProcessResult<String, String> executeAndWait(Subprocess subprocess, Charset charset, @Nullable ByteSource stdin) throws InterruptedException {
             ProcessResult<String, String> result;
+            StreamInput stdin_ = stdin == null ? null : stdin::openStream;
             try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
                 result = subprocess.launcher(processTracker)
-                        .outputStrings(charset, stdin)
+                        .outputStrings(charset, stdin_)
                         .launch().await();
             }
             return result;
