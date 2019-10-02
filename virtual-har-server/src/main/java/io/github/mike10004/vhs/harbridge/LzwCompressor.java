@@ -24,11 +24,12 @@ SOFTWARE.
 
 package io.github.mike10004.vhs.harbridge;
 
+import com.google.common.io.BaseEncoding;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import javax.xml.bind.DatatypeConverter;
 
 /**
  * A compressor that uses LZW coding to compress a set of bytes.
@@ -87,7 +88,7 @@ public class LzwCompressor {
      * @return      a byte array representation of the hexadecimal string
      */
     private byte[] fromHexString(String str) {
-        return DatatypeConverter.parseHexBinary(str);
+        return BaseEncoding.base16().lowerCase().decode(str.toLowerCase());
     }
 
     /**
