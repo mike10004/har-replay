@@ -52,7 +52,6 @@
             <plugin>
                 <!-- avoid any attempt to generate a jar artifact by attaching this to a non-existent phase -->
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
                 <executions>
                     <execution>
                         <id>default-jar</id>
@@ -153,7 +152,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.5.0</version>
                 <executions>
                     <execution>
                         <id>write-classpath</id>
@@ -207,7 +205,6 @@
                 -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
                 <executions>
                     <execution>
                         <id>fix-permissions</id>
@@ -232,12 +229,12 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <!--suppress MavenModelInspection -->
                                 <echo>project.isSnapshotBuild=${project.isSnapshotBuild}</echo>
                                 <!--suppress MavenModelInspection -->
                                 <echo>project.isReleaseBuild=${project.isReleaseBuild}</echo>
-                            </tasks>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
@@ -378,11 +375,9 @@
         </dependency>
 
         <!-- START dependencies of tests -->
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
             <scope>test</scope>
         </dependency>
         <dependency>
