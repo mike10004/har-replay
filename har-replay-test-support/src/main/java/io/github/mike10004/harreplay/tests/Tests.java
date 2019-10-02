@@ -1,13 +1,12 @@
 package io.github.mike10004.harreplay.tests;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
 import com.google.common.net.HostAndPort;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse.Builder;
-import org.apache.commons.lang3.StringUtils;
+import io.github.mike10004.nitsick.SettingSet;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -27,10 +26,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class Tests {
 
-    public static final String SYSPROP_CHROMEDRIVER_VERSION = "wdm.chromeDriverVersion";
+    public static final SettingSet Settings = SettingSet.global("har-replay.tests");
 
     private Tests () {
-
     }
 
     public static int findOpenPort() throws IOException {

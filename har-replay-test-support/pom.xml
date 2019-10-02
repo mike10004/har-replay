@@ -120,5 +120,10 @@
             <artifactId>imnetio-helper</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>nitsick-core</artifactId>
+            <version>0.1</version>
+        </dependency>
     </dependencies>
 </project>

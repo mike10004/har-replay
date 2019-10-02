@@ -62,7 +62,7 @@ import static org.junit.Assert.fail;
 
 public class HarReplayExecTest extends HarReplayExecTestBase {
 
-    private static final Duration SERVER_WAIT_DURATION = Duration.ofSeconds(120);
+    private static final Duration SERVER_WAIT_DURATION = Tests.Settings.timeouts().get("HarReplayExecTest", Duration.ofSeconds(120));
 
     @ClassRule
     public static FixturesRule fixturesRule = Fixtures.asRule();
