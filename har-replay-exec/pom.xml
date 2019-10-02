@@ -154,7 +154,6 @@
         <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
-            <version>5.0.4</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -170,7 +169,6 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>xvfb-manager</artifactId>
-            <version>${xvfb-manager.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

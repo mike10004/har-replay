@@ -98,14 +98,8 @@
             <artifactId>har-reader</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.nanohttpd</groupId>
-            <artifactId>nanohttpd</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.freemarker</groupId>
             <artifactId>freemarker</artifactId>
-            <version>2.3.27-incubating</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -121,6 +115,11 @@
         <dependency>
             <groupId>com.github.mike10004</groupId>
             <artifactId>nitsick-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>nanohttpd-server</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
