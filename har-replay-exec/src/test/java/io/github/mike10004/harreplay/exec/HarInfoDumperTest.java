@@ -1,8 +1,6 @@
 package io.github.mike10004.harreplay.exec;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
 import com.google.common.net.MediaType;
 import com.opencsv.CSVReader;
 import de.sstoehr.harreader.HarReader;
@@ -19,7 +17,6 @@ import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
 import io.github.mike10004.harreplay.tests.Fixtures;
 import io.github.mike10004.harreplay.tests.Fixtures.FixturesRule;
-import io.github.mike10004.harreplay.vhsimpl.HarReaderFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.ClassRule;
@@ -38,16 +35,26 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(Enclosed.class)
 public class HarInfoDumperTest {
+
+    public static class HarReaderDependencyTest {
+
+        @Test
+        public void testRead() throws Exception {
+            de.sstoehr.harreader.model.Har har = new de.sstoehr.harreader.HarReader().readFromString("{}");
+            assertNotNull(har);
+        }
+
+    }
 
     public static class $Test {
 

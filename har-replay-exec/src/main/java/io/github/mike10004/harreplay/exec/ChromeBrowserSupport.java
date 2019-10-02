@@ -4,6 +4,7 @@ import io.github.mike10004.subprocess.ProcessMonitor;
 import io.github.mike10004.subprocess.ProcessTracker;
 import io.github.mike10004.subprocess.Subprocess;
 import com.google.common.net.HostAndPort;
+import io.github.mike10004.subprocess.SubprocessLaunchSupport;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -54,7 +55,7 @@ public class ChromeBrowserSupport implements BrowserSupport {
             sb.arg("data:,"); // start URL
             sb.args(moreArguments);
             Subprocess subprocess = sb.build();
-            Subprocess.Launcher<?, ?> launcher = subprocess.launcher(processTracker);
+            SubprocessLaunchSupport<?, ?> launcher = subprocess.launcher(processTracker);
             if (outputDir != null) {
                 launcher.outputTempFiles(outputDir);
             } else {

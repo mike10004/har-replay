@@ -154,6 +154,10 @@
             <artifactId>native-helper</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.mike10004</groupId>
+            <artifactId>subprocess</artifactId>
+        </dependency>
+        <dependency>
             <groupId>net.sf.jopt-simple</groupId>
             <artifactId>jopt-simple</artifactId>
             <version>5.0.4</version>
@@ -195,7 +199,7 @@
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>1.19.1</version>
+            <version>1.22</version>
         </dependency>
     </dependencies>
 </project>
