@@ -43,7 +43,7 @@
     <properties>
         <xvfb-manager.version>0.19</xvfb-manager.version>
         <selenium.version>3.141.59</selenium.version>
-        <selenium-help.version>0.48</selenium-help.version>
+        <selenium-help.version>0.49</selenium-help.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -446,6 +446,11 @@
                 <groupId>com.github.mike10004</groupId>
                 <artifactId>selenium-help</artifactId>
                 <version>${selenium-help.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>nitsick-core</artifactId>
+                <version>0.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
