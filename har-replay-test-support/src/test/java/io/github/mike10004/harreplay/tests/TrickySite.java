@@ -1,5 +1,6 @@
 package io.github.mike10004.harreplay.tests;
 
+import com.github.mike10004.seleniumhelp.TrafficCollectorImpl;
 import io.github.mike10004.subprocess.ProcessResult;
 import io.github.mike10004.subprocess.ScopedProcessTracker;
 import io.github.mike10004.subprocess.Subprocess;
@@ -284,50 +285,16 @@ public class TrickySite {
 
     }
 
-    private static class TrustingTrafficCollector extends TrafficCollector {
-
-        public TrustingTrafficCollector(TrafficCollector.Builder builder) {
-            super(builder);
-
-        }
-
-        @Override
-        protected MitmManager createMitmManager(BrowserMobProxy proxy, CertificateAndKeySource certificateAndKeySource) {
+    private static Supplier<BrowserMobProxy> browsermobInstantiator(CertificateAndKeySource certificateAndKeySource) {
+        return () -> {
+            BrowserMobProxyServer server = new BrowserMobProxyServer();
             MitmManager mitmManager = ImpersonatingMitmManager.builder()
                     .rootCertificateSource(certificateAndKeySource)
                     .trustAllServers(true)
                     .build();
-            return mitmManager;
-        }
-    }
-
-    private static Supplier<BrowserMobProxy> browsermobInstantiator() {
-        return BrowserMobProxyServer::new;
-    }
-
-    private interface BrowserCommandLineBuilder {
-
-        Subprocess build(HostAndPort proxySocketAddress);
-
-        static List<String> createArgs(Path userDataDir, URI startUrl, @Nullable HostAndPort proxySocketAddress) {
-            List<String> args = new ArrayList<>();
-            args.add("--no-first-run");
-            args.add("--user-data-dir=" + userDataDir.toFile().getAbsolutePath());
-            args.add("--allow-insecure-localhost");
-            if (proxySocketAddress != null) {
-                args.add("--proxy-server=" + proxySocketAddress.toString());
-            }
-            args.add(startUrl.toString());
-            return args;
-        }
-
-        static BrowserCommandLineBuilder chrome(Path userDataDir, URI startUrl) {
-            return proxySocketAddress -> {
-                Subprocess.Builder b = Subprocess.running("google-chrome")
-                        .args(createArgs(userDataDir, startUrl, proxySocketAddress));
-                return b.build();
-            };
-        }
+            server.setMitmManager(mitmManager);
+            return server;
+        };
     }
 
     public void captureHar(File destinationHarFile) throws Exception {
@@ -355,9 +322,11 @@ public class TrickySite {
             URI startUrl = server.getStartUrl();
             ChromeWebDriverFactory factory = ChromeWebDriverFactory.builder()
                     .environment(xvfbController.newEnvironment()).build();
-            TrafficCollector collector = new TrustingTrafficCollector(TrafficCollector.builder(factory)
-                    .collectHttps(new AutoCertificateAndKeySource(tempDir))
-                    .localProxyInstantiator(browsermobInstantiator()));
+            CertificateAndKeySource certificateAndKeySource = new AutoCertificateAndKeySource(tempDir);
+            TrafficCollector collector = TrafficCollector.builder(factory)
+                    .collectHttps(certificateAndKeySource)
+                    .interceptingProxyInstantiator(browsermobInstantiator(certificateAndKeySource))
+                    .build();
             net.lightbody.bmp.core.har.Har har = collector.collect(new TrafficGenerator<Void>() {
                 @Override
                 public Void generate(WebDriver driver) throws IOException {

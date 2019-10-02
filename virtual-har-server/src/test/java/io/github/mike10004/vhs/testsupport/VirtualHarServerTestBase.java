@@ -83,8 +83,7 @@ public abstract class VirtualHarServerTestBase {
         }
     }
 
-    @Test
-    public void basicTest() throws Exception {
+    protected void doBasicTest() throws Exception {
         List<URI> uris = Arrays.asList(
                 oneUri, twoUri, notFoundUri
         );
@@ -92,7 +91,7 @@ public abstract class VirtualHarServerTestBase {
         examineResponses(uris, responses);
     }
 
-    protected Multimap<URI, ResponseSummary> doBasicTest(Iterable<URI> uris) throws Exception {
+    protected final Multimap<URI, ResponseSummary> doBasicTest(Iterable<URI> uris) throws Exception {
         Path temporaryDirectory = temporaryFolder.newFolder().toPath();
         File harFile = VhsTests.getReplayTest1HarFile(temporaryDirectory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);
@@ -104,15 +103,14 @@ public abstract class VirtualHarServerTestBase {
         }
     }
 
-    @Test
-    public void httpsTest() throws Exception {
+    protected void doHttpsTest() throws Exception {
         TestContext context = new TestContext();
         context.put(KEY_TLS_MODE, TlsMode.SUPPORT_REQUIRED);
         context.put(KEY_CLIENT_SUPPLIER, BlindlyTrustingClient.supplier());
         doHttpsTest(context);
     }
 
-    protected void doHttpsTest(TestContext context) throws Exception {
+    protected final void doHttpsTest(TestContext context) throws Exception {
         Path temporaryDirectory = temporaryFolder.newFolder().toPath();
         File harFile = VhsTests.getHttpsExampleHarFile(temporaryDirectory);
         EntryMatcherFactory entryMatcherFactory = HeuristicEntryMatcher.factory(new BasicHeuristic(), BasicHeuristic.DEFAULT_THRESHOLD_EXCLUSIVE);

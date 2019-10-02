@@ -4,15 +4,9 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.io.BaseEncoding;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
 import com.google.common.net.HostAndPort;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
-import com.machinepublishers.jbrowserdriver.JBrowserDriver;
-import com.machinepublishers.jbrowserdriver.ProxyConfig;
-import com.machinepublishers.jbrowserdriver.Settings;
-import de.sstoehr.harreader.HarReaderException;
 import de.sstoehr.harreader.model.HarContent;
 import de.sstoehr.harreader.model.HarEntry;
 import de.sstoehr.harreader.model.HarHeader;
@@ -20,19 +14,12 @@ import de.sstoehr.harreader.model.HarRequest;
 import de.sstoehr.harreader.model.HarResponse;
 import de.sstoehr.harreader.model.HttpMethod;
 import io.github.mike10004.vhs.BasicHeuristic;
-import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
-import io.github.mike10004.vhs.EntryParser;
-import io.github.mike10004.vhs.HarBridgeEntryParser;
 import io.github.mike10004.vhs.HeuristicEntryMatcher;
-import io.github.mike10004.vhs.ReplaySessionState;
 import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.ResponseManufacturingFiltersSource.PassthruPredicate;
-import io.github.mike10004.vhs.harbridge.ParsedRequest;
-import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;
 import io.github.mike10004.vhs.testsupport.VhsTests;
-import io.github.mike10004.vhs.testsupport.VirtualHarServerTestBase;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequest;
 import org.apache.http.HttpStatus;
@@ -40,11 +27,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
-import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -53,94 +36,29 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
+public class BrowsermobVirtualHarServerTest extends BrowsermobVirtualHarServerTestBase {
 
-    private static final int REDIRECT_WAIT_TIMEOUT_SECONDS = 10; // JBrowserDriver can be a tad slow to execute JavaScript
-    private static final String EXPECTED_FINAL_REDIRECT_TEXT = "This is the redirect destination page";
-
-    private List<String> requests;
-    private List<String> customValues;
-
-    @Before
-    public void setUp() throws IOException {
-        customValues = Collections.synchronizedList(new ArrayList<>());
-        requests = Collections.synchronizedList(new ArrayList<>());
-    }
-
-    private static final String CUSTOM_HEADER_NAME = "X-Virtual-Har-Server-Unit-Test";
-
-    @Override
-    protected VirtualHarServer createServer(int port, File harFile, EntryMatcherFactory entryMatcherFactory, TestContext context) throws IOException {
-        BrowsermobVhsConfig config = createServerConfig(port, harFile, entryMatcherFactory, context);
-        return new BrowsermobVirtualHarServer(config);
-    }
-
-    protected BrowsermobVhsConfig createServerConfig(int port, File harFile, EntryMatcherFactory entryMatcherFactory, TestContext context) throws IOException {
-        List<HarEntry> entries;
-        try {
-            entries = new de.sstoehr.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
-        } catch (HarReaderException e) {
-            throw new IOException(e);
-        }
-        EntryParser<HarEntry> parser = HarBridgeEntryParser.withPlainEncoder(new SstoehrHarBridge());
-        EntryMatcher entryMatcher = entryMatcherFactory.createEntryMatcher(entries, parser);
-        HarReplayManufacturer responseManufacturer = new HarReplayManufacturer(entryMatcher, Collections.emptyList()) {
-            @Override
-            public ResponseCapture manufacture(ReplaySessionState state, RequestCapture capture) {
-                requests.add(String.format("%s %s", capture.request.method, capture.request.url));
-                return super.manufacture(state, capture);
-            }
-        };
-        Path scratchParent = temporaryFolder.getRoot().toPath();
-        BmpResponseListener responseFilter = new HeaderAddingFilter(CUSTOM_HEADER_NAME, () -> {
-            String value = UUID.randomUUID().toString();
-            customValues.add(value);
-            return value;
-        });
-        BrowsermobVhsConfig.Builder configBuilder = BrowsermobVhsConfig.builder(responseManufacturer)
-                    .port(port)
-                    .responseListener(responseFilter)
-                    .scratchDirProvider(ScratchDirProvider.under(scratchParent));
-        TlsMode tlsMode = context.get(KEY_TLS_MODE);
-        if (tlsMode == TlsMode.SUPPORT_REQUIRED || tlsMode == TlsMode.PREDEFINED_CERT_SUPPORT) {
-            try {
-                String commonName = "localhost";
-                KeystoreData keystoreData = BmpTests.generateKeystoreForUnitTest(commonName);
-                NanohttpdTlsEndpointFactory tlsEndpointFactory = NanohttpdTlsEndpointFactory.create(keystoreData, null);
-                configBuilder.tlsEndpointFactory(tlsEndpointFactory);
-            } catch (GeneralSecurityException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        if (tlsMode == TlsMode.PREDEFINED_CERT_SUPPORT) {
-            KeystoreData keystoreData = context.get(KEY_KEYSTORE_DATA);
-            configBuilder.certificateAndKeySource(keystoreData.asCertificateAndKeySource());
-        }
-        return configBuilder.build();
+    @Test
+    public void basicTest() throws Exception {
+        super.doBasicTest();
     }
 
     @Test
-    @Override
     public void httpsTest() throws Exception {
         boolean clean = false;
         try {
-            super.httpsTest();
+            super.doHttpsTest();
             clean = true;
         } finally {
             System.out.format("%s requests handled%n", requests.size());
@@ -153,8 +71,6 @@ public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
             }
         }
     }
-
-    private static final String KEY_KEYSTORE_DATA = "keystoreData";
 
     @Test
     public void httpsTest_pregeneratedMitmCertificate() throws Exception {
@@ -197,96 +113,6 @@ public class BrowsermobVirtualHarServerTest extends VirtualHarServerTestBase {
             b.setSSLContext(customSslContext);
             b.setSSLHostnameVerifier(VhsTests.blindHostnameVerifier());
         }
-    }
-
-    private static class ErrorResponseNotice {
-
-        public final ParsedRequest request;
-        public final int status;
-
-        private ErrorResponseNotice(ParsedRequest request, int status) {
-            this.request = request;
-            this.status = status;
-        }
-
-        @Override
-        public String toString() {
-            return "ErrorResponseNotice{" +
-                    "request=" + request +
-                    ", status=" + status +
-                    '}';
-        }
-    }
-
-    private static class ErrorNoticeListener implements BmpResponseListener {
-        public final Collection<ErrorResponseNotice> errorNotices;
-
-        public ErrorNoticeListener() {
-            this(new ArrayList<>());
-        }
-
-        public ErrorNoticeListener(Collection<ErrorResponseNotice> errorNotices) {
-            this.errorNotices = errorNotices;
-        }
-
-        @Override
-        public void responding(RequestCapture requestCapture, ResponseCapture responseCapture) {
-            int status = responseCapture.response.getStatus().code();
-            if (status >= 400) {
-                System.out.format("responding %s to %s %s%n", status, requestCapture.request.method, requestCapture.request.url);
-                errorNotices.add(new ErrorResponseNotice(requestCapture.request, status));
-            }
-        }
-
-    }
-
-    @Test
-    public void javascriptRedirect() throws Exception {
-        org.apache.http.client.utils.URLEncodedUtils.class.getName();
-        org.littleshoot.proxy.impl.ClientToProxyConnection.class.getName();
-        io.github.mike10004.vhs.harbridge.Hars.class.getName();
-        File harFile = File.createTempFile("javascript-redirect", ".har", temporaryFolder.getRoot());
-        Resources.asByteSource(getClass().getResource("/javascript-redirect.har")).copyTo(Files.asByteSink(harFile));
-        URI startUrl = URI.create("https://www.redi123.com/");
-        URI finalUrl = new URIBuilder(startUrl).setPath("/other.html").build();
-        ErrorNoticeListener errorResponseAccumulator = new ErrorNoticeListener();
-        HarReplayManufacturer manufacturer = BmpTests.createManufacturer(harFile, Collections.emptyList());
-        KeystoreData keystoreData = BmpTests.generateKeystoreForUnitTest("localhost");
-        NanohttpdTlsEndpointFactory tlsEndpointFactory = NanohttpdTlsEndpointFactory.create(keystoreData, null);
-        BrowsermobVhsConfig config = BrowsermobVhsConfig.builder(manufacturer)
-                .scratchDirProvider(ScratchDirProvider.under(temporaryFolder.getRoot().toPath()))
-                .tlsEndpointFactory(tlsEndpointFactory)
-                .responseListener(errorResponseAccumulator)
-                .build();
-        VirtualHarServer server = new BrowsermobVirtualHarServer(config);
-        String finalPageSource = null;
-        try (VirtualHarServerControl ctrl = server.start()) {
-            HostAndPort address = ctrl.getSocketAddress();
-            ProxyConfig proxyConfig = new ProxyConfig(ProxyConfig.Type.HTTP, "localhost", address.getPort());
-            Settings settings = Settings.builder()
-                    .hostnameVerification(false)
-                    .ssl("trustanything")
-                    .proxy(proxyConfig)
-                    .build();
-            WebDriver driver = new JBrowserDriver(settings);
-            try {
-                driver.get(startUrl.toString());
-                System.out.println(driver.getPageSource());
-                try {
-                    new WebDriverWait(driver, REDIRECT_WAIT_TIMEOUT_SECONDS).until(ExpectedConditions.urlToBe(finalUrl.toString()));
-                    finalPageSource = driver.getPageSource();
-                } catch (org.openqa.selenium.TimeoutException e) {
-                    System.err.format("timed out while waiting for URL to change to %s%n", finalUrl);
-                }
-            } finally {
-                driver.quit();
-            }
-        }
-        System.out.format("final page source:%n%s%n", finalPageSource);
-        errorResponseAccumulator.errorNotices.forEach(System.out::println);
-        assertNotNull("final page source", finalPageSource);
-        assertTrue("redirect text", finalPageSource.contains(EXPECTED_FINAL_REDIRECT_TEXT));
-        assertEquals("error notices", ImmutableList.of(), errorResponseAccumulator.errorNotices);
     }
 
     private static BmpResponseListener newLoggingResponseListener() {
