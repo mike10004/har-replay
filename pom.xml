@@ -43,6 +43,7 @@
     <properties>
         <xvfb-manager.version>0.19</xvfb-manager.version>
         <selenium.version>3.141.59</selenium.version>
+        <selenium-help.version>0.48</selenium-help.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -115,6 +116,32 @@
                             <artifactId>maven-failsafe-plugin</artifactId>
                             <configuration>
                                 <skipTests>true</skipTests>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <!-- more profiles specifying chromedriver version may be necessary; see https://chromedriver.chromium.org/downloads -->
+        <profile>
+            <id>chrome-77</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-surefire-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <wdm.chromeDriverVersion>77.0.3865.40</wdm.chromeDriverVersion>
+                                </systemPropertyVariables>
+                            </configuration>
+                        </plugin>
+                        <plugin>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <systemPropertyVariables>
+                                    <wdm.chromeDriverVersion>77.0.3865.40</wdm.chromeDriverVersion>
+                                </systemPropertyVariables>
                             </configuration>
                         </plugin>
                     </plugins>
@@ -414,6 +441,11 @@
                 <groupId>com.github.mike10004</groupId>
                 <artifactId>imnetio-helper</artifactId>
                 <version>${common-helper.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mike10004</groupId>
+                <artifactId>selenium-help</artifactId>
+                <version>${selenium-help.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
