@@ -2,6 +2,7 @@ package io.github.mike10004.vhs.bmp;
 
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
+import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import net.lightbody.bmp.BrowserMobProxy;
 import net.lightbody.bmp.BrowserMobProxyServer;
 import net.lightbody.bmp.core.har.Har;
@@ -46,14 +47,14 @@ public class HarMaker {
     public static class EntrySpec {
         public final RequestSpec request;
         public final Duration preResponseDelay;
-        public final fi.iki.elonen.NanoHTTPD.Response response;
+        public final NanoHTTPD.Response response;
         public final Duration postResponseDelay;
 
-        public EntrySpec(RequestSpec request, fi.iki.elonen.NanoHTTPD.Response response) {
+        public EntrySpec(RequestSpec request, NanoHTTPD.Response response) {
             this(request, Duration.ofMillis(50), response, Duration.ofMillis(50));
         }
 
-        public EntrySpec(RequestSpec request, Duration preResponseDelay, fi.iki.elonen.NanoHTTPD.Response response, Duration postResponseDelay) {
+        public EntrySpec(RequestSpec request, Duration preResponseDelay, NanoHTTPD.Response response, Duration postResponseDelay) {
             this.request = request;
             this.preResponseDelay = preResponseDelay;
             this.response = response;
@@ -112,9 +113,9 @@ public class HarMaker {
             specsWithIds.put(UUID.randomUUID(), spec);
         });
         int port = 59876;
-        fi.iki.elonen.NanoHTTPD nanoserver = new fi.iki.elonen.NanoHTTPD(port) {
+        NanoHTTPD nanoserver = new NanoHTTPD(port) {
             @Override
-            public Response serve(IHTTPSession session) {
+            public NanoHTTPD.Response serve(NanoHTTPD.IHTTPSession session) {
                 System.out.format("starting to serve in response to request %s %s%n", session.getMethod(), session.getUri());
                 String id = session.getHeaders().get(HEADER_ID);
                 checkArgument(id != null, "expect every request to have %s header", HEADER_ID);

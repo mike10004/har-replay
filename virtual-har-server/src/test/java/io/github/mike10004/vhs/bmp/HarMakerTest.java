@@ -1,6 +1,7 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.google.gson.GsonBuilder;
+import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.vhs.bmp.HarMaker.EntrySpec;
 import io.github.mike10004.vhs.bmp.HarMaker.HttpCallback;
 import net.lightbody.bmp.core.har.Har;
@@ -18,8 +19,8 @@ public class HarMakerTest {
     @Test
     public void makeHar() throws Exception {
         List<EntrySpec> specs = Arrays.asList(
-                new EntrySpec(RequestSpec.get(URI.create("http://example.com/one")), fi.iki.elonen.NanoHTTPD.newFixedLengthResponse(fi.iki.elonen.NanoHTTPD.Response.Status.OK, "text/plain", "one")),
-                new EntrySpec(RequestSpec.get(URI.create("http://example.com/two")), fi.iki.elonen.NanoHTTPD.newFixedLengthResponse(fi.iki.elonen.NanoHTTPD.Response.Status.OK, "text/plain", "two"))
+                new EntrySpec(RequestSpec.get(URI.create("http://example.com/one")), NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "text/plain", "one")),
+                new EntrySpec(RequestSpec.get(URI.create("http://example.com/two")), NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "text/plain", "two"))
         );
         HarMaker maker = new HarMaker();
         Har har = maker.produceHar(specs, new HttpCallback() {

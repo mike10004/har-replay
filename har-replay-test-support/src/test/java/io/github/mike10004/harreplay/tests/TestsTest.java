@@ -1,7 +1,7 @@
 package io.github.mike10004.harreplay.tests;
 
 import com.google.common.collect.ImmutableMap;
-import fi.iki.elonen.NanoHTTPD;
+import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.junit.Test;

@@ -1,6 +1,6 @@
 package io.github.mike10004.harreplay.tests;
 
-import io.github.bonigarcia.wdm.ChromeDriverManager;
+import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.rules.ExternalResource;
 
 public class ChromeDriverSetupRule extends ExternalResource {
@@ -15,7 +15,7 @@ public class ChromeDriverSetupRule extends ExternalResource {
     }
 
     public static void doSetup() {
-        ChromeDriverManager.getInstance().setup();
+        WebDriverManager.chromedriver().setup();
         performed = true;
     }
 }

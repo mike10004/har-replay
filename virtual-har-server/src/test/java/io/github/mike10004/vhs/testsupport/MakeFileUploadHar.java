@@ -44,8 +44,8 @@ import com.google.common.net.MediaType;
 import com.google.common.primitives.Ints;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
+import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.vhs.bmp.MakeTestHar;
 import io.github.mike10004.vhs.harbridge.FormDataPart;
 import io.github.mike10004.vhs.harbridge.MultipartFormDataParser;
@@ -116,9 +116,9 @@ public class MakeFileUploadHar {
                 "</html>";
         byte[] landingHtmlBytes = landingHtml.getBytes(StandardCharsets.UTF_8);
         Map<String, TypedContent> storage = Collections.synchronizedMap(new HashMap<>());
-        fi.iki.elonen.NanoHTTPD nano = new fi.iki.elonen.NanoHTTPD(port) {
+        NanoHTTPD nano = new NanoHTTPD(port) {
             @Override
-            public fi.iki.elonen.NanoHTTPD.Response serve(fi.iki.elonen.NanoHTTPD.IHTTPSession session) {
+            public NanoHTTPD.Response serve(NanoHTTPD.IHTTPSession session) {
                 System.out.format("%s http://localhost:%s%s%n", session.getMethod(), port, session.getUri());
                 URI uri = URI.create(session.getUri());
                 if ("/".equals(uri.getPath())) {

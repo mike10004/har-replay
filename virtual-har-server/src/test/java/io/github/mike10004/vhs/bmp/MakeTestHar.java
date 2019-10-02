@@ -7,8 +7,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.google.gson.Gson;
-import fi.iki.elonen.NanoHTTPD;
-import fi.iki.elonen.NanoHTTPD.Response.Status;
+import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.vhs.bmp.HarMaker.EntrySpec;
 
 import java.io.ByteArrayInputStream;
@@ -58,20 +57,20 @@ public class MakeTestHar {
         byte[] body = new Gson().toJson(ImmutableMap.of("foo", "bar", "baz", 2)).getBytes(StandardCharsets.UTF_8);
         RequestSpec request = new RequestSpec("POST", url, ImmutableMultimap.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), body);
         String responseJson = new Gson().toJson(ImmutableMap.of("status", "good"));
-        fi.iki.elonen.NanoHTTPD.Response response = newResponse(201, MediaType.JSON_UTF_8, responseJson);
+        NanoHTTPD.Response response = newResponse(201, MediaType.JSON_UTF_8, responseJson);
         return new EntrySpec(request, response);
 
     }
 
-    private static fi.iki.elonen.NanoHTTPD.Response newResponse(int status, MediaType contentType, String text) {
+    private static NanoHTTPD.Response newResponse(int status, MediaType contentType, String text) {
         Charset charset = contentType.charset().or(StandardCharsets.UTF_8);
         contentType = contentType.withCharset(charset);
         byte[] data = text.getBytes(charset);
         return newResponse(status, contentType, data);
     }
 
-    public static fi.iki.elonen.NanoHTTPD.Response.Status lookup(int requestStatus) {
-        for (Status status : Status.values()) {
+    public static NanoHTTPD.Response.Status lookup(int requestStatus) {
+        for (NanoHTTPD.Response.Status status : NanoHTTPD.Response.Status.values()) {
             if (status.getRequestStatus() == requestStatus) {
                 return status;
             }
@@ -79,19 +78,19 @@ public class MakeTestHar {
         return null;
     }
 
-    private static fi.iki.elonen.NanoHTTPD.Response newResponse(int status, MediaType contentType, byte[] data) {
-        return fi.iki.elonen.NanoHTTPD.newFixedLengthResponse(lookup(status), contentType.toString(), new ByteArrayInputStream(data), data.length);
+    private static NanoHTTPD.Response newResponse(int status, MediaType contentType, byte[] data) {
+        return NanoHTTPD.newFixedLengthResponse(lookup(status), contentType.toString(), new ByteArrayInputStream(data), data.length);
     }
 
     static EntrySpec createGetTextSpec() {
         RequestSpec request = RequestSpec.get(URI.create("http://www.somedomain.com/text"));
-        fi.iki.elonen.NanoHTTPD.Response response = newResponse(200, MediaType.HTML_UTF_8, "<!DOCTYPE html><html><body>This is a test</body></html>");
+        NanoHTTPD.Response response = newResponse(200, MediaType.HTML_UTF_8, "<!DOCTYPE html><html><body>This is a test</body></html>");
         return new EntrySpec(request, response);
     }
 
     static EntrySpec createGet500Spec() {
         RequestSpec request = RequestSpec.get(URI.create("http://www.somedomain.com/error"));
-        fi.iki.elonen.NanoHTTPD.Response response = newResponse(500, MediaType.PLAIN_TEXT_UTF_8, "500 Internal server error");
+        NanoHTTPD.Response response = newResponse(500, MediaType.PLAIN_TEXT_UTF_8, "500 Internal server error");
         return new EntrySpec(request, response);
     }
 
@@ -100,7 +99,7 @@ public class MakeTestHar {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
         NoiseImageGenerator.createGenerator(ImageFormat.JPEG).generate(64, baos);
         baos.flush();
-        fi.iki.elonen.NanoHTTPD.Response response = newResponse(200, MediaType.JPEG, baos.toByteArray());
+        NanoHTTPD.Response response = newResponse(200, MediaType.JPEG, baos.toByteArray());
         return new EntrySpec(request, response);
     }
 }
