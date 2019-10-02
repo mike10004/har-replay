@@ -4,7 +4,6 @@ import com.github.mike10004.seleniumhelp.FirefoxWebDriverFactory;
 import com.github.mike10004.seleniumhelp.WebDriverFactory;
 import com.github.mike10004.seleniumhelp.WebdrivingConfig;
 import com.github.mike10004.seleniumhelp.WebdrivingSession;
-import com.github.mike10004.xvfbtesting.XvfbRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
@@ -15,8 +14,8 @@ import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -34,15 +33,13 @@ import static org.junit.Assert.assertTrue;
 public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarServerTestBase {
 
     private static final int REDIRECT_WAIT_TIMEOUT_SECONDS = 10;
+    private static final int BODY_WAIT_TIMEOUT_SECONDS = 1;
     private static final String EXPECTED_FINAL_REDIRECT_TEXT = "This is the redirect destination page";
 
     @BeforeClass
     public static void setUpClass() {
         WebDriverManager.firefoxdriver().setup();
     }
-
-    @Rule
-    public final XvfbRule xvfb = XvfbRule.builder().build();
 
     @Test
     public void javascriptRedirect() throws Exception {
@@ -72,10 +69,12 @@ public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarS
                     driver.get(startUrl.toString());
                     System.out.println(driver.getPageSource());
                     try {
+                        new WebDriverWait(driver, BODY_WAIT_TIMEOUT_SECONDS).until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
                         new WebDriverWait(driver, REDIRECT_WAIT_TIMEOUT_SECONDS).until(ExpectedConditions.urlToBe(finalUrl.toString()));
+                        new WebDriverWait(driver, BODY_WAIT_TIMEOUT_SECONDS).until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
                         finalPageSource = driver.getPageSource();
                     } catch (org.openqa.selenium.TimeoutException e) {
-                        System.err.format("timed out while waiting for URL to change to %s%n", finalUrl);
+                        System.err.format("timed out while waiting for body to load or URL to change to %s%n", finalUrl);
                     }
                 } finally {
                     driver.quit();
@@ -143,7 +142,6 @@ public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarS
                 .headless()
                 .preference("browser.chrome.favicons", false)
                 .preference("browser.chrome.site_icons", false)
-                .environment(() -> xvfb.getController().newEnvironment())
                 .build();
         return factory;
     }
