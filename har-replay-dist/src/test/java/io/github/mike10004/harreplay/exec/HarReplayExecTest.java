@@ -158,7 +158,12 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
         ProcessMonitor<String, String> monitor;
         try (ScopedProcessTracker processTracker = new ScopedProcessTracker()) {
             monitor = execute(processTracker, args);
-            int port = waitUntilFileNonempty(notifyFile, SERVER_WAIT_DURATION, Integer::parseInt);
+            int port;
+            try {
+                port = waitUntilFileNonempty(notifyFile, SERVER_WAIT_DURATION, Integer::parseInt);
+            } catch (WatchServicePollTimeoutException e) {
+                throw new AssertionError(String.format("was waiting for %s to be populated with port number, but this happened: %s", notifyFile, e));
+            }
             HostAndPort serverAddress = HostAndPort.fromParts("localhost", port);
             System.out.format("listening on %s%n", serverAddress);
             retVal = visitor.visit(serverAddress);
@@ -194,13 +199,14 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
 
     // https://stackoverflow.com/a/16251508/2657036
     @SuppressWarnings("SameParameterValue")
-    private <T> T waitUntilFileNonempty(File file, Duration waitDuration, Function<? super String, T> transform) throws IOException, InterruptedException, TimeoutException {
+    private <T> T waitUntilFileNonempty(File file, Duration waitDuration, Function<? super String, T> transform) throws IOException, InterruptedException {
         System.out.format("waiting until file becomes nonempty: %s%n", file);
         file = file.getAbsoluteFile();
         checkState(file.isFile(), "file is not yet created: %s", file);
         final Path targetFileAbsolutePath = file.toPath().toAbsolutePath();
         final Path parentDirectory = file.getParentFile().toPath();
         System.out.println(parentDirectory);
+        long initialStart = System.currentTimeMillis();
         try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
             parentDirectory.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
             long millisRemaining = waitDuration.toMillis();
@@ -228,6 +234,18 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
                 millisRemaining = LongMath.checkedSubtract(waitDuration.toMillis(), millisWaited);
             }
         }
-        throw new TimeoutException("timed out before watch service returned a poll event");
+        long elapsed = System.currentTimeMillis() - initialStart;
+        throw new WatchServicePollTimeoutException(elapsed, waitDuration);
+    }
+
+    private static class WatchServicePollTimeoutException extends RuntimeException {
+        public final long elapsedMilliseconds;
+        public final Duration requestedWaitDuration;
+
+        private WatchServicePollTimeoutException(long elapsedMilliseconds, Duration requestedWaitDuration) {
+            super(String.format("timed out before watch service returned poll event; %d milliseconds elapsed (requested %s)", elapsedMilliseconds, requestedWaitDuration));
+            this.elapsedMilliseconds = elapsedMilliseconds;
+            this.requestedWaitDuration = requestedWaitDuration;
+        }
     }
 }
