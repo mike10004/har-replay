@@ -104,7 +104,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.mike10004</groupId>
-            <artifactId>selenium-help</artifactId>
+            <artifactId>selenium-capture</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

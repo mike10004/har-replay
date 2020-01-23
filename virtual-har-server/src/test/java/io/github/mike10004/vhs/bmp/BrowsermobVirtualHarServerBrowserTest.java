@@ -1,6 +1,7 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.github.mike10004.seleniumhelp.FirefoxWebDriverFactory;
+import com.github.mike10004.seleniumhelp.UriProxySpecification;
 import com.github.mike10004.seleniumhelp.WebDriverFactory;
 import com.github.mike10004.seleniumhelp.WebdrivingConfig;
 import com.github.mike10004.seleniumhelp.WebdrivingSession;
@@ -88,7 +89,7 @@ public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarS
         assertEquals("error notices", ImmutableList.of(), errorResponseAccumulator.errorNotices);
     }
 
-    static class ErrorNoticeListener implements BmpResponseListener {
+    private static class ErrorNoticeListener implements BmpResponseListener {
         public final Collection<ErrorResponseNotice> errorNotices;
 
         public ErrorNoticeListener() {
@@ -132,7 +133,7 @@ public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarS
     private WebdrivingConfig createWebdrivingConfig(HostAndPort httpProxyAddress) {
         URI httpProxyUri = URI.create("http://" + httpProxyAddress.toString());
         WebdrivingConfig config = WebdrivingConfig.builder()
-                .proxy(httpProxyUri)
+                .proxy(UriProxySpecification.of(httpProxyUri).toWebdrivingProxyDefinition())
                 .build();
         return config;
     }
@@ -140,6 +141,7 @@ public class BrowsermobVirtualHarServerBrowserTest extends BrowsermobVirtualHarS
     private WebDriverFactory createWebDriverFactory() {
         FirefoxWebDriverFactory factory = FirefoxWebDriverFactory.builder()
                 .headless()
+                .acceptInsecureCerts()
                 .preference("browser.chrome.favicons", false)
                 .preference("browser.chrome.site_icons", false)
                 .build();

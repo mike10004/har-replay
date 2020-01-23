@@ -43,7 +43,7 @@
     <properties>
         <xvfb-manager.version>0.19</xvfb-manager.version>
         <selenium.version>3.141.59</selenium.version>
-        <selenium-help.version>0.49</selenium-help.version>
+        <selenium-capture.version>0.53</selenium-capture.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -53,8 +53,10 @@
         <crxtool.version>0.12</crxtool.version>
         <nanochamp.version>0.14</nanochamp.version>
         <common-helper.version>10.0.0</common-helper.version>
-        <subprocess.version>0.1</subprocess.version>
+        <subprocess.version>0.3</subprocess.version>
         <jackson.version>2.10.0</jackson.version>
+        <!--suppress UnresolvedMavenProperty -->
+        <chromedriver.version>${env.CHROMEDRIVER_VERSION}</chromedriver.version>
     </properties>
     <profiles>
         <profile>
@@ -125,28 +127,15 @@
         <!-- more profiles specifying chromedriver version may be necessary; see https://chromedriver.chromium.org/downloads -->
         <profile>
             <id>chrome-77</id>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                            <configuration>
-                                <systemPropertyVariables>
-                                    <wdm.chromeDriverVersion>77.0.3865.40</wdm.chromeDriverVersion>
-                                </systemPropertyVariables>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <artifactId>maven-failsafe-plugin</artifactId>
-                            <configuration>
-                                <systemPropertyVariables>
-                                    <wdm.chromeDriverVersion>77.0.3865.40</wdm.chromeDriverVersion>
-                                </systemPropertyVariables>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
+            <properties>
+                <chromedriver.version>77.0.3865.40</chromedriver.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>chrome-79</id>
+            <properties>
+                <chromedriver.version>79.0.3945.36</chromedriver.version>
+            </properties>
         </profile>
     </profiles>
     <distributionManagement>
@@ -177,6 +166,7 @@
                         <systemPropertyVariables>
                             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
                             <org.slf4j.simpleLogger.defaultLogLevel>${test.log.level}</org.slf4j.simpleLogger.defaultLogLevel>
+                            <wdm.chromeDriverVersion>${chromedriver.version}</wdm.chromeDriverVersion>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>
@@ -186,6 +176,7 @@
                     <configuration>
                         <systemPropertyVariables>
                             <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+                            <wdm.chromeDriverVersion>${chromedriver.version}</wdm.chromeDriverVersion>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>
@@ -448,8 +439,8 @@
             </dependency>
             <dependency>
                 <groupId>com.github.mike10004</groupId>
-                <artifactId>selenium-help</artifactId>
-                <version>${selenium-help.version}</version>
+                <artifactId>selenium-capture</artifactId>
+                <version>${selenium-capture.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.mike10004</groupId>
