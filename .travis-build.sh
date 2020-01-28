@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# This script is executed from within the running travis-debug container.
+#
+# See travis-debug.sh
+#
 
 echo "running as $(whoami) in ${PWD}"
 

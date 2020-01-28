@@ -14,7 +14,7 @@ before_install:
   - which chromium-browser
   - chromium-browser --version
 install:
-  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis dependency:resolve dependency:resolve-plugins || true
+  - mvn -B -V $MAVEN_OPTIONS -Ptravis dependency:resolve dependency:resolve-plugins || true
 script:
-  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis -Dwdm.chromeDriverVersion=$CHROMEDRIVER_VERSION install
-  - mvn -B -V $MAVEN_OPTIONS --settings travis-maven-settings.xml -Ptravis javadoc:javadoc
+  - mvn -B -V $MAVEN_OPTIONS -Ptravis install
+  - mvn -B -V $MAVEN_OPTIONS -Ptravis javadoc:javadoc
