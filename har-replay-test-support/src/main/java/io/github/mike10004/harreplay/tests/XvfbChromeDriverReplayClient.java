@@ -15,6 +15,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
@@ -42,11 +43,13 @@ public class XvfbChromeDriverReplayClient implements ReplayClient<Multimap<URI, 
 
     public Multimap<URI, String> useReplayServer(ReplaySessionControl sessionControl, Iterable<URI> urisToGet) throws IOException {
         HostAndPort proxy = sessionControl.getSocketAddress();
-        ChromeOptions options = optionsProducer.produceOptions(proxy);
+        Consumer<? super ChromeOptions> optionsMods = optionsProducer.produceOptions(proxy);
         ChromeDriverService service = new ChromeDriverService.Builder()
                 .usingAnyFreePort()
                 .withEnvironment(xvfb.getController().newEnvironment())
                 .build();
+        ChromeOptions options = new ChromeOptions();
+        optionsMods.accept(options);
         ChromeDriver driver = new ChromeDriver(service, options);
         ChromeDriverKillHook.getInstance().add(driver);
         try {

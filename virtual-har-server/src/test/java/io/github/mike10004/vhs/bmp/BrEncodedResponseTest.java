@@ -69,7 +69,8 @@ public class BrEncodedResponseTest {
                     .usingAnyFreePort()
                     .withEnvironment(env)
                     .build();
-            ChromeOptions options = ChromeOptionsProducer.standard().produceOptions(proxyAddress);
+            ChromeOptions options = new ChromeOptions();
+            ChromeOptionsProducer.standard().produceOptions(proxyAddress).accept(options);
             WebDriver driver = new ChromeDriver(service, options);
             try {
                 driver.get(url.toString());

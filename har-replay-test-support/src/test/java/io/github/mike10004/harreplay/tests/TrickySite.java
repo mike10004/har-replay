@@ -23,10 +23,10 @@ import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.subprocess.ProcessResult;
 import io.github.mike10004.subprocess.ScopedProcessTracker;
 import io.github.mike10004.subprocess.Subprocess;
-import net.lightbody.bmp.BrowserMobProxy;
-import net.lightbody.bmp.BrowserMobProxyServer;
-import net.lightbody.bmp.mitm.CertificateAndKeySource;
-import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import com.browserup.bup.BrowserUpProxy;
+import com.browserup.bup.BrowserUpProxyServer;
+import com.browserup.bup.mitm.CertificateAndKeySource;
+import com.browserup.bup.mitm.manager.ImpersonatingMitmManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.littleshoot.proxy.MitmManager;
@@ -279,9 +279,9 @@ public class TrickySite {
 
     }
 
-    private static Supplier<BrowserMobProxy> browsermobInstantiator(CertificateAndKeySource certificateAndKeySource) {
+    private static Supplier<BrowserUpProxy> browsermobInstantiator(CertificateAndKeySource certificateAndKeySource) {
         return () -> {
-            BrowserMobProxyServer server = new BrowserMobProxyServer();
+            BrowserUpProxyServer server = new BrowserUpProxyServer();
             MitmManager mitmManager = ImpersonatingMitmManager.builder()
                     .rootCertificateSource(certificateAndKeySource)
                     .trustAllServers(true)
@@ -321,7 +321,7 @@ public class TrickySite {
                     .collectHttps(certificateAndKeySource)
                     .interceptingProxyInstantiator(browsermobInstantiator(certificateAndKeySource))
                     .build();
-            net.lightbody.bmp.core.har.Har har = collector.collect(new TrafficGenerator<Void>() {
+            com.browserup.harreader.model.Har har = collector.collect(new TrafficGenerator<Void>() {
                 @Override
                 public Void generate(WebDriver driver) throws IOException {
                     System.out.format("visiting %s%n", startUrl);
@@ -342,7 +342,7 @@ public class TrickySite {
         }
     }
 
-    private static void writeHar(net.lightbody.bmp.core.har.Har har, File harFile) throws IOException {
+    private static void writeHar(com.browserup.harreader.model.Har har, File harFile) throws IOException {
         new com.fasterxml.jackson.databind.ObjectMapper()
             .writerWithDefaultPrettyPrinter().writeValue(harFile, har);
     }

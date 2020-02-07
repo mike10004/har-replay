@@ -12,13 +12,14 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface ChromeOptionsProducer {
 
     String SYSPROP_CHROME_ARGUMENTS = "har-replay.chromedriver.chrome.arguments";
     String SYSPROP_CHROME_EXEC_PATH = "har-replay.chromedriver.chrome.executablePath";
 
-    default ChromeOptions produceOptions(@Nullable HostAndPort proxy) {
+    default Consumer<? super ChromeOptions> produceOptions(@Nullable HostAndPort proxy) {
         List<String> args = new ArrayList<>();
         if (proxy != null) {
             args.add("--proxy-server=" + proxy);
@@ -26,7 +27,7 @@ public interface ChromeOptionsProducer {
         return produceOptions(args);
     }
 
-    ChromeOptions produceOptions(Iterable<String> arguments);
+    Consumer<? super ChromeOptions> produceOptions(Iterable<String> arguments);
 
     class StandardChromeOptionsProducer implements ChromeOptionsProducer {
 
@@ -41,16 +42,16 @@ public interface ChromeOptionsProducer {
         }
 
         @Override
-        public ChromeOptions produceOptions(Iterable<String> arguments) {
-            ChromeOptions options = new ChromeOptions();
-            String binaryPath = getBinaryPathOverride();
-            if (binaryPath != null) {
-                options.setBinary(binaryPath);
-            }
-            arguments = ImmutableList.copyOf(Iterables.concat(getAdditionalChromeArgs(), arguments));
-            LoggerFactory.getLogger(getClass()).debug("produced ChromeOptions with binary {} and args {}", binaryPath, arguments);
-            options.addArguments(ImmutableList.copyOf(arguments));
-            return options;
+        public Consumer<? super ChromeOptions> produceOptions(Iterable<String> arguments) {
+            return options -> {
+                String binaryPath = getBinaryPathOverride();
+                if (binaryPath != null) {
+                    options.setBinary(binaryPath);
+                }
+                List<String> allArguments = ImmutableList.copyOf(Iterables.concat(getAdditionalChromeArgs(), arguments));
+                LoggerFactory.getLogger(getClass()).debug("produced ChromeOptions with binary {} and args {}", binaryPath, allArguments);
+                options.addArguments(ImmutableList.copyOf(allArguments));
+            };
         }
     }
 
