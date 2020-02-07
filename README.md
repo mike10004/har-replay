@@ -70,8 +70,8 @@ FAQ
 
 See https://toolbox.googleapps.com/apps/har_analyzer/ for instructions on using
 your web browser to create a HAR file. Another option is to use 
-[browsermob-proxy](https://github.com/lightbody/browsermob-proxy) to capture a
-HAR. The Browsermob method captures some requests the web browser hides from you
+[browserup-proxy](https://github.com/browserup/browserup-proxy) to capture a
+HAR. The BrowserUp method captures some requests the web browser hides from you
 (because they are trackers or fetch data for browser internals).
 
 Debugging Travis Builds
