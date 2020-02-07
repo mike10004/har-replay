@@ -99,6 +99,7 @@ public class HarReplayExecTest extends HarReplayExecTestBase {
     @Test
     public void execute_headerTransform() throws Exception {
         System.out.println("execute_headerTransform");
+        Tests.assumeTravis(false);
         Fixture fixture = fixturesRule.getFixtures().httpsRedirect();
         URI uri = new URIBuilder(fixture.startUrl()).setScheme("http").build();
         System.out.format("starting at %s%n", uri);

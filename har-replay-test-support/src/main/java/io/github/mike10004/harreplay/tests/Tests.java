@@ -7,6 +7,7 @@ import com.google.common.io.CharSource;
 import com.google.common.net.HostAndPort;
 import io.github.mike10004.harreplay.tests.ImmutableHttpResponse.Builder;
 import io.github.mike10004.nitsick.SettingSet;
+import org.junit.Assume;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -117,4 +118,13 @@ public class Tests {
         });
     }
 
+    public static void assumeTravis(boolean onTravis) {
+        assumeTravis(onTravis, String.format("this test requires travis=%s", onTravis));
+    }
+
+    public static void assumeTravis(boolean onTravis, String message) {
+        String val = System.getProperty("har-replay.travis");
+        boolean travisSysPropValue = Boolean.parseBoolean(val);
+        Assume.assumeTrue(message, travisSysPropValue == onTravis);
+    }
 }
