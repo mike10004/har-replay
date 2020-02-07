@@ -2,7 +2,7 @@ package io.github.mike10004.vhs.bmp;
 
 import com.google.common.net.HostAndPort;
 import io.github.mike10004.vhs.bmp.BrowsermobVhsConfig.TlsEndpointFactory;
-import net.lightbody.bmp.mitm.TrustSource;
+import com.browserup.bup.mitm.TrustSource;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.KeyManager;

@@ -1,8 +1,8 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.google.common.base.Suppliers;
-import net.lightbody.bmp.mitm.CertificateAndKey;
-import net.lightbody.bmp.mitm.CertificateAndKeySource;
+import com.browserup.bup.mitm.CertificateAndKey;
+import com.browserup.bup.mitm.CertificateAndKeySource;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

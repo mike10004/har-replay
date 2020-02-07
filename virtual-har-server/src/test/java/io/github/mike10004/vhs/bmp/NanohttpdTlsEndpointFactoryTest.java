@@ -1,6 +1,6 @@
 package io.github.mike10004.vhs.bmp;
 
-import net.lightbody.bmp.mitm.TrustSource;
+import com.browserup.bup.mitm.TrustSource;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;

@@ -1,7 +1,7 @@
 package io.github.mike10004.vhs.harbridge;
 
+import com.browserup.harreader.model.HarHeader;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
@@ -275,5 +275,12 @@ public class Hars {
             return charset;
         }
         return StandardCharsets.UTF_8;
+    }
+
+    public static HarHeader newHarHeader(String name, String value) {
+        HarHeader h = new HarHeader();
+        h.setName(name);
+        h.setValue(value);
+        return h;
     }
 }

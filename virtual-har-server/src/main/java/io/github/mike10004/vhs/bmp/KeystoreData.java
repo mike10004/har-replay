@@ -1,10 +1,10 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.google.common.base.Suppliers;
-import net.lightbody.bmp.mitm.CertificateAndKey;
-import net.lightbody.bmp.mitm.CertificateAndKeySource;
-import net.lightbody.bmp.mitm.KeyStoreCertificateSource;
-import net.lightbody.bmp.mitm.exception.ImportException;
+import com.browserup.bup.mitm.CertificateAndKey;
+import com.browserup.bup.mitm.CertificateAndKeySource;
+import com.browserup.bup.mitm.KeyStoreCertificateSource;
+import com.browserup.bup.mitm.exception.ImportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

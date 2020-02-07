@@ -43,18 +43,18 @@
     <properties>
         <xvfb-manager.version>0.19</xvfb-manager.version>
         <selenium.version>3.141.59</selenium.version>
-        <selenium-capture.version>0.53</selenium-capture.version>
+        <selenium-capture.version>0.56</selenium-capture.version>
         <slf4j.version>1.7.25</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <test.log.level>info</test.log.level>
         <npm.log.level>error</npm.log.level>
         <chrome.executable>google-chrome</chrome.executable>
-        <crxtool.version>0.12</crxtool.version>
+        <crxtool.version>0.16</crxtool.version>
         <nanochamp.version>0.14</nanochamp.version>
         <common-helper.version>10.0.0</common-helper.version>
-        <subprocess.version>0.3</subprocess.version>
-        <jackson.version>2.10.0</jackson.version>
+        <subprocess.version>0.4</subprocess.version>
+        <jackson.version>2.10.2</jackson.version>
         <!--suppress UnresolvedMavenProperty -->
         <chromedriver.version>${env.CHROMEDRIVER_VERSION}</chromedriver.version>
     </properties>
@@ -378,9 +378,26 @@
                 <version>${nanochamp.version}</version>
             </dependency>
             <dependency>
-                <groupId>net.lightbody.bmp</groupId>
-                <artifactId>browsermob-core</artifactId>
-                <version>2.1.5</version>
+                <groupId>com.browserup</groupId>
+                <artifactId>browserup-proxy-core</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.browserup</groupId>
+                <artifactId>browserup-proxy-mitm</artifactId>
+                <version>2.0.1</version>
+            </dependency>
+            <dependency>
+                <!-- included so that dependencies that bring netty in transitively use this version -->
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>4.1.42.Final</version>
+            </dependency>
+            <dependency>
+                <!-- this must be kept in sync with version required by browserup-proxy-core -->
+                <groupId>xyz.rogfam</groupId>
+                <artifactId>littleproxy</artifactId>
+                <version>2.0.0-beta-5</version>
             </dependency>
             <dependency>
                 <groupId>org.brotli</groupId>

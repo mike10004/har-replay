@@ -1,7 +1,7 @@
 package io.github.mike10004.vhs.bmp;
 
 import com.google.common.net.HostAndPort;
-import net.lightbody.bmp.mitm.TrustSource;
+import com.browserup.bup.mitm.TrustSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

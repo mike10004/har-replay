@@ -1,21 +1,23 @@
 package io.github.mike10004.vhs.bmp;
 
 import io.github.mike10004.harreplay.tests.ChromeDriverSetupRule;
-import net.lightbody.bmp.BrowserMobProxy;
-import net.lightbody.bmp.BrowserMobProxyServer;
-import net.lightbody.bmp.core.har.Har;
-import net.lightbody.bmp.proxy.CaptureType;
+import com.browserup.bup.BrowserUpProxy;
+import com.browserup.bup.BrowserUpProxyServer;
+import com.browserup.harreader.model.Har;
+import com.browserup.bup.proxy.CaptureType;
+import io.github.mike10004.seleniumcapture.BrowserUpHars;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
 public class CreateHarWithBadBrotliEntry {
 
     public static void main(String[] args) throws Exception {
         ChromeDriverSetupRule.doSetup();
-        BrowserMobProxy proxy = new BrowserMobProxyServer();
+        BrowserUpProxy proxy = new BrowserUpProxyServer();
         int port = 4411;
         proxy.enableHarCaptureTypes(EnumSet.allOf(CaptureType.class));
         proxy.newHar();
@@ -35,7 +37,7 @@ public class CreateHarWithBadBrotliEntry {
 
         Har har = proxy.endHar();
         File harFile = File.createTempFile("visit-brotli-page-through-bmp", ".har");
-        har.writeTo(harFile);
+        BrowserUpHars.writeHar(har, harFile, StandardCharsets.UTF_8);
         System.out.format("%s written%n", harFile);
     }
 }

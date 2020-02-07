@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 @SuppressWarnings("Duplicates")
 public abstract class BrowseHarWithChromeExample extends UsageExample {
@@ -24,7 +25,7 @@ public abstract class BrowseHarWithChromeExample extends UsageExample {
     private static final int CLOSED_POLL_INTERVAL_MS = 100;
     private final Object windowClosedSignal = new Object();
 
-    protected ChromeOptions createChromeOptions(Path tempDir, HostAndPort proxy) throws IOException {
+    protected Consumer<? super ChromeOptions> createChromeOptions(Path tempDir, HostAndPort proxy) throws IOException {
         return ChromeOptionsProducer.standard().produceOptions(proxy);
     }
 
@@ -34,8 +35,10 @@ public abstract class BrowseHarWithChromeExample extends UsageExample {
         HostAndPort proxy = HostAndPort.fromParts(host, port);
         System.out.format("har replay proxy listening at %s%n", proxy);
         ChromeDriverSetupRule.doSetup();
-        ChromeOptions options = createChromeOptions(tempDir, proxy);
+        Consumer<? super ChromeOptions> optionsMods = createChromeOptions(tempDir, proxy);
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        ChromeOptions options = new ChromeOptions();
+        optionsMods.accept(options);
         ChromeDriver driver = new ChromeDriver(options);
         try {
             /*

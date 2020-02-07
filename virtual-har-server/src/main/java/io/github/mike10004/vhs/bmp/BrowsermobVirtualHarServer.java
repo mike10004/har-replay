@@ -7,12 +7,12 @@ import io.github.mike10004.vhs.VirtualHarServer;
 import io.github.mike10004.vhs.VirtualHarServerControl;
 import io.github.mike10004.vhs.bmp.ResponseManufacturingFiltersSource.PassthruPredicate;
 import io.github.mike10004.vhs.bmp.ScratchDirProvider.Scratch;
-import net.lightbody.bmp.BrowserMobProxy;
-import net.lightbody.bmp.BrowserMobProxyServer;
-import net.lightbody.bmp.mitm.CertificateAndKeySource;
-import net.lightbody.bmp.mitm.TrustSource;
-import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
-import net.lightbody.bmp.proxy.CaptureType;
+import com.browserup.bup.BrowserUpProxy;
+import com.browserup.bup.BrowserUpProxyServer;
+import com.browserup.bup.mitm.CertificateAndKeySource;
+import com.browserup.bup.mitm.TrustSource;
+import com.browserup.bup.mitm.manager.ImpersonatingMitmManager;
+import com.browserup.bup.proxy.CaptureType;
 import org.littleshoot.proxy.MitmManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
 
     private static final Logger log = LoggerFactory.getLogger(BrowsermobVirtualHarServer.class);
 
-    private Supplier<BrowserMobProxy> localProxyInstantiator = BrowserMobProxyServer::new;
+    private Supplier<BrowserUpProxy> localProxyInstantiator = BrowserUpProxyServer::new;
 
     private final BrowsermobVhsConfig config;
 
@@ -46,7 +46,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         Scratch scratch = config.scratchDirProvider.createScratchDir();
         closeables.add(scratch);
         CertificateAndKeySource certificateAndKeySource;
-        BrowserMobProxy proxy;
+        BrowserUpProxy proxy;
         Path scratchPath = scratch.getRoot();
         try {
             certificateAndKeySource = config.certificateAndKeySourceFactory.produce(config, scratchPath);
@@ -71,11 +71,11 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         }
     }
 
-    protected BrowserMobProxy startProxy(BmpResponseManufacturer.WithState<?> responseManufacturer,
+    protected BrowserUpProxy startProxy(BmpResponseManufacturer.WithState<?> responseManufacturer,
                                       HostAndPort httpsHostRewriteDestination,
                                       CertificateAndKeySource certificateAndKeySource,
                                       TrustSource trustSource) throws IOException {
-        BrowserMobProxy bmp = instantiateProxy();
+        BrowserUpProxy bmp = instantiateProxy();
         configureProxy(bmp, responseManufacturer, httpsHostRewriteDestination, certificateAndKeySource, config.bmpResponseListener, trustSource);
         bmp.enableHarCaptureTypes(getCaptureTypes());
         bmp.newHar();
@@ -87,7 +87,7 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         return bmp;
     }
 
-    protected MitmManager createMitmManager(@SuppressWarnings("unused") BrowserMobProxy proxy, CertificateAndKeySource certificateAndKeySource, TrustSource trustSource) {
+    protected MitmManager createMitmManager(@SuppressWarnings("unused") BrowserUpProxy proxy, CertificateAndKeySource certificateAndKeySource, TrustSource trustSource) {
         MitmManager mitmManager = ImpersonatingMitmManager.builder()
                 .rootCertificateSource(certificateAndKeySource)
                 .trustSource(trustSource)
@@ -101,11 +101,11 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
 
     protected static final PassthruPredicate DEFAULT_PASSTHRU_PREDICATE = (req, ctx) -> false;
 
-    protected BrowserMobProxy instantiateProxy() {
+    protected BrowserUpProxy instantiateProxy() {
         return localProxyInstantiator.get();
     }
 
-    protected void configureProxy(BrowserMobProxy bmp,
+    protected void configureProxy(BrowserUpProxy bmp,
                                   BmpResponseManufacturer.WithState<?> responseManufacturer,
                                   HostAndPort httpsHostRewriteDestination,
                                   CertificateAndKeySource certificateAndKeySource,
@@ -121,12 +121,12 @@ public class BrowsermobVirtualHarServer implements VirtualHarServer {
         return new ResponseManufacturingFiltersSource(responseManufacturer, hostRewriter, bmpResponseListener, passthruPredicate);
     }
 
-    class BrowsermobVhsControl implements VirtualHarServerControl {
+    static class BrowsermobVhsControl implements VirtualHarServerControl {
 
-        private final BrowserMobProxy proxy;
+        private final BrowserUpProxy proxy;
         private final ImmutableList<Closeable> closeables;
 
-        BrowsermobVhsControl(BrowserMobProxy proxy, Iterable<Closeable> closeables) {
+        BrowsermobVhsControl(BrowserUpProxy proxy, Iterable<Closeable> closeables) {
             this.proxy = requireNonNull(proxy);
             this.closeables = ImmutableList.copyOf(closeables);
         }

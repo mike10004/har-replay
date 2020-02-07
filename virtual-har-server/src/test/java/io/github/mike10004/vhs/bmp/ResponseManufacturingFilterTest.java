@@ -1,5 +1,6 @@
 package io.github.mike10004.vhs.bmp;
 
+import com.browserup.bup.filters.HttpsAwareFiltersAdapter;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharSource;
 import com.google.common.net.HttpHeaders;
@@ -9,6 +10,7 @@ import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.testsupport.VhsTests;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.HttpMethod;
@@ -54,7 +56,9 @@ public class ResponseManufacturingFilterTest {
         DefaultFullHttpRequest littleRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, url, content);
         String contentType = MediaType.PLAIN_TEXT_UTF_8.withCharset(bodyCharset).toString();
         littleRequest.headers().set(HttpHeaders.CONTENT_TYPE, contentType);
-        ResponseManufacturingFilter filter = new ResponseManufacturingFilter(littleRequest, createChannelHandlerContext(false), EasyMock.createMock(BmpResponseManufacturer.WithState.class), EasyMock.createMock(BmpResponseListener.class));
+        BmpResponseManufacturer.WithState bmprmws = EasyMock.createMock(BmpResponseManufacturer.WithState.class);
+        BmpResponseListener bmprl = EasyMock.createMock(BmpResponseListener.class);
+        ResponseManufacturingFilter filter = new ResponseManufacturingFilter(littleRequest, createChannelHandlerContext(false), bmprmws, bmprl);
         filter.captureRequest(littleRequest);
         RequestCapture bmpRequest = filter.freezeRequestCapture();
         ParsedRequest actual = bmpRequest.request;
@@ -68,11 +72,19 @@ public class ResponseManufacturingFilterTest {
         assertEquals("content-type header", contentType, actual.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE));
     }
 
+
+    // BEHAVIOR TO MOCK:
+//    Attribute<Boolean> isHttpsAttr = ctx.channel().attr(AttributeKey.valueOf(IS_HTTPS_ATTRIBUTE_NAME));
+//    Boolean isHttps = isHttpsAttr.get();
     @SuppressWarnings("SameParameterValue")
     private static ChannelHandlerContext createChannelHandlerContext(boolean https) {
         ChannelHandlerContext ctx = EasyMock.createNiceMock(ChannelHandlerContext.class);
-        EasyMock.expect(ctx.attr(EasyMock.anyObject())).andReturn(new AtomicRefAttr<>(new AtomicReference<>(https)));
+        Channel channel = EasyMock.createNiceMock(Channel.class);
+        EasyMock.expect(ctx.channel()).andReturn(channel);
+        EasyMock.expect(channel.attr(AttributeKey.valueOf(HttpsAwareFiltersAdapter.IS_HTTPS_ATTRIBUTE_NAME)))
+                .andReturn(new AtomicRefAttr<>(new AtomicReference<>(https)));
         EasyMock.replay(ctx);
+        EasyMock.replay(channel);
         return ctx;
     }
 

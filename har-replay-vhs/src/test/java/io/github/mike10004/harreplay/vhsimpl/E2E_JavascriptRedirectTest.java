@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static io.github.mike10004.harreplay.vhsimpl.VhsReplayManagerTest.SYSPROP_RESERVED_PORT;
@@ -163,11 +164,10 @@ public class E2E_JavascriptRedirectTest extends ReplayManagerTestFoundation {
                 .acceptInsecureCerts()
                 .environment(() -> xvfb.getController().newEnvironment())
                 .build();
-        ChromeOptions chromeOptions = ChromeOptionsProducer.standard().produceOptions(Collections.emptyList());
-        chromeOptions.setAcceptInsecureCerts(true);
+        Consumer<? super ChromeOptions> chromeOptionsModifier = ChromeOptionsProducer.standard().produceOptions(Collections.emptyList());
         ChromeWebDriverFactory chromeFactory = ChromeWebDriverFactory.builder()
                 .acceptInsecureCerts()
-                .chromeOptions(chromeOptions)
+                .configure(chromeOptionsModifier)
                 .environment(() -> xvfb.getController().newEnvironment())
                 .build();
         return Arrays.asList(chromeFactory, firefoxFactory);

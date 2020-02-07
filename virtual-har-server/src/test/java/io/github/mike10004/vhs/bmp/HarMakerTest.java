@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder;
 import io.github.mike10004.nanochamp.repackaged.fi.iki.elonen.NanoHTTPD;
 import io.github.mike10004.vhs.bmp.HarMaker.EntrySpec;
 import io.github.mike10004.vhs.bmp.HarMaker.HttpCallback;
-import net.lightbody.bmp.core.har.Har;
+import com.browserup.harreader.model.Har;
 import org.junit.Test;
 
 import java.net.URI;

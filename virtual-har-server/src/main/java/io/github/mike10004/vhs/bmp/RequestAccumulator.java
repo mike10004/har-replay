@@ -1,12 +1,13 @@
 package io.github.mike10004.vhs.bmp;
 
+import com.browserup.harreader.model.HarHeader;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import io.github.mike10004.vhs.harbridge.Hars;
 import io.github.mike10004.vhs.harbridge.HttpMethod;
 import io.github.mike10004.vhs.harbridge.ParsedRequest;
 import io.github.mike10004.vhs.repackaged.org.apache.http.client.utils.URLEncodedUtils;
 import io.netty.handler.codec.http.HttpVersion;
-import net.lightbody.bmp.core.har.HarNameValuePair;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -28,7 +29,7 @@ class RequestAccumulator {
     private final HttpVersion httpVersion;
     private volatile String method;
     private volatile String url;
-    private final List<HarNameValuePair> headers = Collections.synchronizedList(new ArrayList<>());
+    private final List<HarHeader> headers = Collections.synchronizedList(new ArrayList<>());
     private volatile byte[] body = new byte[0];
 
     public RequestAccumulator(HttpVersion httpVersion) {
@@ -51,12 +52,12 @@ class RequestAccumulator {
         this.url = url;
     }
 
-    private List<HarNameValuePair> getHeaders() {
+    private List<HarHeader> getHeaders() {
         return headers;
     }
 
     public void addHeader(String name, String value) {
-        getHeaders().add(new HarNameValuePair(name, value));
+        getHeaders().add(Hars.newHarHeader(name, value));
     }
 
     public void setBody(byte[] body) {
@@ -99,7 +100,7 @@ class RequestAccumulator {
         return mm;
     }
 
-    protected Multimap<String, String> toMultimap(Iterable<? extends HarNameValuePair> nameValuePairs) {
+    protected Multimap<String, String> toMultimap(Iterable<? extends HarHeader> nameValuePairs) {
         Multimap<String, String> mm = ArrayListMultimap.create();
         nameValuePairs.forEach(pair -> {
             mm.put(pair.getName(), pair.getValue());

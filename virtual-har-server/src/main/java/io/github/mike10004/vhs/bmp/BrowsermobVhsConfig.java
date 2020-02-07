@@ -1,6 +1,6 @@
 package io.github.mike10004.vhs.bmp;
 
-import net.lightbody.bmp.mitm.CertificateAndKeySource;
+import com.browserup.bup.mitm.CertificateAndKeySource;
 import org.apache.commons.io.FileUtils;
 
 import javax.annotation.Nullable;

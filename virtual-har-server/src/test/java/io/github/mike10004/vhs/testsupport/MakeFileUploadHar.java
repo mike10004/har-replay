@@ -50,10 +50,10 @@ import io.github.mike10004.vhs.bmp.MakeTestHar;
 import io.github.mike10004.vhs.harbridge.FormDataPart;
 import io.github.mike10004.vhs.harbridge.MultipartFormDataParser;
 import io.github.mike10004.vhs.harbridge.TypedContent;
-import net.lightbody.bmp.BrowserMobProxy;
-import net.lightbody.bmp.BrowserMobProxyServer;
-import net.lightbody.bmp.core.har.HarEntry;
-import net.lightbody.bmp.proxy.CaptureType;
+import com.browserup.bup.BrowserUpProxy;
+import com.browserup.bup.BrowserUpProxyServer;
+import com.browserup.harreader.model.HarEntry;
+import com.browserup.bup.proxy.CaptureType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -100,7 +100,7 @@ public class MakeFileUploadHar {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public static net.lightbody.bmp.core.har.Har main(Charset harOutputCharset, File binaryFile) throws IOException {
+    public static com.browserup.harreader.model.Har main(Charset harOutputCharset, File binaryFile) throws IOException {
         File harFile = File.createTempFile("traffic-with-file-upload", ".har");
         int port = 49111;
         int proxyPort = 60999;
@@ -122,7 +122,8 @@ public class MakeFileUploadHar {
                 System.out.format("%s http://localhost:%s%s%n", session.getMethod(), port, session.getUri());
                 URI uri = URI.create(session.getUri());
                 if ("/".equals(uri.getPath())) {
-                    return newFixedLengthResponse(Response.Status.OK, MediaType.HTML_UTF_8.toString(), new ByteArrayInputStream(landingHtmlBytes), landingHtmlBytes.length);
+                    return newFixedLengthResponse(Response.Status.OK, MediaType.HTML_UTF_8.toString(),
+                            new ByteArrayInputStream(landingHtmlBytes), landingHtmlBytes.length);
                 } else if ("/upload".equals(uri.getPath())) {
                     return processUpload(session, storage);
                 } else if ("/file".equals(uri.getPath())) {
@@ -133,7 +134,7 @@ public class MakeFileUploadHar {
             }
         };
         nano.start();
-        BrowserMobProxy proxy = new BrowserMobProxyServer();
+        BrowserUpProxy proxy = new BrowserUpProxyServer();
         proxy.newHar();
         proxy.enableHarCaptureTypes(EnumSet.allOf(CaptureType.class));
         proxy.start(proxyPort);
@@ -160,7 +161,7 @@ public class MakeFileUploadHar {
         } finally {
             proxy.stop();
         }
-        net.lightbody.bmp.core.har.Har bmpHar = proxy.getHar();
+        com.browserup.harreader.model.Har bmpHar = proxy.getHar();
         removeConnectEntries(bmpHar.getLog().getEntries());
         String serializer = "gson";
         serialize(serializer, bmpHar, harFile, harOutputCharset);
@@ -180,7 +181,7 @@ public class MakeFileUploadHar {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static void serialize(String serializer, net.lightbody.bmp.core.har.Har bmpHar, File harFile, Charset harOutputCharset) throws IOException {
+    private static void serialize(String serializer, com.browserup.harreader.model.Har bmpHar, File harFile, Charset harOutputCharset) throws IOException {
         bmpHar.getLog().setComment("serialized with " + serializer);
         switch (serializer){
             case "gson":
@@ -195,7 +196,7 @@ public class MakeFileUploadHar {
 
     }
 
-    private static void serializeWithGson(net.lightbody.bmp.core.har.Har bmpHar, File harFile, Charset HAR_OUTPUT_CHARSET) throws IOException {
+    private static void serializeWithGson(com.browserup.harreader.model.Har bmpHar, File harFile, Charset HAR_OUTPUT_CHARSET) throws IOException {
         Gson gson = new GsonBuilder().setPrettyPrinting()
                 .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .create();
@@ -204,7 +205,7 @@ public class MakeFileUploadHar {
         }
     }
 
-    private static void serializeWithJackson(net.lightbody.bmp.core.har.Har bmpHar, File harFile, Charset HAR_OUTPUT_CHARSET) throws IOException {
+    private static void serializeWithJackson(com.browserup.harreader.model.Har bmpHar, File harFile, Charset HAR_OUTPUT_CHARSET) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         try (Writer out = new OutputStreamWriter(new FileOutputStream(harFile), HAR_OUTPUT_CHARSET)) {
@@ -215,7 +216,7 @@ public class MakeFileUploadHar {
     private static void removeConnectEntries(List<HarEntry> entries) {
         List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < entries.size(); i++) {
-            if ("CONNECT".equalsIgnoreCase(entries.get(i).getRequest().getMethod())) {
+            if ("CONNECT".equalsIgnoreCase(entries.get(i).getRequest().getMethod().name())) {
                 indices.add(i);
             }
         }
