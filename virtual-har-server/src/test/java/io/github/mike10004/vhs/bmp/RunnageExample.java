@@ -3,7 +3,7 @@ package io.github.mike10004.vhs.bmp;
 import io.github.mike10004.subprocess.ScopedProcessTracker;
 import io.github.mike10004.subprocess.Subprocess;
 import com.google.common.net.HostAndPort;
-import de.sstoehr.harreader.model.HarEntry;
+import com.browserup.harreader.model.HarEntry;
 import io.github.mike10004.vhs.BasicHeuristic;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
@@ -40,7 +40,7 @@ public class RunnageExample {
             Path scratchDir = scratch.getRoot();
             File chromeUserDataDir = scratchDir.resolve("chrome-user-data").toFile();
             File harFile = VhsTests.getHttpsExampleHarFile(scratchDir);
-            List<HarEntry> entries = new de.sstoehr.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
+            List<HarEntry> entries = new com.browserup.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
             System.out.println("requests contained in HAR:");
             entries.stream().map(HarEntry::getRequest).forEach(request -> {
                 System.out.format("  %s %s%n", request.getMethod(), request.getUrl());

@@ -1,8 +1,8 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
-import de.sstoehr.harreader.HarReaderMode;
-import de.sstoehr.harreader.model.Har;
-import de.sstoehr.harreader.model.HarEntry;
+import com.browserup.harreader.HarReaderMode;
+import com.browserup.harreader.model.Har;
+import com.browserup.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.tests.Fixtures;
 import org.junit.Rule;
 import org.junit.Test;

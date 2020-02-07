@@ -2,10 +2,10 @@ package io.github.mike10004.harreplay.vhsimpl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import de.sstoehr.harreader.HarReader;
-import de.sstoehr.harreader.HarReaderMode;
-import de.sstoehr.harreader.jackson.ExceptionIgnoringIntegerDeserializer;
-import de.sstoehr.harreader.jackson.MapperFactory;
+import com.browserup.harreader.HarReader;
+import com.browserup.harreader.HarReaderMode;
+import com.browserup.harreader.jackson.ExceptionIgnoringIntegerDeserializer;
+import com.browserup.harreader.jackson.MapperFactory;
 
 import java.util.Date;
 

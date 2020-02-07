@@ -1,6 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
-import de.sstoehr.harreader.HarReaderMode;
+import com.browserup.harreader.HarReaderMode;
 import io.github.mike10004.vhs.bmp.BmpResponseListener;
 import io.github.mike10004.vhs.bmp.KeystoreGenerator;
 import io.github.mike10004.vhs.bmp.KeystoreType;

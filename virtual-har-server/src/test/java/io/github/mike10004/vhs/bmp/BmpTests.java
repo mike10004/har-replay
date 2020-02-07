@@ -6,11 +6,11 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.net.MediaType;
-import de.sstoehr.harreader.HarReaderException;
-import de.sstoehr.harreader.HarReaderMode;
-import de.sstoehr.harreader.jackson.ExceptionIgnoringIntegerDeserializer;
-import de.sstoehr.harreader.jackson.MapperFactory;
-import de.sstoehr.harreader.model.HarEntry;
+import com.browserup.harreader.HarReaderException;
+import com.browserup.harreader.HarReaderMode;
+import com.browserup.harreader.jackson.ExceptionIgnoringIntegerDeserializer;
+import com.browserup.harreader.jackson.MapperFactory;
+import com.browserup.harreader.model.HarEntry;
 import io.github.mike10004.vhs.BasicHeuristic;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
@@ -98,41 +98,41 @@ public class BmpTests {
     public static HarReplayManufacturer createManufacturer(File harFile, Iterable<ResponseInterceptor> responseInterceptors) throws IOException {
         List<HarEntry> entries;
         try {
-            entries = new de.sstoehr.harreader.HarReader(tolerantMapperFactory()).readFromFile(harFile).getLog().getEntries();
+            entries = new com.browserup.harreader.HarReader(tolerantMapperFactory()).readFromFile(harFile).getLog().getEntries();
         } catch (HarReaderException e) {
             throw new IOException(e);
         }
         return createManufacturer(entries, responseInterceptors);
     }
 
-    public static HarEntry buildHarEntry(de.sstoehr.harreader.model.HarRequest request, de.sstoehr.harreader.model.HarResponse response) {
+    public static HarEntry buildHarEntry(com.browserup.harreader.model.HarRequest request, com.browserup.harreader.model.HarResponse response) {
         HarEntry entry = new HarEntry();
         entry.setRequest(request);
         entry.setResponse(response);
         return entry;
     }
 
-    public static de.sstoehr.harreader.model.HarRequest buildHarRequest(de.sstoehr.harreader.model.HttpMethod method, String url, List<de.sstoehr.harreader.model.HarHeader> headers) {
-        de.sstoehr.harreader.model.HarRequest request = new de.sstoehr.harreader.model.HarRequest();
+    public static com.browserup.harreader.model.HarRequest buildHarRequest(com.browserup.harreader.model.HttpMethod method, String url, List<com.browserup.harreader.model.HarHeader> headers) {
+        com.browserup.harreader.model.HarRequest request = new com.browserup.harreader.model.HarRequest();
         request.setUrl(url);
         request.setMethod(method);
         request.setHeaders(headers);
         return request;
     }
 
-    public static de.sstoehr.harreader.model.HarResponse buildHarResponse(int status, List<de.sstoehr.harreader.model.HarHeader> headers, de.sstoehr.harreader.model.HarContent content) {
-        de.sstoehr.harreader.model.HarResponse response = new de.sstoehr.harreader.model.HarResponse();
+    public static com.browserup.harreader.model.HarResponse buildHarResponse(int status, List<com.browserup.harreader.model.HarHeader> headers, com.browserup.harreader.model.HarContent content) {
+        com.browserup.harreader.model.HarResponse response = new com.browserup.harreader.model.HarResponse();
         response.setHeaders(headers);
         response.setStatus(status);
         response.setContent(content);
         return response;
     }
 
-    public static List<de.sstoehr.harreader.model.HarHeader> buildHarHeaders(String...namesAndValues) {
-        List<de.sstoehr.harreader.model.HarHeader> headers = new ArrayList<>();
+    public static List<com.browserup.harreader.model.HarHeader> buildHarHeaders(String...namesAndValues) {
+        List<com.browserup.harreader.model.HarHeader> headers = new ArrayList<>();
         for (int i = 0; i < namesAndValues.length; i += 2) {
             String name = namesAndValues[i], value = namesAndValues[i + 1];
-            de.sstoehr.harreader.model.HarHeader h = new de.sstoehr.harreader.model.HarHeader();
+            com.browserup.harreader.model.HarHeader h = new com.browserup.harreader.model.HarHeader();
             h.setName(name);
             h.setValue(value);
             headers.add(h);
@@ -140,8 +140,8 @@ public class BmpTests {
         return headers;
     }
 
-    public static de.sstoehr.harreader.model.HarContent buildHarContent(String text, MediaType contentType) {
-        de.sstoehr.harreader.model.HarContent content = new de.sstoehr.harreader.model.HarContent();
+    public static com.browserup.harreader.model.HarContent buildHarContent(String text, MediaType contentType) {
+        com.browserup.harreader.model.HarContent content = new com.browserup.harreader.model.HarContent();
         content.setText(text);
         content.setMimeType(contentType.toString());
         return content;

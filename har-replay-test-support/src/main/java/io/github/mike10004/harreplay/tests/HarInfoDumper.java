@@ -6,10 +6,10 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Table;
-import de.sstoehr.harreader.model.HarContent;
-import de.sstoehr.harreader.model.HarEntry;
-import de.sstoehr.harreader.model.HarRequest;
-import de.sstoehr.harreader.model.HarResponse;
+import com.browserup.harreader.model.HarContent;
+import com.browserup.harreader.model.HarEntry;
+import com.browserup.harreader.model.HarRequest;
+import com.browserup.harreader.model.HarResponse;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.PrintStream;

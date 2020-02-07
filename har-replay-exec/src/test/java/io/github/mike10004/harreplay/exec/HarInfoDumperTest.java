@@ -3,15 +3,15 @@ package io.github.mike10004.harreplay.exec;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.MediaType;
 import com.opencsv.CSVReader;
-import de.sstoehr.harreader.HarReader;
-import de.sstoehr.harreader.HarReaderException;
-import de.sstoehr.harreader.model.HarContent;
-import de.sstoehr.harreader.model.HarEntry;
-import de.sstoehr.harreader.model.HarPostData;
-import de.sstoehr.harreader.model.HarPostDataParam;
-import de.sstoehr.harreader.model.HarRequest;
-import de.sstoehr.harreader.model.HarResponse;
-import de.sstoehr.harreader.model.HttpMethod;
+import com.browserup.harreader.HarReader;
+import com.browserup.harreader.HarReaderException;
+import com.browserup.harreader.model.HarContent;
+import com.browserup.harreader.model.HarEntry;
+import com.browserup.harreader.model.HarPostData;
+import com.browserup.harreader.model.HarPostDataParam;
+import com.browserup.harreader.model.HarRequest;
+import com.browserup.harreader.model.HarResponse;
+import com.browserup.harreader.model.HttpMethod;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.SummaryDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.TerseDumper;
 import io.github.mike10004.harreplay.exec.HarInfoDumper.VerboseDumper;
@@ -50,7 +50,7 @@ public class HarInfoDumperTest {
 
         @Test
         public void testRead() throws Exception {
-            de.sstoehr.harreader.model.Har har = new de.sstoehr.harreader.HarReader().readFromString("{}");
+            com.browserup.harreader.model.Har har = new com.browserup.harreader.HarReader().readFromString("{}");
             assertNotNull(har);
         }
 

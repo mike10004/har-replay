@@ -94,10 +94,6 @@
             <version>${xvfb-manager.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.sstoehr</groupId>
-            <artifactId>har-reader</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.freemarker</groupId>
             <artifactId>freemarker</artifactId>
             <scope>test</scope>
@@ -120,6 +116,10 @@
             <groupId>com.github.mike10004</groupId>
             <artifactId>nanohttpd-server</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.browserup</groupId>
+            <artifactId>browserup-proxy-core</artifactId>
         </dependency>
     </dependencies>
 </project>

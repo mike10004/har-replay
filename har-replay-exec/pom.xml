@@ -180,8 +180,8 @@
             <artifactId>crxtool-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>de.sstoehr</groupId>
-            <artifactId>har-reader</artifactId>
+            <groupId>com.browserup</groupId>
+            <artifactId>browserup-proxy-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.opencsv</groupId>

@@ -1,9 +1,9 @@
 package io.github.mike10004.vhs.bmp;
 
-import de.sstoehr.harreader.model.HarEntry;
-import de.sstoehr.harreader.model.HarHeader;
-import de.sstoehr.harreader.model.HarRequest;
-import de.sstoehr.harreader.model.HttpMethod;
+import com.browserup.harreader.model.HarEntry;
+import com.browserup.harreader.model.HarHeader;
+import com.browserup.harreader.model.HarRequest;
+import com.browserup.harreader.model.HttpMethod;
 import io.github.mike10004.vhs.EntryParser;
 import io.github.mike10004.vhs.HarBridgeEntryParser;
 import io.github.mike10004.vhs.harbridge.sstoehr.SstoehrHarBridge;

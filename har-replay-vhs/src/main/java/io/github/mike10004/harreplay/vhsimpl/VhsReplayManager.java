@@ -1,9 +1,9 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
 import com.google.common.net.HostAndPort;
-import de.sstoehr.harreader.HarReader;
-import de.sstoehr.harreader.HarReaderException;
-import de.sstoehr.harreader.model.HarEntry;
+import com.browserup.harreader.HarReader;
+import com.browserup.harreader.HarReaderException;
+import com.browserup.harreader.model.HarEntry;
 import io.github.mike10004.harreplay.ReplayManager;
 import io.github.mike10004.harreplay.ReplayServerConfig;
 import io.github.mike10004.harreplay.ReplayServerConfig.Replacement;

@@ -1,6 +1,6 @@
 package io.github.mike10004.harreplay.vhsimpl;
 
-import de.sstoehr.harreader.HarReader;
+import com.browserup.harreader.HarReader;
 
 public interface HarReaderFactory {
 

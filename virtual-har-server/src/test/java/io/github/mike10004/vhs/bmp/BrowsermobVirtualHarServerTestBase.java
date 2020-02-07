@@ -1,7 +1,7 @@
 package io.github.mike10004.vhs.bmp;
 
-import de.sstoehr.harreader.HarReaderException;
-import de.sstoehr.harreader.model.HarEntry;
+import com.browserup.harreader.HarReaderException;
+import com.browserup.harreader.model.HarEntry;
 import io.github.mike10004.vhs.EntryMatcher;
 import io.github.mike10004.vhs.EntryMatcherFactory;
 import io.github.mike10004.vhs.EntryParser;
@@ -45,7 +45,7 @@ public class BrowsermobVirtualHarServerTestBase extends VirtualHarServerTestBase
     protected final BrowsermobVhsConfig createServerConfig(int port, File harFile, EntryMatcherFactory entryMatcherFactory, TestContext context) throws IOException {
         List<HarEntry> entries;
         try {
-            entries = new de.sstoehr.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
+            entries = new com.browserup.harreader.HarReader().readFromFile(harFile).getLog().getEntries();
         } catch (HarReaderException e) {
             throw new IOException(e);
         }
